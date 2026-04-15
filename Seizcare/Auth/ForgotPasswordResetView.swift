@@ -23,7 +23,7 @@ struct ForgotPasswordResetView: View {
 
                 Text("Your new password must be different from previously used passwords.")
                     .font(.system(size: 15))
-                    .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                    .foregroundColor(.authSecondaryText)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
                     .padding(.top, 8)
@@ -38,7 +38,7 @@ struct ForgotPasswordResetView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Password")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                        .foregroundColor(.authSecondaryText)
 
                     HStack {
                         Group {
@@ -53,17 +53,17 @@ struct ForgotPasswordResetView: View {
 
                         Button(action: { isPasswordRevealed.toggle() }) {
                             Image(systemName: isPasswordRevealed ? "eye.slash" : "eye")
-                                .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                                .foregroundColor(.authSecondaryText)
                         }
                     }
                     .padding(.horizontal, 16)
                     .frame(height: 52)
-                    .background(Color.white)
+                    .background(Color.authFieldBackground)
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(
-                                vm.resetPasswordError != nil ? Color.errorRed : Color(red: 0.90, green: 0.92, blue: 0.94),
+                                vm.resetPasswordError != nil ? Color.errorRed : Color.authInputBorder,
                                 lineWidth: vm.resetPasswordError != nil ? 1.5 : 1
                             )
                     )
@@ -74,7 +74,7 @@ struct ForgotPasswordResetView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Confirm Password")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                        .foregroundColor(.authSecondaryText)
 
                     HStack {
                         Group {
@@ -89,17 +89,17 @@ struct ForgotPasswordResetView: View {
 
                         Button(action: { isConfirmPasswordRevealed.toggle() }) {
                             Image(systemName: isConfirmPasswordRevealed ? "eye.slash" : "eye")
-                                .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                                .foregroundColor(.authSecondaryText)
                         }
                     }
                     .padding(.horizontal, 16)
                     .frame(height: 52)
-                    .background(Color.white)
+                    .background(Color.authFieldBackground)
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(
-                                vm.resetConfirmPasswordError != nil ? Color.errorRed : Color(red: 0.90, green: 0.92, blue: 0.94),
+                                vm.resetConfirmPasswordError != nil ? Color.errorRed : Color.authInputBorder,
                                 lineWidth: vm.resetConfirmPasswordError != nil ? 1.5 : 1
                             )
                     )
@@ -112,7 +112,7 @@ struct ForgotPasswordResetView: View {
                 Button(action: { vm.updatePassword() }) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(vm.isForgotPasswordResetEnabled ? Color(red: 0.27, green: 0.51, blue: 0.96) : Color(red: 0.69, green: 0.82, blue: 1.0))
+                            .fill(vm.isForgotPasswordResetEnabled ? Color.authPrimaryButton : Color.authButtonDisabled)
 
                         if vm.isLoading {
                             ProgressView()
@@ -129,7 +129,7 @@ struct ForgotPasswordResetView: View {
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 20)
-            .background(Color.white)
+            .background(Color.authCardBackground)
             .cornerRadius(24)
             .shadow(color: Color.black.opacity(0.04), radius: 15, x: 0, y: 8)
             .padding(.horizontal, 24)
@@ -139,7 +139,7 @@ struct ForgotPasswordResetView: View {
             Button(action: { vm.switchToLogin() }) {
                 Text("Cancel")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                    .foregroundColor(.authSecondaryText)
             }
             .padding(.vertical, 16)
 

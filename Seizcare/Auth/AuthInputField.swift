@@ -68,7 +68,7 @@ struct AuthInputField: View {
             .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.authAdaptiveField)
+                    .fill(Color.authFieldBackground)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -101,5 +101,5 @@ struct AuthInputField: View {
         AuthInputField(icon: "lock", placeholder: "Password", text: .constant(""), isSecure: true, errorMessage: "At least 8 characters")
     }
     .padding(24)
-    .background(Color.authAdaptiveBackground)
+    .background(Color.authBackground)
 }

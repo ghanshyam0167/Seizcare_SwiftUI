@@ -8,51 +8,74 @@
 
 import SwiftUI
 
-// MARK: - Colour Palette
+// MARK: - Colour Palette (Adaptive for Dark/Light Mode)
 
 extension Color {
     // Brand
-    static let brandPrimary   = Color(red: 0.40, green: 0.36, blue: 0.98) // indigo-violet
-    static let brandSecondary = Color(red: 0.56, green: 0.32, blue: 0.95) // purple
-    static let brandAccent    = Color(red: 0.29, green: 0.73, blue: 0.96) // sky blue
-
-    // Surfaces
-    static let authBackground  = Color(red: 0.96, green: 0.96, blue: 0.98)
-    static let cardSurface     = Color.white.opacity(0.80)
-    static let fieldBackground = Color(red: 0.94, green: 0.94, blue: 0.97)
-
-    // Text
-    static let authPrimaryText   = Color(red: 0.10, green: 0.10, blue: 0.20)
-    static let authSecondaryText = Color(red: 0.48, green: 0.48, blue: 0.58)
+    static let authPrimaryButton = Color(red: 0.27, green: 0.51, blue: 0.96)
+    static let brandPrimary      = Color.authPrimaryButton
+    static let brandSecondary    = Color(red: 0.35, green: 0.60, blue: 0.98)
+    static let brandAccent       = Color(red: 0.45, green: 0.70, blue: 0.99)
     static let errorRed          = Color(red: 0.95, green: 0.28, blue: 0.33)
     static let successGreen      = Color(red: 0.18, green: 0.80, blue: 0.44)
-}
-
-// MARK: - Dark-mode adaptive versions
-
-extension Color {
-    /// Off-white in light mode; near-black in dark mode.
-    static var authAdaptiveBackground: Color {
+    
+    // Backgrounds
+    static var authBackground: Color {
         Color(UIColor { trait in
             trait.userInterfaceStyle == .dark
-                ? UIColor(red: 0.08, green: 0.08, blue: 0.12, alpha: 1)
-                : UIColor(red: 0.96, green: 0.96, blue: 0.98, alpha: 1)
+                ? UIColor(red: 0.06, green: 0.06, blue: 0.08, alpha: 1)
+                : UIColor(red: 0.961, green: 0.969, blue: 0.984, alpha: 1)
+        })
+    }
+    
+    static var authCardBackground: Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(red: 0.11, green: 0.11, blue: 0.13, alpha: 1)
+                : UIColor.white
+        })
+    }
+    
+    // Borders & Fields
+    static var authInputBorder: Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(red: 0.20, green: 0.20, blue: 0.24, alpha: 1)
+                : UIColor(red: 0.90, green: 0.92, blue: 0.94, alpha: 1)
+        })
+    }
+    
+    static var authFieldBackground: Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(red: 0.14, green: 0.14, blue: 0.16, alpha: 1)
+                : UIColor.white
         })
     }
 
-    static var authAdaptiveCard: Color {
+    // Texts
+    static var authPrimaryText: Color {
         Color(UIColor { trait in
             trait.userInterfaceStyle == .dark
-                ? UIColor(red: 0.14, green: 0.14, blue: 0.20, alpha: 0.90)
-                : UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.80)
+                ? UIColor.white
+                : UIColor(red: 0.08, green: 0.11, blue: 0.18, alpha: 1)
         })
     }
-
-    static var authAdaptiveField: Color {
+    
+    static var authSecondaryText: Color {
         Color(UIColor { trait in
             trait.userInterfaceStyle == .dark
-                ? UIColor(red: 0.18, green: 0.18, blue: 0.24, alpha: 1)
-                : UIColor(red: 0.94, green: 0.94, blue: 0.97, alpha: 1)
+                ? UIColor(red: 0.65, green: 0.65, blue: 0.70, alpha: 1)
+                : UIColor(red: 0.48, green: 0.53, blue: 0.62, alpha: 1)
+        })
+    }
+    
+    // Button States
+    static var authButtonDisabled: Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(red: 0.20, green: 0.28, blue: 0.45, alpha: 1)
+                : UIColor(red: 0.69, green: 0.82, blue: 1.0, alpha: 1)
         })
     }
 }

@@ -16,7 +16,7 @@ import SwiftUI
 
 struct AuthRootView: View {
 
-    @StateObject private var vm = AuthViewModel()
+    @ObservedObject var vm: AuthViewModel
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -32,16 +32,12 @@ struct AuthRootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.35), value: vm.isAuthenticated)
-        .task {
-            // Auto-login: try restoring a prior Supabase session
-            await vm.tryRestoreSession()
-        }
     }
 
     private var authFlow: some View {
         ZStack {
             // ── Unified Minimalist Background ──────────────────────────
-            Color(red: 0.961, green: 0.969, blue: 0.984)
+            Color.authBackground
                 .ignoresSafeArea()
 
             // ── Screen switcher ────────────────────────────────────────
@@ -160,7 +156,7 @@ private struct MainAppPlaceholderView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.961, green: 0.969, blue: 0.984).ignoresSafeArea()
+            Color.authBackground.ignoresSafeArea()
 
             VStack(spacing: 24) {
                 Image(systemName: "checkmark.seal.fill")
@@ -204,5 +200,5 @@ private struct MainAppPlaceholderView: View {
 // MARK: - Preview
 
 #Preview {
-    AuthRootView()
+    AuthRootView(vm: AuthViewModel())
 }

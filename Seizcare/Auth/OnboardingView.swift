@@ -39,7 +39,7 @@ struct OnboardingView: View {
     var body: some View {
         ZStack {
             // Background
-            Color(red: 0.961, green: 0.969, blue: 0.984).ignoresSafeArea()
+            Color.authBackground.ignoresSafeArea()
             
             VStack {
 
@@ -66,11 +66,11 @@ struct OnboardingView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text(onboardingPages[index].title)
                                     .font(.system(size: 28, weight: .bold, design: .rounded))
-                                    .foregroundColor(Color(red: 0.08, green: 0.11, blue: 0.18))
+                                    .foregroundColor(.authPrimaryText)
                                 
                                 Text(onboardingPages[index].subtitle)
                                     .font(.system(size: 16, weight: .regular))
-                                    .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                                    .foregroundColor(.authSecondaryText)
                                     .lineSpacing(4)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -121,21 +121,21 @@ struct OnboardingView: View {
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 56)
-                                    .background(Color(red: 0.27, green: 0.51, blue: 0.96))
+                                    .background(Color.authPrimaryButton)
                                     .cornerRadius(16)
                             }
                             
                             Button(action: { vm.switchToLogin() }) {
                                 Text("Login")
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(Color(red: 0.08, green: 0.11, blue: 0.18))
+                                    .foregroundColor(.authPrimaryText)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 56)
-                                    .background(Color.white) // Using a light/gray/white look
+                                    .background(Color.authCardBackground)
                                     .cornerRadius(16)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 16)
-                                            .stroke(Color(red: 0.90, green: 0.92, blue: 0.94), lineWidth: 1)
+                                            .stroke(Color.authInputBorder, lineWidth: 1)
                                     )
                             }
                         }
@@ -155,7 +155,7 @@ struct OnboardingView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
-                            .background(Color(red: 0.27, green: 0.51, blue: 0.96))
+                            .background(Color.authPrimaryButton)
                             .cornerRadius(16)
                         }
                         .padding(.horizontal, 24)
@@ -182,14 +182,14 @@ struct FeatureRow: View {
                     .foregroundColor(Color(red: 0.27, green: 0.51, blue: 0.96))
             }
             .frame(width: 32, height: 32)
-            .background(Color(red: 0.961, green: 0.969, blue: 0.984)) // Blend with background
+            .background(Color.authBackground) // Blend with background
             .overlay(
-                 Circle().stroke(Color(red: 0.90, green: 0.92, blue: 0.94), lineWidth: 1)
+                 Circle().stroke(Color.authInputBorder, lineWidth: 1)
             )
             
             Text(text)
                 .font(.system(size: 15))
-                .foregroundColor(Color(red: 0.18, green: 0.23, blue: 0.32))
+                .foregroundColor(.authPrimaryText)
         }
     }
 }
@@ -262,7 +262,7 @@ struct IllustrationGetStarted: View {
             // Main document
             ZStack {
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white)
+                    .fill(Color.authCardBackground)
                     .frame(width: 120, height: 140)
                     .shadow(color: Color.black.opacity(0.04), radius: 10, x: 0, y: 5)
                 

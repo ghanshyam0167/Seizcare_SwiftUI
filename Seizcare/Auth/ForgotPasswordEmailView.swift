@@ -20,7 +20,7 @@ struct ForgotPasswordEmailView: View {
 
                 Text("Enter your email so we can send you an OTP code to reset your password.")
                     .font(.system(size: 15))
-                    .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                    .foregroundColor(.authSecondaryText)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
                     .padding(.top, 8)
@@ -34,7 +34,7 @@ struct ForgotPasswordEmailView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Email")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                        .foregroundColor(.authSecondaryText)
 
                     TextField("your@email.com", text: $vm.forgotPasswordEmail)
                         .font(.system(size: 15))
@@ -42,12 +42,12 @@ struct ForgotPasswordEmailView: View {
                         .autocapitalization(.none)
                         .padding(.horizontal, 16)
                         .frame(height: 52)
-                        .background(Color.white)
+                        .background(Color.authFieldBackground)
                         .cornerRadius(12)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(
-                                    vm.forgotPasswordEmailError != nil ? Color.errorRed : Color(red: 0.90, green: 0.92, blue: 0.94),
+                                    vm.forgotPasswordEmailError != nil ? Color.errorRed : Color.authInputBorder,
                                     lineWidth: vm.forgotPasswordEmailError != nil ? 1.5 : 1
                                 )
                         )
@@ -60,7 +60,7 @@ struct ForgotPasswordEmailView: View {
                 Button(action: { vm.sendPasswordReset() }) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(vm.isForgotPasswordEmailEnabled ? Color(red: 0.27, green: 0.51, blue: 0.96) : Color(red: 0.69, green: 0.82, blue: 1.0))
+                            .fill(vm.isForgotPasswordEmailEnabled ? Color.authPrimaryButton : Color.authButtonDisabled)
 
                         if vm.isLoading {
                             ProgressView()
@@ -77,7 +77,7 @@ struct ForgotPasswordEmailView: View {
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 20)
-            .background(Color.white)
+            .background(Color.authCardBackground)
             .cornerRadius(24)
             .shadow(color: Color.black.opacity(0.04), radius: 15, x: 0, y: 8)
             .padding(.horizontal, 24)
@@ -87,7 +87,7 @@ struct ForgotPasswordEmailView: View {
             Button(action: { vm.switchToLogin() }) {
                 Text("Back to Login")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(red: 0.27, green: 0.51, blue: 0.96))
+                    .foregroundColor(Color.authPrimaryButton)
             }
             .padding(.bottom, 8)
 

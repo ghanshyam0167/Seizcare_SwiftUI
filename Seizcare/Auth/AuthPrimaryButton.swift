@@ -116,5 +116,5 @@ struct ScaleButtonStyle: ButtonStyle {
         AuthTextButton(title: "Don't have an account? Sign Up", highlight: "Sign Up") {}
     }
     .padding(24)
-    .background(Color.authAdaptiveBackground)
+    .background(Color.authBackground)
 }

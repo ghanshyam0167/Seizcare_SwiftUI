@@ -15,7 +15,7 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.961, green: 0.969, blue: 0.984).ignoresSafeArea()
+            Color.authBackground.ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
                 Spacer()
@@ -23,11 +23,11 @@ struct LoginView: View {
                 // Header
                 Text("Welcome Back")
                     .font(.system(size: 30, weight: .bold, design: .rounded))
-                    .foregroundColor(Color(red: 0.08, green: 0.11, blue: 0.18))
+                    .foregroundColor(.authPrimaryText)
 
                 Text("Login to continue")
                     .font(.system(size: 16, weight: .regular))
-                    .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                    .foregroundColor(.authSecondaryText)
                     .padding(.top, 8)
 
                 Spacer().frame(height: 24)
@@ -39,18 +39,18 @@ struct LoginView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Email")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                            .foregroundColor(.authSecondaryText)
 
                         TextField("you@example.com", text: $vm.loginEmail)
                             .font(.system(size: 15))
                             .padding(.horizontal, 16)
                             .frame(height: 52)
-                            .background(Color.white)
+                            .background(Color.authFieldBackground)
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(
-                                        vm.loginEmailError != nil ? Color.errorRed : Color(red: 0.90, green: 0.92, blue: 0.94),
+                                        vm.loginEmailError != nil ? Color.errorRed : Color.authInputBorder,
                                         lineWidth: vm.loginEmailError != nil ? 1.5 : 1
                                     )
                             )
@@ -64,7 +64,7 @@ struct LoginView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Password")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                            .foregroundColor(.authSecondaryText)
 
                         HStack {
                             Group {
@@ -78,17 +78,17 @@ struct LoginView: View {
 
                             Button(action: { isPasswordRevealed.toggle() }) {
                                 Image(systemName: isPasswordRevealed ? "eye.slash" : "eye")
-                                    .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                                    .foregroundColor(.authSecondaryText)
                             }
                         }
                         .padding(.horizontal, 16)
                         .frame(height: 52)
-                        .background(Color.white)
+                        .background(Color.authFieldBackground)
                         .cornerRadius(12)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(
-                                    vm.loginPasswordError != nil ? Color.errorRed : Color(red: 0.90, green: 0.92, blue: 0.94),
+                                    vm.loginPasswordError != nil ? Color.errorRed : Color.authInputBorder,
                                     lineWidth: vm.loginPasswordError != nil ? 1.5 : 1
                                 )
                         )
@@ -101,7 +101,7 @@ struct LoginView: View {
                         Button(action: { vm.switchToForgotPassword() }) {
                             Text("Forgot password?")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(Color(red: 0.27, green: 0.51, blue: 0.96))
+                                .foregroundColor(Color.authPrimaryButton)
                         }
                     }
 
@@ -111,7 +111,7 @@ struct LoginView: View {
                     Button(action: { vm.login() }) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(vm.isLoginEnabled ? Color(red: 0.27, green: 0.51, blue: 0.96) : Color(red: 0.69, green: 0.82, blue: 1.0))
+                                .fill(vm.isLoginEnabled ? Color.authPrimaryButton : Color.authButtonDisabled)
 
                             if vm.isLoading {
                                 ProgressView()
@@ -128,7 +128,7 @@ struct LoginView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 20)
-                .background(Color.white)
+                .background(Color.authCardBackground)
                 .cornerRadius(24)
                 .shadow(color: Color.black.opacity(0.04), radius: 15, x: 0, y: 8)
 
@@ -138,12 +138,12 @@ struct LoginView: View {
                 HStack(spacing: 4) {
                     Text("Don't have an account?")
                         .font(.system(size: 14))
-                        .foregroundColor(Color(red: 0.48, green: 0.53, blue: 0.62))
+                        .foregroundColor(.authSecondaryText)
 
                     Button(action: { vm.switchToSignup() }) {
                         Text("Sign Up")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color(red: 0.27, green: 0.51, blue: 0.96))
+                            .foregroundColor(Color.authPrimaryButton)
                     }
                 }
                 .frame(maxWidth: .infinity)
