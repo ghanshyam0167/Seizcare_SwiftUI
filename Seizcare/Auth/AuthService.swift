@@ -60,9 +60,6 @@ final class AuthService {
         let tempUser = User(
             fullName:      "",
             email:         email,
-            contactNumber: "",
-            gender:        .unspecified,
-            dateOfBirth:   Date(),
             password:      password
         )
         do {
@@ -89,9 +86,6 @@ final class AuthService {
         let tempUser = User(
             fullName:      "",
             email:         email,
-            contactNumber: "",
-            gender:        .unspecified,
-            dateOfBirth:   Date(),
             password:      ""
         )
         do {

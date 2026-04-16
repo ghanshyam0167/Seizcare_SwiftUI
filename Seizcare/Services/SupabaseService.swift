@@ -19,8 +19,8 @@ final class SupabaseService {
     
     private init() {
         client = SupabaseClient(
-            supabaseURL: URL(string: "https://rewuxzcdgivbwmakwjtc.supabase.co")!,
-            supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJld3V4emNkZ2l2YndtYWt3anRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMTQ2OTEsImV4cCI6MjA4ODc5MDY5MX0.kk1Mq-O6SfQ60TZagcp202cGqNB08ywUPWgxlFdiXp4"
+            supabaseURL: URL(string: "https://ydbudbenyxrfwdzumxbu.supabase.co")!,
+            supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw"
         )
     }
     
@@ -294,69 +294,39 @@ final class SupabaseService {
         let fullName: String?
         let email: String?
         let contactNumber: String?
-        let gender: String?
-        let dateOfBirth: String?     // Supabase returns "yyyy-MM-dd" — keep as String
-        let height: Double?
-        let weight: Double?
-        let bloodGroup: String?
-        let createdAt: String?       // Extra column returned by Supabase — absorb so decode never fails
-        let avatarUrl: String?       // Supabase Storage public URL for profile photo
+        let createdAt: String?   // Extra column returned by Supabase — absorb so decode never fails
+        let avatarUrl: String?   // Supabase Storage public URL for profile photo
         
         enum CodingKeys: String, CodingKey {
             case id
-            case fullName       = "full_name"
+            case fullName      = "full_name"
             case email
-            case contactNumber  = "contact_number"
-            case gender
-            case dateOfBirth    = "date_of_birth"
-            case height
-            case weight
-            case bloodGroup     = "blood_group"
-            case createdAt      = "created_at"
-            case avatarUrl      = "avatar_url"
+            case contactNumber = "contact_number"
+            case createdAt     = "created_at"
+            case avatarUrl     = "avatar_url"
         }
         
-        // Convert domain model → DTO (for INSERT / UPDATE — always has full data)
+        // Convert domain model → DTO (for INSERT / UPDATE)
         init(from user: User) {
             self.id            = user.id
             self.fullName      = user.fullName
             self.email         = user.email
             self.contactNumber = user.contactNumber
-            self.gender        = user.gender.rawValue
-            self.dateOfBirth   = UserDTO.dateFormatter.string(from: user.dateOfBirth)
-            self.height        = user.height
-            self.weight        = user.weight
-            self.bloodGroup    = user.bloodGroup
             self.createdAt     = nil
             self.avatarUrl     = user.avatarUrl
         }
         
-        // Convert DTO → domain model — parse the "yyyy-MM-dd" date string manually
+        // Convert DTO → domain model
         func toDomain() -> User {
-            let dob: Date = dateOfBirth.flatMap { UserDTO.dateFormatter.date(from: $0) } ?? Date()
             return User(
                 id:            id,
                 fullName:      fullName      ?? "",
                 email:         email         ?? "",
                 contactNumber: contactNumber ?? "",
-                gender:        Gender(rawValue: gender ?? "") ?? .unspecified,
-                dateOfBirth:   dob,
                 password:      "",
-                height:        height,
-                weight:        weight,
-                bloodGroup:    bloodGroup,
                 avatarUrl:     avatarUrl
             )
         }
-        
-        // Shared formatter for "yyyy-MM-dd"
-        private static let dateFormatter: DateFormatter = {
-            let df = DateFormatter()
-            df.dateFormat = "yyyy-MM-dd"
-            df.locale = Locale(identifier: "en_US_POSIX")
-            df.timeZone = TimeZone(secondsFromGMT: 0)
-            return df
-        }()
     }
 
 struct EmergencyContactDTO: Codable {
