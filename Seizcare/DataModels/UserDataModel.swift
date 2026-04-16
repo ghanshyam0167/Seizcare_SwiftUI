@@ -309,6 +309,40 @@ extension UserDataModel {
         print("[finalizeSignUp] Done.")
     }
 
+    /// Establishes a profile and local session immediately without OTP verification.
+    /// Used when the verification flow is temporarily detached.
+    func bypassVerificationAndSetupProfile(authUser: Auth.User, fullName: String) async throws {
+        print("[bypassVerification] Starting for ID: \(authUser.id)")
+        
+        // 1. Establish Profile
+        let profileUser = User(
+            id:            authUser.id,
+            fullName:      fullName,
+            email:         authUser.email ?? "",
+            contactNumber: "",
+            gender:        .unspecified,
+            dateOfBirth:   Date(),
+            password:      ""
+        )
+        
+        do {
+            try await SupabaseService.shared.insertUser(UserDTO(from: profileUser))
+            print("[bypassVerification] Profile inserted.")
+        } catch {
+            let msg = error.localizedDescription.lowercased()
+            if msg.contains("duplicate") || msg.contains("already exists") {
+                print("[bypassVerification] Profile row already exists.")
+            } else {
+                throw error
+            }
+        }
+        
+        // 2. Establish Local Session
+        currentUser = profileUser
+        UserDefaults.standard.set(profileUser.id.uuidString, forKey: currentUserKey)
+        print("[bypassVerification] Session established.")
+    }
+
     func logoutUser(completion: @escaping (Bool) -> Void) {
         currentUser = nil
         UserDefaults.standard.removeObject(forKey: currentUserKey)

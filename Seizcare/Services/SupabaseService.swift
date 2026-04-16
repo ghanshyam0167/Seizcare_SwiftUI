@@ -217,9 +217,58 @@ final class SupabaseService {
             .execute()
     }
     
+    // MARK: - Emergency Contacts
     
-    
+    func fetchContacts(userId: UUID) async throws -> [EmergencyContactDTO] {
+        let rows: [EmergencyContactDTO] = try await client
+            .from("emergency_contacts")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .execute()
+            .value
+        return rows
     }
+    
+    func insertContact(_ dto: EmergencyContactDTO) async throws {
+        try await client
+            .from("emergency_contacts")
+            .insert(dto)
+            .execute()
+    }
+    
+    func deleteContact(id: UUID) async throws {
+        try await client
+            .from("emergency_contacts")
+            .delete()
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
+    
+    // MARK: - Sensitivity
+    
+    /// Fetch the current sensitivity record for a user.
+    func fetchSensitivity(userId: UUID) async throws -> SensitivityDTO? {
+        let response = try await client
+            .from("user_sensitivity")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .limit(1)
+            .execute()
+        
+        let decoder = JSONDecoder()
+        let rows = try decoder.decode([SensitivityDTO].self, from: response.data)
+        return rows.first
+    }
+    
+    /// Insert or update the sensitivity record for a user.
+    /// Uses upsert with `onConflict: "user_id"` so no duplicate rows are created.
+    func upsertSensitivity(dto: SensitivityDTO) async throws {
+        try await client
+            .from("user_sensitivity")
+            .upsert(dto, onConflict: "user_id")
+            .execute()
+    }
+}
     
     // MARK: - SupabaseServiceError
     
@@ -310,3 +359,37 @@ final class SupabaseService {
         }()
     }
 
+struct EmergencyContactDTO: Codable {
+    let id: UUID
+    let userId: UUID
+    let name: String
+    let contactNumber: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case name
+        case contactNumber = "contact_number"
+    }
+
+    init(from contact: EmergencyContact) {
+        self.id = contact.id
+        self.userId = contact.userId
+        self.name = contact.name
+        self.contactNumber = contact.contactNumber
+    }
+
+    func toDomain() -> EmergencyContact {
+        return EmergencyContact(id: id, userId: userId, name: name, contactNumber: contactNumber)
+    }
+}
+
+struct SensitivityDTO: Codable {
+    let userId: UUID
+    let sensitivityLevel: String
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case sensitivityLevel = "sensitivity_level"
+    }
+}

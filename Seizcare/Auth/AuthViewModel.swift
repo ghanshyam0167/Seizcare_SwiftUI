@@ -16,6 +16,11 @@ enum AuthScreen {
     case onboarding
     case login
     case signup
+    case signupVerification
+    case setupProfile
+    case setupPhone
+    case addEmergencyContacts
+    case sensitivitySetup
     case forgotPasswordEmail
     case forgotPasswordOTP
     case forgotPasswordReset
@@ -37,6 +42,13 @@ final class AuthViewModel: ObservableObject {
     @Published var signupEmail:           String = ""
     @Published var signupPassword:        String = ""
     @Published var signupConfirmPassword: String = ""
+    @Published var signupOTP:             String = ""
+    @Published var isResendSignupOTP:     Bool   = false
+
+    // ─── Onboarding fields ───────────────────────────────────────────────────
+    @Published var onboardingFullName:    String = ""
+    @Published var onboardingPhoneNumber: String = ""
+    @Published var onboardingProfileImage: UIImage? = nil
 
     // ─── Forgot Password fields ──────────────────────────────────────────────
     @Published var forgotPasswordEmail:   String = ""
@@ -211,6 +223,10 @@ final class AuthViewModel: ObservableObject {
             && signupConfirmPassword == signupPassword
     }
 
+    var isSignupOTPEnabled: Bool {
+        signupOTP.count == 8
+    }
+
     // MARK: - Forgot Password Validation
 
     var isForgotPasswordEmailEnabled: Bool {
@@ -277,15 +293,13 @@ final class AuthViewModel: ObservableObject {
         Task {
             defer { isLoading = false }
             do {
-                _ = try await service.signUp(
+                _ = try await service.signUpAndBypass(
                     email:    signupEmail.trimmingCharacters(in: .whitespaces),
                     password: signupPassword
                 )
-                successMessage   = "Account created! Check your email to verify."
-                showSuccessToast = true
-                // Switch back to login after a short pause so user logs in
-                try? await Task.sleep(for: .seconds(2.5))
-                withAnimation(.spring()) { activeScreen = .login }
+                
+                triggerSuccessToast(message: "Account created! Let's setup your profile.")
+                withAnimation(.spring()) { activeScreen = .setupProfile }
             } catch let e as AuthServiceError {
                 if case .emailAlreadyInUse = e {
                     // Friendly nudge to log in instead
@@ -300,6 +314,37 @@ final class AuthViewModel: ObservableObject {
                 showAlert    = true
             }
         }
+    }
+
+    func verifySignupOTP() {
+        guard isSignupOTPEnabled else { return }
+        isLoading = true
+        Task {
+            defer { isLoading = false }
+            do {
+                try await service.finalizeSignUp(
+                    email: signupEmail.trimmingCharacters(in: .whitespaces),
+                    otp: signupOTP,
+                    isResend: isResendSignupOTP
+                )
+                triggerSuccessToast(message: "Account verified successfully!")
+                isAuthenticated = true
+            } catch {
+                alertMessage = "Invalid or expired verification code."
+                showAlert = true
+            }
+        }
+    }
+    
+    func finishOnboarding() {
+        // Minimum 1 contact required - checked in UI, but safe to guard here
+        withAnimation(.spring()) {
+            activeScreen = .sensitivitySetup
+        }
+    }
+    
+    func completeSensitivitySetup() {
+        isAuthenticated = true
     }
 
     private func dismissKeyboard() {
@@ -329,6 +374,8 @@ final class AuthViewModel: ObservableObject {
         signupEmailError = nil
         signupPasswordError = nil
         signupConfirmPasswordError = nil
+        signupOTP = ""
+        isResendSignupOTP = false
         forgotPasswordEmail = ""
         forgotPasswordOTP = ""
         resetPassword = ""
@@ -409,8 +456,7 @@ final class AuthViewModel: ObservableObject {
             do {
                 try await service.updateUserPassword(newPassword: resetPassword)
                 loginPassword = resetPassword
-                successMessage = "Password successfully reset."
-                showSuccessToast = true
+                triggerSuccessToast(message: "Password successfully reset.")
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
                 withAnimation(.spring()) {
                     activeScreen = .login
@@ -418,6 +464,21 @@ final class AuthViewModel: ObservableObject {
             } catch {
                 alertMessage = error.localizedDescription
                 showAlert = true
+            }
+        }
+    }
+
+    private func triggerSuccessToast(message: String) {
+        successMessage = message
+        withAnimation(.spring()) {
+            showSuccessToast = true
+        }
+        
+        // Auto-dismiss after 3.5 seconds
+        Task {
+            try? await Task.sleep(for: .seconds(3.5))
+            withAnimation(.easeInOut) {
+                showSuccessToast = false
             }
         }
     }
@@ -441,6 +502,65 @@ final class AuthViewModel: ObservableObject {
             signupConfirmPassword = ""
             activeScreen = .onboarding
             isAuthenticated = false
+        }
+    }
+
+    // MARK: - Onboarding Actions
+
+    func saveProfileAndContinue() {
+        guard !onboardingFullName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        
+        // Update local session via existing updateCurrentUser method
+        if var user = UserDataModel.shared.getCurrentUser() {
+            user.fullName = onboardingFullName
+            UserDataModel.shared.updateCurrentUser(user)
+        }
+        
+        // If image provided, upload it
+        if let image = onboardingProfileImage, let data = image.jpegData(compressionQuality: 0.7) {
+            Task {
+                if let userId = UserDataModel.shared.getCurrentUser()?.id {
+                    do {
+                        let url = try await SupabaseService.shared.uploadAvatar(userId: userId, imageData: data)
+                        UserDataModel.shared.updateAvatarURL(url)
+                    } catch {
+                        print("Failed to upload avatar: \(error)")
+                    }
+                }
+            }
+        }
+        
+        withAnimation(.spring()) {
+            activeScreen = .setupPhone
+        }
+    }
+    
+    func goBack() {
+        withAnimation(.spring()) {
+            switch activeScreen {
+            case .setupPhone:
+                activeScreen = .setupProfile
+            case .addEmergencyContacts:
+                activeScreen = .setupPhone
+            case .sensitivitySetup:
+                activeScreen = .addEmergencyContacts
+            default:
+                break
+            }
+        }
+    }
+    
+    func savePhoneAndContinue() {
+        if !onboardingPhoneNumber.isEmpty {
+            if let user = UserDataModel.shared.getCurrentUser() {
+                var updated = user
+                updated.contactNumber = onboardingPhoneNumber
+                UserDataModel.shared.updateCurrentUser(updated)
+            }
+        }
+        
+        withAnimation(.spring()) {
+            activeScreen = .addEmergencyContacts
         }
     }
 }

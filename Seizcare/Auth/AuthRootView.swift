@@ -62,6 +62,33 @@ struct AuthRootView: View {
                                 removal:    .move(edge: .trailing).combined(with: .opacity)
                             )
                         )
+                case .signupVerification:
+                    SignupOTPView(vm: vm)
+                        .transition(.opacity)
+                case .setupProfile:
+                    ProfileSetupView(vm: vm)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
+                case .setupPhone:
+                    PhoneSetupView(vm: vm)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
+                case .addEmergencyContacts:
+                    AddEmergencyContactsView(vm: vm)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
+                case .sensitivitySetup:
+                    SensitivitySetupView(vm: vm)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
                 case .forgotPasswordEmail:
                     ForgotPasswordEmailView(vm: vm)
                         .transition(
