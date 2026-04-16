@@ -6,13 +6,6 @@ import Foundation
 import Auth
 import Supabase
 
-//  Enum for Gender
-enum Gender: String, Codable {
-    case male
-    case female
-    case other
-    case unspecified
-}
 
 //  User Model
 struct User: Identifiable, Codable, Equatable {
@@ -20,14 +13,7 @@ struct User: Identifiable, Codable, Equatable {
     var fullName: String
     var email: String
     var contactNumber: String
-    var gender: Gender
-    var dateOfBirth: Date
     var password: String       // Kept for model compatibility; auth is handled by Supabase Auth
-
-    // Vitals
-    var height: Double?
-    var weight: Double?
-    var bloodGroup: String?
 
     // Profile photo (Supabase Storage public URL)
     var avatarUrl: String?
@@ -36,25 +22,15 @@ struct User: Identifiable, Codable, Equatable {
         id: UUID = UUID(),
         fullName: String,
         email: String,
-        contactNumber: String,
-        gender: Gender,
-        dateOfBirth: Date,
+        contactNumber: String = "",
         password: String,
-        height: Double? = nil,
-        weight: Double? = nil,
-        bloodGroup: String? = nil,
         avatarUrl: String? = nil
     ) {
         self.id            = id
         self.fullName      = fullName
         self.email         = email
         self.contactNumber = contactNumber
-        self.gender        = gender
-        self.dateOfBirth   = dateOfBirth
         self.password      = password
-        self.height        = height
-        self.weight        = weight
-        self.bloodGroup    = bloodGroup
         self.avatarUrl     = avatarUrl
     }
 
@@ -199,9 +175,6 @@ extension UserDataModel {
                 id:            uid,
                 fullName:      "",
                 email:         email,
-                contactNumber: "",
-                gender:        .unspecified,
-                dateOfBirth:   Date(),
                 password:      ""
             )
             currentUser = minimal
@@ -279,12 +252,7 @@ extension UserDataModel {
             fullName:      user.fullName,
             email:         user.email,
             contactNumber: user.contactNumber,
-            gender:        user.gender,
-            dateOfBirth:   user.dateOfBirth,
-            password:      "",
-            height:        user.height,
-            weight:        user.weight,
-            bloodGroup:    user.bloodGroup
+            password:      ""
         )
         print("[finalizeSignUp] Inserting/upserting profile row...")
         do {
@@ -319,9 +287,6 @@ extension UserDataModel {
             id:            authUser.id,
             fullName:      fullName,
             email:         authUser.email ?? "",
-            contactNumber: "",
-            gender:        .unspecified,
-            dateOfBirth:   Date(),
             password:      ""
         )
         
