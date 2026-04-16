@@ -8,6 +8,8 @@
 //
 
 import Foundation
+import Supabase
+import Auth
 
 // MARK: - AuthServiceError
 
@@ -54,7 +56,6 @@ final class AuthService {
 
     /// Register a new account.
     /// Returns `true` when a pre-existing unverified account was found and an OTP was resent.
-    @discardableResult
     func signUp(email: String, password: String) async throws -> Bool {
         let tempUser = User(
             fullName:      "",
@@ -66,6 +67,44 @@ final class AuthService {
         )
         do {
             return try await UserDataModel.shared.initiateSignUpAsync(user: tempUser)
+        } catch {
+            throw map(error)
+        }
+    }
+
+    /// Register a new account and immediately bypass OTP verification (Temporary).
+    func signUpAndBypass(email: String, password: String) async throws -> Auth.User {
+        do {
+            let authUser = try await SupabaseService.shared.signUp(email: email, password: password)
+            try await UserDataModel.shared.bypassVerificationAndSetupProfile(authUser: authUser, fullName: "")
+            return authUser
+        } catch {
+            throw map(error)
+        }
+    }
+
+    /// Completes registration by verifying OTP and creating the user profile row.
+    func finalizeSignUp(email: String, otp: String, isResend: Bool) async throws {
+        // Build a skeletal user for profile creation
+        let tempUser = User(
+            fullName:      "",
+            email:         email,
+            contactNumber: "",
+            gender:        .unspecified,
+            dateOfBirth:   Date(),
+            password:      ""
+        )
+        do {
+            try await UserDataModel.shared.finalizeSignUpAsync(user: tempUser, otp: otp, isResend: isResend)
+        } catch {
+            throw map(error)
+        }
+    }
+
+    /// Establishes profile without OTP when verification is bypassed.
+    func bypassVerification(authUser: Auth.User, fullName: String) async throws {
+        do {
+            try await UserDataModel.shared.bypassVerificationAndSetupProfile(authUser: authUser, fullName: fullName)
         } catch {
             throw map(error)
         }
