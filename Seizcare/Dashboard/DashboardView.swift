@@ -29,113 +29,122 @@ enum ActiveChart: Identifiable {
 // MARK: - Dashboard View
 
 struct DashboardView: View {
-    @EnvironmentObject var vm: RecordsViewModel
-    @State private var activeChart: ActiveChart?
-    @State private var frequencyRange: TimeFrameRange = .weekly
-
-    private var records: [SeizureRecord] { vm.records }
-    private let sleep   = MockDashboardData.sleepRecords
-
-    private var recentRecord: SeizureRecord? { records.first }
-    private var avgSleep7Days: Double {
-        let recent = sleep.prefix(7)
-        guard !recent.isEmpty else { return 0 }
-        return recent.reduce(0) { $0 + $1.hours } / Double(recent.count)
+    @StateObject private var viewModel: DashboardViewModel
+    
+    init(recordsVM: RecordsViewModel, healthVM: HealthViewModel) {
+        _viewModel = StateObject(wrappedValue: DashboardViewModel(recordsVM: recordsVM, healthVM: healthVM))
     }
 
-    // Seizure control: inverse of seizure frequency relative to max expected (3/week)
-    private var controlPercent: Double {
-        let thisMonthCount = records.filter {
-            Calendar.current.isDate($0.startTime, equalTo: Date(), toGranularity: .month)
-        }.count
-        return max(0, 1.0 - Double(thisMonthCount) / 12.0)
-    }
+    private var records: [SeizureRecord] { viewModel.records }
+    private var sleep: [SleepData] { viewModel.sleepData }
+    private var avgSleep7Days: Double { viewModel.avgSleep7Days }
+    private var controlPercent: Double { viewModel.controlPercent }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             Color.dashBg.ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 20) {
-                    // ── Header ──────────────────────────────
-                    DashboardHeaderView()
+            if viewModel.isLoading {
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                        .tint(Color.dashPurple)
+                    Text("Fetching health data...")
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .foregroundStyle(Color.dashSecondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        // ── Header ──────────────────────────────
+                        DashboardHeaderView()
 
-                    // ── Hero Card ───────────────────────────
-                    HeroCardView(
-                        records: records,
-                        sleepRecords: sleep,
-                        onSendAlert: { /* TODO: implement alert */ }
-                    )
+                        // ── Hero Card ───────────────────────────
+                        HeroCardView(
+                            records: records,
+                            sleepHours: avgSleep7Days,
+                            heartRate: viewModel.currentHeartRate,
+                            onSendAlert: { /* TODO: implement alert */ }
+                        )
 
-                    // ── Analysis Cards ───────────────────────
-                    VStack(alignment: .leading, spacing: 12) {
-                        SectionHeader(title: "Analysis", icon: "chart.xyaxis.line")
-                        LazyVGrid(columns: [
-                            GridItem(.flexible(), spacing: 12),
-                            GridItem(.flexible(), spacing: 12)
-                        ], spacing: 12) {
-                            
-                            // 1. FREQUENCY CARD
-                            GraphCard(
-                                title: "Frequency",
-                                subtitle: "Seizure count over time",
-                                color: .dashSeizure
-                            ) {
-                                SeizureFrequencyMiniChart(records: records, range: frequencyRange)
-                            } onTap: {
-                                activeChart = .seizureFrequency
-                            }
+                        // ── Analysis Cards ───────────────────────
+                        VStack(alignment: .leading, spacing: 12) {
+                            SectionHeader(title: "Analysis", icon: "chart.xyaxis.line")
+                            LazyVGrid(columns: [
+                                GridItem(.flexible(), spacing: 12),
+                                GridItem(.flexible(), spacing: 12)
+                            ], spacing: 12) {
+                                
+                                // 1. FREQUENCY CARD
+                                GraphCard(
+                                    title: "Frequency",
+                                    subtitle: "Seizure count over time",
+                                    color: .dashSeizure
+                                ) {
+                                    SeizureFrequencyMiniChart(records: records, range: viewModel.frequencyRange)
+                                } onTap: {
+                                    viewModel.activeChart = .seizureFrequency
+                                }
 
-                            // 2. SLEEP CARD
-                            GraphCard(
-                                title: "Sleep",
-                                subtitle: "Sleep vs events",
-                                color: .dashSleep
-                            ) {
-                                SleepVsSeizuresMiniChart(records: records, sleep: sleep)
-                            } onTap: {
-                                activeChart = .sleepVsSeizures
-                            }
+                                // 2. SLEEP CARD
+                                GraphCard(
+                                    title: "Sleep",
+                                    subtitle: "Sleep vs events",
+                                    color: .dashSleep
+                                ) {
+                                    SleepVsSeizuresMiniChart(records: records, sleep: sleep)
+                                } onTap: {
+                                    viewModel.activeChart = .sleepVsSeizures
+                                }
 
-                            // 3. TRIGGERS CARD
-                            GraphCard(
-                                title: "Triggers",
-                                subtitle: "Top correlation",
-                                color: Color(red: 1.0, green: 0.6, blue: 0.2)
-                            ) {
-                                TriggerCorrelationMiniChart(records: records)
-                            } onTap: {
-                                activeChart = .triggerCorrelation
-                            }
-                            
-                            // 4. STREAK CARD
-                            GraphCard(
-                                title: "Streak",
-                                subtitle: "Seizure-free days",
-                                color: Color.dashGreen
-                            ) {
-                                SeizureStreakMiniChart(records: records)
-                            } onTap: {
-                                activeChart = .streak
+                                // 3. TRIGGERS CARD
+                                GraphCard(
+                                    title: "Triggers",
+                                    subtitle: "Top correlation",
+                                    color: Color(red: 1.0, green: 0.6, blue: 0.2)
+                                ) {
+                                    TriggerCorrelationMiniChart(records: records)
+                                } onTap: {
+                                    viewModel.activeChart = .triggerCorrelation
+                                }
+                                
+                                // 4. STREAK CARD
+                                GraphCard(
+                                    title: "Streak",
+                                    subtitle: "Seizure-free days",
+                                    color: Color.dashGreen
+                                ) {
+                                    SeizureStreakMiniChart(records: records)
+                                } onTap: {
+                                    viewModel.activeChart = .streak
+                                }
                             }
                         }
+                        
+                        // ── Recent Records ───────────────────────
+                        RecentRecordsView(records: records)
+                        
+                        if !viewModel.healthVM.guidanceText.isEmpty {
+                            Text(viewModel.healthVM.guidanceText)
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                                .foregroundStyle(Color.dashSecondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                                .padding(.top, 4)
+                        }
+
+                        Spacer().frame(height: 100)
                     }
-                    
-                    // ── Recent Records ───────────────────────
-                    RecentRecordsView(records: records)
-
-                    Spacer().frame(height: 100)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
             }
-
-
         }
-        .fullScreenCover(item: $activeChart) { chart in
+        .fullScreenCover(item: $viewModel.activeChart) { chart in
             switch chart {
             case .seizureFrequency:
-                SeizureFrequencyChartView(records: records, initialRange: frequencyRange)
+                SeizureFrequencyChartView(records: records, initialRange: viewModel.frequencyRange)
             case .sleepVsSeizures:
                 SleepVsSeizuresChartView(records: records, sleep: sleep)
             case .streak:

@@ -7,15 +7,46 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C9B9E59E2F92BC98005767EE /* Seizcare watch app Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = C9B9E5942F92BC97005767EE /* Seizcare watch app Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D8A328AE2F8E5CD400BDABD5 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = D8A328AD2F8E5CD400BDABD5 /* Auth */; };
 		D8A328B02F8E5CD400BDABD5 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = D8A328AF2F8E5CD400BDABD5 /* Supabase */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		C9B9E59C2F92BC98005767EE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D8FCA4362F7ACEED00D052C0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C9B9E5932F92BC97005767EE;
+			remoteInfo = "Seizcare watch app Watch App";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C9B9E5A22F92BC98005767EE /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				C9B9E59E2F92BC98005767EE /* Seizcare watch app Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		C9B9E5942F92BC97005767EE /* Seizcare watch app Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Seizcare watch app Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D8FCA43E2F7ACEED00D052C0 /* Seizcare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Seizcare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		C9B9E5952F92BC97005767EE /* Seizcare watch app Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Seizcare watch app Watch App";
+			sourceTree = "<group>";
+		};
 		D8FCA4402F7ACEED00D052C0 /* Seizcare */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Seizcare;
@@ -24,6 +55,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		C9B9E5912F92BC97005767EE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D8FCA43B2F7ACEED00D052C0 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -40,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				D8FCA4402F7ACEED00D052C0 /* Seizcare */,
+				C9B9E5952F92BC97005767EE /* Seizcare watch app Watch App */,
 				D8FCA43F2F7ACEED00D052C0 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -48,6 +87,7 @@
 			isa = PBXGroup;
 			children = (
 				D8FCA43E2F7ACEED00D052C0 /* Seizcare.app */,
+				C9B9E5942F92BC97005767EE /* Seizcare watch app Watch App.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,6 +95,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		C9B9E5932F92BC97005767EE /* Seizcare watch app Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C9B9E59F2F92BC98005767EE /* Build configuration list for PBXNativeTarget "Seizcare watch app Watch App" */;
+			buildPhases = (
+				C9B9E5902F92BC97005767EE /* Sources */,
+				C9B9E5912F92BC97005767EE /* Frameworks */,
+				C9B9E5922F92BC97005767EE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C9B9E5952F92BC97005767EE /* Seizcare watch app Watch App */,
+			);
+			name = "Seizcare watch app Watch App";
+			packageProductDependencies = (
+			);
+			productName = "Seizcare watch app Watch App";
+			productReference = C9B9E5942F92BC97005767EE /* Seizcare watch app Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
 		D8FCA43D2F7ACEED00D052C0 /* Seizcare */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = D8FCA4492F7ACEEF00D052C0 /* Build configuration list for PBXNativeTarget "Seizcare" */;
@@ -62,10 +124,12 @@
 				D8FCA43A2F7ACEED00D052C0 /* Sources */,
 				D8FCA43B2F7ACEED00D052C0 /* Frameworks */,
 				D8FCA43C2F7ACEED00D052C0 /* Resources */,
+				C9B9E5A22F92BC98005767EE /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				C9B9E59D2F92BC98005767EE /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				D8FCA4402F7ACEED00D052C0 /* Seizcare */,
@@ -86,9 +150,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2640;
+				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2640;
 				TargetAttributes = {
+					C9B9E5932F92BC97005767EE = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
 					D8FCA43D2F7ACEED00D052C0 = {
 						CreatedOnToolsVersion = 26.4;
 					};
@@ -112,11 +179,19 @@
 			projectRoot = "";
 			targets = (
 				D8FCA43D2F7ACEED00D052C0 /* Seizcare */,
+				C9B9E5932F92BC97005767EE /* Seizcare watch app Watch App */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		C9B9E5922F92BC97005767EE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D8FCA43C2F7ACEED00D052C0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -127,6 +202,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		C9B9E5902F92BC97005767EE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D8FCA43A2F7ACEED00D052C0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -136,7 +218,87 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		C9B9E59D2F92BC98005767EE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C9B9E5932F92BC97005767EE /* Seizcare watch app Watch App */;
+			targetProxy = C9B9E59C2F92BC98005767EE /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		C9B9E5A02F92BC98005767EE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Seizcare watch app Watch App/Seizcare watch app Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HTW9G6WB72;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Seizcare watch app";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Seizcare reads heart rate, oxygen saturation, and sleep data to detect potential seizure risk patterns and provide health insights.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Seizcare uses health data to provide detailed activity summaries.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = gs.Seizcare;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		C9B9E5A12F92BC98005767EE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Seizcare watch app Watch App/Seizcare watch app Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HTW9G6WB72;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Seizcare watch app";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Seizcare reads heart rate, oxygen saturation, and sleep data to detect potential seizure risk patterns and provide health insights.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Seizcare uses health data to provide detailed activity summaries.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = gs.Seizcare;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
 		D8FCA4472F7ACEEF00D052C0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -263,11 +425,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Seizcare/Seizcare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = HTW9G6WB72;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Seizcare reads your heart rate and sleep data to help you understand your health patterns. Your data is kept private and is never shared.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Seizcare does not modify or write any health data.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -279,7 +444,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare.1;
+				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -296,11 +461,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Seizcare/Seizcare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = HTW9G6WB72;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Seizcare reads your heart rate and sleep data to help you understand your health patterns. Your data is kept private and is never shared.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Seizcare does not modify or write any health data.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -312,7 +480,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare.1;
+				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -327,6 +495,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		C9B9E59F2F92BC98005767EE /* Build configuration list for PBXNativeTarget "Seizcare watch app Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C9B9E5A02F92BC98005767EE /* Debug */,
+				C9B9E5A12F92BC98005767EE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		D8FCA4392F7ACEED00D052C0 /* Build configuration list for PBXProject "Seizcare" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

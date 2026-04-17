@@ -14,6 +14,7 @@ enum Tab {
 struct MainTabView: View {
     @ObservedObject var authVM: AuthViewModel
     @StateObject private var recordsVM = RecordsViewModel()
+    @StateObject private var healthVM = HealthViewModel()
     
     @State private var selectedTab: Tab = .records
 
@@ -22,8 +23,7 @@ struct MainTabView: View {
             Group {
                 switch selectedTab {
                 case .dashboard:
-                    DashboardView()
-                        .environmentObject(recordsVM)
+                    DashboardView(recordsVM: recordsVM, healthVM: healthVM)
                 case .records:
                     RecordsListView()
                         .environmentObject(recordsVM)

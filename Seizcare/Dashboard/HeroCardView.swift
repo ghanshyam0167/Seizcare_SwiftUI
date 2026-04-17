@@ -8,7 +8,8 @@ import Charts
 
 struct HeroCardView: View {
     let records: [SeizureRecord]
-    let sleepRecords: [SleepRecord]
+    let sleepHours: Double
+    let heartRate: Double
     var onSendAlert: () -> Void = {}
 
     private var thisMonth: [SeizureRecord] {
@@ -24,11 +25,7 @@ struct HeroCardView: View {
 
     private var isImproving: Bool { thisMonth.count <= lastMonth.count }
 
-    private var avgSleep: Double {
-        let recent = sleepRecords.prefix(7)
-        guard !recent.isEmpty else { return 0 }
-        return recent.reduce(0) { $0 + $1.hours } / Double(recent.count)
-    }
+    private var avgSleep: Double { sleepHours }
 
     private var avgDuration: String {
         let secs = thisMonth.averageDurationSeconds
@@ -134,6 +131,16 @@ struct HeroCardView: View {
                     label: "Trend",
                     value: isImproving ? "Better" : "Worse",
                     color: isImproving ? .dashGreen : .dashSeizure
+                )
+                Divider()
+                    .frame(height: 32)
+                    .background(Color.dashTertiary)
+                    .padding(.horizontal, 12)
+                StatPill(
+                    icon: "heart.fill",
+                    label: "Current HR",
+                    value: heartRate > 0 ? "\(Int(heartRate))" : "—",
+                    color: .dashSeizure
                 )
             }
         }

@@ -15,15 +15,14 @@ private struct DayPoint: Identifiable {
     let seizureCount: Int
 }
 
-private func alignedData(records: [SeizureRecord], sleep: [SleepRecord], days: Int) -> [DayPoint] {
+private func alignedData(records: [SeizureRecord], sleep: [SleepData], days: Int) -> [DayPoint] {
     let cal = Calendar.current
     let now = Date()
     return (0..<days).reversed().compactMap { offset -> DayPoint? in
         guard let day = cal.date(byAdding: .day, value: -offset, to: now) else { return nil }
         let start  = cal.startOfDay(for: day)
-        guard let end = cal.date(byAdding: .day, value: 1, to: start) else { return nil }
-        let sCount = records.filter { $0.startTime >= start && $0.startTime < end }.count
-        let sHours = sleep.first { cal.isDate($0.date, inSameDayAs: start) }?.hours ?? 0
+        let sCount = records.filter { cal.isDate($0.startTime, inSameDayAs: start) }.count
+        let sHours = sleep.first { cal.isDate($0.date, inSameDayAs: start) }?.duration ?? 0
         return DayPoint(date: start, sleepHours: sHours, seizureCount: sCount)
     }
 }
@@ -32,7 +31,7 @@ private func alignedData(records: [SeizureRecord], sleep: [SleepRecord], days: I
 
 struct SleepVsSeizuresMiniChart: View {
     let records: [SeizureRecord]
-    let sleep: [SleepRecord]
+    let sleep: [SleepData]
 
     private var data: [DayPoint] { alignedData(records: records, sleep: sleep, days: 14) }
     
@@ -76,7 +75,7 @@ struct SleepVsSeizuresMiniChart: View {
 struct SleepVsSeizuresChartView: View {
     @Environment(\.dismiss) private var dismiss
     let records: [SeizureRecord]
-    let sleep: [SleepRecord]
+    let sleep: [SleepData]
 
     private var data: [DayPoint] { alignedData(records: records, sleep: sleep, days: 21) }
 
