@@ -23,8 +23,8 @@ struct AuthRootView: View {
         Group {
             if vm.isAuthenticated {
                 // ── Authenticated ─────────────────────────────────────────
-                // Replace this placeholder with your app's main root view
-                MainAppPlaceholderView(vm: vm)
+                // Use the new MainTabView
+                MainTabView(authVM: vm)
                     .transition(.opacity)
             } else {
                 authFlow
@@ -175,18 +175,7 @@ private struct SuccessToast: View {
     }
 }
 
-// MARK: - Main App Placeholder
-// ⚠️  Replace this with your real post-login root view (e.g. TabsView / HomeView).
 
-private struct MainAppPlaceholderView: View {
-    @ObservedObject var vm: AuthViewModel
-
-    var body: some View {
-        // Show the new SettingsView so the user can preview the changes directly
-        SettingsView(vm: vm)
-            .transition(.opacity)
-    }
-}
 
 
 // MARK: - Preview
