@@ -182,47 +182,12 @@ private struct MainAppPlaceholderView: View {
     @ObservedObject var vm: AuthViewModel
 
     var body: some View {
-        ZStack {
-            Color.authBackground.ignoresSafeArea()
-
-            VStack(spacing: 24) {
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 60))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color(red: 0.27, green: 0.51, blue: 0.96), Color(red: 0.40, green: 0.36, blue: 0.98)],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        )
-                    )
-
-                Text("You're logged in!")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(.authPrimaryText)
-
-                Text("Replace this view with your real app.")
-                    .font(.system(size: 15))
-                    .foregroundColor(.authSecondaryText)
-
-                Spacer().frame(height: 16)
-
-                Button(action: { vm.logout() }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                        Text("Log Out")
-                            .font(.system(size: 15, weight: .semibold))
-                    }
-                    .foregroundColor(Color(red: 0.95, green: 0.28, blue: 0.33))
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(red: 0.95, green: 0.28, blue: 0.33).opacity(0.08))
-                    )
-                }
-            }
-        }
+        // Show the new SettingsView so the user can preview the changes directly
+        SettingsView(vm: vm)
+            .transition(.opacity)
     }
 }
+
 
 // MARK: - Preview
 
