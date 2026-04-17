@@ -8,8 +8,9 @@ import Contacts
 
 struct AddEmergencyContactsView: View {
     @ObservedObject var vm: AuthViewModel
-    @StateObject private var contactModel = EmergencyContactDataModel.shared
+    @ObservedObject private var contactModel = EmergencyContactDataModel.shared
     @State private var showingContactPicker = false
+    @Environment(\.dismiss) private var dismiss
     
     // We observe the shared data model to get the live list of contacts
     private var contacts: [EmergencyContact] {
@@ -20,7 +21,13 @@ struct AddEmergencyContactsView: View {
         VStack(spacing: 0) {
             // Navigation Bar
             HStack {
-                Button(action: { vm.goBack() }) {
+                Button(action: { 
+                    if vm.isAuthenticated {
+                        dismiss()
+                    } else {
+                        vm.goBack() 
+                    }
+                }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.authPrimaryText)
@@ -145,14 +152,18 @@ struct AddEmergencyContactsView: View {
             // Footer Action
             VStack(spacing: 16) {
                 Button(action: {
-                    vm.finishOnboarding()
+                    if vm.isAuthenticated {
+                        dismiss()
+                    } else {
+                        vm.finishOnboarding()
+                    }
                 }) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(contacts.count >= 1 ? Color.authPrimaryButton : Color.authButtonDisabled)
                             .frame(height: 56)
                         
-                        Text("Finish Setup")
+                        Text(vm.isAuthenticated ? "Done" : "Finish Setup")
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
                     }
@@ -176,8 +187,22 @@ struct AddEmergencyContactsView: View {
                 let displayName = fullName.isEmpty ? "Unknown" : fullName
                 
                 if let phone = cnContact.phoneNumbers.first?.value.stringValue {
-                    withAnimation {
-                        contactModel.addContact(name: displayName, contactNumber: phone)
+                    // Clean number: remove all non-digits
+                    let digitsOnly = phone.filter { $0.isNumber }
+                    
+                    // We require at least 10 digits. If longer (e.g. +91), we'll take the last 10.
+                    if digitsOnly.count >= 10 {
+                        let validNumber = String(digitsOnly.suffix(10))
+                        
+                        // Defer the UI state update
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
+                            withAnimation {
+                                contactModel.addContact(name: displayName, contactNumber: validNumber)
+                            }
+                        }
+                    } else {
+                        // Optionally we could show an alert, but per 'dont save', we simply skip
+                        print("Skipping contact: number too short (\(digitsOnly))")
                     }
                 }
             }

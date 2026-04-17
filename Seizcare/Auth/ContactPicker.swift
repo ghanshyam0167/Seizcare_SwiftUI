@@ -19,11 +19,15 @@ struct ContactPicker: UIViewControllerRepresentable {
         
         func contactPicker(_ picker: CNContactPickerViewController, didSelect contact: CNContact) {
             parent.onSelect(contact)
-            parent.isPresented = false
+            // We intentionally do not manually set parent.isPresented = false here.
+            // CNContactPickerViewController dismisses automatically upon selection or cancellation.
+            // SwiftUI's .sheet will natively sync the $showingContactPicker binding to false
+            // when the view controller disappears. Manually forcing it causes a double-dismiss 
+            // that propagates up and destroys the Settings page's fullScreenCover.
         }
         
         func contactPickerDidCancel(_ picker: CNContactPickerViewController) {
-            parent.isPresented = false
+            // Intentionally left blank for the same reason.
         }
     }
     
