@@ -2,77 +2,228 @@
 //  RecordsListView.swift
 //  Seizcare
 //
-//  Main "Records" screen: grouped list + bottom search bar.
+//  Main "Records" screen: grouped list + search + filter + report.
 
 import SwiftUI
 
 struct RecordsListView: View {
     @EnvironmentObject var vm: RecordsViewModel
-
-    // For navigation to detail
     @State private var selectedRecord: SeizureRecord? = nil
+    @State private var selectedReportDuration: ReportDuration? = nil
 
     var body: some View {
         ZStack {
             Color.dashBg.ignoresSafeArea()
 
-            // ── Content ──────────────────────────────────
-            if vm.records.isEmpty {
-                // Empty state
-                ScrollView {
-                    RecordsEmptyState()
-                        .padding(.horizontal, 20)
-                        .padding(.top, 60)
-                }
-            } else if vm.filteredRecords.isEmpty && !vm.searchQuery.isEmpty {
-                // No search results
-                ScrollView {
-                    VStack(spacing: 16) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 36))
-                            .foregroundStyle(Color.dashTertiary)
-                        Text("No results for \"\(vm.searchQuery)\"")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(Color.dashSecondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 100)
-                }
-            } else {
-                // Records list grouped by month
-                ScrollView(showsIndicators: false) {
-                    LazyVStack(spacing: 0, pinnedViews: []) {
-                        ForEach(vm.groupedRecords, id: \.month) { group in
-                            // Month header
-                            MonthSectionHeader(title: group.month)
-                                .padding(.horizontal, 16)
+            VStack(spacing: 0) {
+                // Grouping segmented control
+                groupingPicker
 
-                            // Cards for this month
-                            VStack(spacing: 8) {
-                                ForEach(group.records) { record in
-                                    Button {
-                                        selectedRecord = record
-                                    } label: {
-                                        RecordCard(record: record)
-                                            .padding(.horizontal, 16)
-                                    }
-                                    .buttonStyle(ScaleButtonStyle())
-                                }
-                            }
-                            .padding(.bottom, 8)
-                        }
-                    }
-                    .padding(.bottom, 64)
+                // Active filter chips
+                if vm.filter.isActive {
+                    activeFilterChips
                 }
+
+                // Main content
+                mainContent
             }
         }
         .navigationTitle("Records")
         .navigationBarTitleDisplayMode(.large)
         .searchable(text: $vm.searchQuery, prompt: "Search records")
-        // Navigate to detail
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                // Report button
+                Button {
+                    vm.showReportOptions = true
+                } label: {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.system(size: 15, weight: .medium))
+                }
+                .foregroundStyle(Color.dashSleep)
+
+                // Filter button
+                Button {
+                    vm.showFilterSheet = true
+                } label: {
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                            .font(.system(size: 15, weight: .medium))
+                        if vm.filter.isActive {
+                            Circle()
+                                .fill(Color.dashSeizure)
+                                .frame(width: 7, height: 7)
+                                .offset(x: 3, y: -3)
+                        }
+                    }
+                }
+                .foregroundStyle(vm.filter.isActive ? Color.dashSeizure : Color.dashSecondary)
+            }
+        }
         .navigationDestination(item: $selectedRecord) { record in
             RecordDetailView(record: record)
                 .environmentObject(vm)
+        }
+        .sheet(isPresented: $vm.showFilterSheet) {
+            FilterSheetView(filter: $vm.filter) {
+                // onApply — filter is already bound
+            } onReset: {
+                vm.filter.reset()
+            }
+        }
+        .sheet(isPresented: $vm.showReportOptions) {
+            ReportOptionsSheet { duration in
+                selectedReportDuration = duration
+            }
+        }
+        .sheet(item: $selectedReportDuration) { duration in
+            let cutoff = Calendar.current.date(byAdding: .day, value: -duration.days, to: Date()) ?? Date()
+            let reportRecords = vm.records.filter { $0.startTime >= cutoff }
+            ReportView(records: reportRecords, duration: duration)
+        }
+    }
+
+    // MARK: - Grouping Picker
+
+    private var groupingPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(RecordGrouping.allCases) { mode in
+                    Button {
+                        withAnimation(.spring(response: 0.3)) {
+                            vm.grouping = mode
+                        }
+                    } label: {
+                        Text(mode.rawValue)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(vm.grouping == mode ? .white : Color.dashSecondary)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(
+                                vm.grouping == mode
+                                    ? Color.dashSeizure
+                                    : Color.dashCard
+                            )
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+    }
+
+    // MARK: - Active Filter Chips
+
+    private var activeFilterChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(vm.filter.activeChips, id: \.self) { chip in
+                    HStack(spacing: 5) {
+                        Text(chip)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color.dashSleep)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.dashSleep.opacity(0.7))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.dashSleep.opacity(0.12))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color.dashSleep.opacity(0.25), lineWidth: 1))
+                }
+
+                Button {
+                    withAnimation { vm.filter.reset() }
+                } label: {
+                    Text("Clear All")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.dashSeizure)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.dashSeizure.opacity(0.10))
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    // MARK: - Main Content
+
+    @ViewBuilder
+    private var mainContent: some View {
+        let groups = vm.groupedRecords
+
+        if vm.records.isEmpty {
+            ScrollView {
+                RecordsEmptyState()
+                    .padding(.horizontal, 20)
+                    .padding(.top, 60)
+            }
+        } else if groups.isEmpty {
+            // No results from search/filter
+            ScrollView {
+                VStack(spacing: 16) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 36))
+                        .foregroundStyle(Color.dashTertiary)
+                    Text("No results found")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Color.dashSecondary)
+                    if vm.filter.isActive {
+                        Button {
+                            withAnimation { vm.filter.reset() }
+                        } label: {
+                            Text("Clear Filters")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 10)
+                                .background(Color.dashSeizure)
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 100)
+            }
+        } else {
+            ScrollView(showsIndicators: false) {
+                LazyVStack(spacing: 0, pinnedViews: []) {
+                    ForEach(groups, id: \.header) { group in
+                        MonthSectionHeader(title: group.header)
+                            .padding(.horizontal, 16)
+
+                        VStack(spacing: 0) {
+                            ForEach(Array(group.records.enumerated()), id: \.element.id) { index, record in
+                                Button {
+                                    selectedRecord = record
+                                } label: {
+                                    RecordCard(record: record)
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+
+                                if index < group.records.count - 1 {
+                                    Divider()
+                                        .padding(.leading, 16)
+                                }
+                            }
+                        }
+                        .background(Color.dashCard)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .shadow(color: Color.black.opacity(0.02), radius: 8, y: 4)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
+                    }
+                }
+                .padding(.bottom, 64)
+            }
         }
     }
 }
@@ -80,6 +231,8 @@ struct RecordsListView: View {
 // MARK: - Preview
 
 #Preview {
-    RecordsListView()
-        .environmentObject(RecordsViewModel())
+    NavigationStack {
+        RecordsListView()
+            .environmentObject(RecordsViewModel())
+    }
 }

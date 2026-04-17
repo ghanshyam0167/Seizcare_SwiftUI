@@ -22,7 +22,10 @@ struct HeroCardView: View {
         return records.filter { cal.isDate($0.startTime, equalTo: last, toGranularity: .month) }
     }
 
-    private var isImproving: Bool { thisMonth.count <= lastMonth.count }
+    private var trendDiff: Int { thisMonth.count - lastMonth.count }
+    private var trendValue: String { trendDiff == 0 ? "Same" : (trendDiff > 0 ? "+\(trendDiff)" : "\(trendDiff)") }
+    private var trendIcon: String { trendDiff == 0 ? "minus" : (trendDiff > 0 ? "arrow.up.right" : "arrow.down.right") }
+    private var trendColor: Color { trendDiff == 0 ? .dashSecondary : (trendDiff > 0 ? .dashSeizure : .dashGreen) }
 
     private var avgSleep: Double {
         let recent = sleepRecords.prefix(7)
@@ -37,9 +40,6 @@ struct HeroCardView: View {
         return mins > 0 ? "\(mins)m" : "<1m"
     }
 
-    private var sparklineData: [(date: Date, count: Int)] {
-        records.dailyCounts(over: 14)
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -78,34 +78,7 @@ struct HeroCardView: View {
                 }
             }
 
-            Spacer().frame(height: 20)
-
-            // Sparkline
-            Chart(sparklineData, id: \.date) { point in
-                AreaMark(
-                    x: .value("Day", point.date),
-                    y: .value("Count", point.count)
-                )
-                .interpolationMethod(.catmullRom)
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color.dashSeizure.opacity(0.25), Color.clear],
-                        startPoint: .top, endPoint: .bottom
-                    )
-                )
-                LineMark(
-                    x: .value("Day", point.date),
-                    y: .value("Count", point.count)
-                )
-                .interpolationMethod(.catmullRom)
-                .foregroundStyle(Color.dashSeizure.opacity(0.8))
-                .lineStyle(StrokeStyle(lineWidth: 2))
-            }
-            .chartXAxis(.hidden)
-            .chartYAxis(.hidden)
-            .frame(height: 52)
-
-            Spacer().frame(height: 20)
+            Spacer().frame(height: 28)
 
             // Stats row
             HStack(spacing: 0) {
@@ -130,10 +103,10 @@ struct HeroCardView: View {
                     .background(Color.dashTertiary)
                     .padding(.horizontal, 12)
                 StatPill(
-                    icon: isImproving ? "arrow.down.right" : "arrow.up.right",
-                    label: "Trend",
-                    value: isImproving ? "Better" : "Worse",
-                    color: isImproving ? .dashGreen : .dashSeizure
+                    icon: trendIcon,
+                    label: "vs Last Month",
+                    value: trendValue,
+                    color: trendColor
                 )
             }
         }
