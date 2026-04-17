@@ -52,7 +52,7 @@ final class SupabaseService {
         
         let accessToken = session.accessToken
         
-        guard let url = URL(string: "https://rewuxzcdgivbwmakwjtc.supabase.co/functions/v1/delete-user") else {
+        guard let url = URL(string: "https://ydbudbenyxrfwdzumxbu.supabase.co/functions/v1/smooth-handler") else {
             return
         }
         
