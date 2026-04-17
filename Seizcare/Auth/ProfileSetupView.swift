@@ -62,11 +62,13 @@ struct ProfileSetupView: View {
                             .offset(x: -4, y: -4)
                     }
                 }
-                .onChange(of: selectedItem) { newItem in
+                .onChange(of: selectedItem) { _, newItem in
                     Task {
                         if let data = try? await newItem?.loadTransferable(type: Data.self),
                            let uiImage = UIImage(data: data) {
-                            vm.onboardingProfileImage = uiImage
+                            await MainActor.run {
+                                vm.onboardingProfileImage = uiImage
+                            }
                         }
                     }
                 }

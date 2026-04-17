@@ -128,7 +128,7 @@ struct EditProfileView: View {
                                 }
                         }
                         .photosPicker(isPresented: $showingGallery, selection: $selectedItem, matching: .images)
-                        .onChange(of: selectedItem) { newItem in
+                        .onChange(of: selectedItem) { _, newItem in
                             Task {
                                 if let data = try? await newItem?.loadTransferable(type: Data.self),
                                    let uiImage = UIImage(data: data) {
@@ -216,7 +216,7 @@ struct EditProfileView: View {
                                 TextField("Enter your phone number", text: $contactNumber)
                                     .keyboardType(.phonePad)
                                     .textContentType(.telephoneNumber)
-                                    .onChange(of: contactNumber) { newValue in
+                                    .onChange(of: contactNumber) { _, newValue in
                                         let filtered = newValue.filter { $0.isNumber }
                                         if filtered.count > 10 {
                                             contactNumber = String(filtered.prefix(10))
