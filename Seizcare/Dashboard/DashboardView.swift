@@ -29,6 +29,7 @@ enum ActiveChart: Identifiable {
 // MARK: - Dashboard View
 
 struct DashboardView: View {
+    @Binding var selectedTab: Tab
     @EnvironmentObject var vm: RecordsViewModel
     @State private var activeChart: ActiveChart?
     @State private var frequencyRange: TimeFrameRange = .weekly
@@ -76,53 +77,51 @@ struct DashboardView: View {
                         ], spacing: 12) {
                             
                             // 1. FREQUENCY CARD
-                            GraphCard(
-                                title: "Frequency",
-                                subtitle: "Seizure count over time",
-                                color: .dashSeizure
-                            ) {
-                                SeizureFrequencyMiniChart(records: records, range: frequencyRange)
-                            } onTap: {
-                                activeChart = .seizureFrequency
+                            Button(action: { activeChart = .seizureFrequency }) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack(alignment: .center) {
+                                        Text("Event Count")
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundStyle(Color.dashLabel)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundStyle(Color.dashSecondary)
+                                            .padding(6)
+                                            .background(Circle().fill(Color.dashSecondary.opacity(0.15)))
+                                    }
+                                    
+                                    SeizureFrequencyMiniChart(records: records, range: frequencyRange)
+                                        .padding(.top, 4)
+                                }
+                                .padding(14)
+                                .background(Color.dashCard)
+                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .stroke(Color.dashSeizure.opacity(0.15), lineWidth: 1)
+                                )
                             }
+                            .buttonStyle(ScaleButtonStyle())
 
                             // 2. SLEEP CARD
                             GraphCard(
                                 title: "Sleep",
-                                subtitle: "Sleep vs events",
                                 color: .dashSleep
                             ) {
                                 SleepVsSeizuresMiniChart(records: records, sleep: sleep)
                             } onTap: {
                                 activeChart = .sleepVsSeizures
                             }
-
-                            // 3. TRIGGERS CARD
-                            GraphCard(
-                                title: "Triggers",
-                                subtitle: "Top correlation",
-                                color: Color(red: 1.0, green: 0.6, blue: 0.2)
-                            ) {
-                                TriggerCorrelationMiniChart(records: records)
-                            } onTap: {
-                                activeChart = .triggerCorrelation
-                            }
-                            
-                            // 4. STREAK CARD
-                            GraphCard(
-                                title: "Streak",
-                                subtitle: "Seizure-free days",
-                                color: Color.dashGreen
-                            ) {
-                                SeizureStreakMiniChart(records: records)
-                            } onTap: {
-                                activeChart = .streak
-                            }
                         }
                     }
                     
                     // ── Recent Records ───────────────────────
-                    RecentRecordsView(records: records)
+                    RecentRecordsView(records: records) {
+                        withAnimation {
+                            selectedTab = .records
+                        }
+                    }
 
                     Spacer().frame(height: 100)
                 }
@@ -152,6 +151,8 @@ struct DashboardView: View {
 // MARK: - Header
 
 private struct DashboardHeaderView: View {
+    @EnvironmentObject var authVM: AuthViewModel
+
     private var dateString: String {
         let f = DateFormatter()
         f.dateFormat = "EEEE, MMM d"
@@ -169,14 +170,16 @@ private struct DashboardHeaderView: View {
                     .foregroundStyle(Color.dashSecondary)
             }
             Spacer()
-            Circle()
-                .fill(Color.dashCardElevated)
-                .frame(width: 40, height: 40)
-                .overlay(
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(Color.dashSecondary)
-                )
+            NavigationLink(destination: SettingsView(vm: authVM)) {
+                Circle()
+                    .fill(Color.dashCardElevated)
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(Color.dashSecondary)
+                    )
+            }
         }
         .padding(.top, 8)
     }
@@ -186,31 +189,29 @@ private struct DashboardHeaderView: View {
 
 private struct GraphCard<Content: View>: View {
     let title: String
-    let subtitle: String
     let color: Color
     @ViewBuilder let chart: Content
     let onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(title)
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(Color.dashLabel)
-                        Text(subtitle)
-                            .font(.caption2)
-                            .foregroundStyle(Color.dashSecondary)
-                    }
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .center) {
+                    Text(title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.dashLabel)
                     Spacer()
-                    Image(systemName: "arrow.up.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(color.opacity(0.8))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.dashSecondary)
+                        .padding(6)
+                        .background(Circle().fill(Color.dashSecondary.opacity(0.15)))
                 }
+                
                 chart
-                    .frame(height: 60)
+                    .frame(height: 125)
                     .clipped()
+                    .padding(.top, 4)
             }
             .padding(14)
             .background(Color.dashCard)

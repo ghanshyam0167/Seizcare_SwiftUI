@@ -146,71 +146,60 @@ struct RecordDetailView: View {
     // MARK: - Summary Card
 
     private var summaryCard: some View {
-        VStack(spacing: 0) {
-            // Type pill + entry badge
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(currentRecord.type.color)
-                            .frame(width: 10, height: 10)
-                        Text(currentRecord.type.displayName)
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(currentRecord.type.color)
-                    }
-                    Text("Seizure Event")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(Color.dashLabel)
+        VStack(alignment: .leading, spacing: 14) {
+
+            // Top row: severity + entry type
+            HStack(alignment: .center) {
+                HStack(spacing: 7) {
+                    Circle()
+                        .fill(currentRecord.type.color)
+                        .frame(width: 9, height: 9)
+                    Text(currentRecord.type.displayName)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(currentRecord.type.color)
                 }
                 Spacer()
-                // Entry type badge
-                HStack(spacing: 5) {
+                // Entry type badge — minimal
+                HStack(spacing: 4) {
                     Image(systemName: currentRecord.entryType == .automatic ? "waveform" : "pencil")
                         .font(.system(size: 10, weight: .semibold))
-                    Text(currentRecord.entryType == .automatic ? "Automatic" : "Manual")
-                        .font(.caption2.weight(.semibold))
+                    Text(currentRecord.entryType == .automatic ? "Auto-detected" : "Manual Entry")
+                        .font(.system(size: 11, weight: .medium))
                 }
                 .foregroundStyle(Color.dashSecondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
                 .background(Color.dashCardElevated)
                 .clipShape(Capsule())
             }
-            .padding(.bottom, 20)
 
-            Divider().background(Color.dashTertiary.opacity(0.3))
-                .padding(.bottom, 16)
-
-            // Stats grid
-            HStack(spacing: 0) {
-                SummaryStatTile(
-                    icon: "timer",
-                    label: "Duration",
-                    value: durationText,
-                    color: .dashSecondary
-                )
-                SummaryStatDivider()
-                SummaryStatTile(
-                    icon: "calendar",
-                    label: "Date",
-                    value: shortDate,
-                    color: .dashSleep
-                )
-                SummaryStatDivider()
-                SummaryStatTile(
-                    icon: "clock",
-                    label: "Time",
-                    value: shortTime,
-                    color: Color(red: 0.8, green: 0.6, blue: 1.0)
-                )
+            // Main date + time
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Seizure Event")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(Color.dashLabel)
+                Text(dateTimeText)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.dashSecondary)
             }
+
+            // Stats row — lightweight
+            HStack(spacing: 0) {
+                SummaryStatTile(icon: "timer", label: "Duration", value: durationText, color: .dashSecondary)
+                SummaryStatDivider()
+                SummaryStatTile(icon: "calendar", label: "Date", value: shortDate, color: .dashSleep)
+                SummaryStatDivider()
+                SummaryStatTile(icon: "clock", label: "Time", value: shortTime, color: Color(red: 0.8, green: 0.6, blue: 1.0))
+            }
+            .background(Color.dashCardElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
-        .padding(20)
+        .padding(18)
         .background(Color.dashCard)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(currentRecord.type.color.opacity(0.15), lineWidth: 1)
+                .stroke(currentRecord.type.color.opacity(0.12), lineWidth: 1)
         )
     }
 
