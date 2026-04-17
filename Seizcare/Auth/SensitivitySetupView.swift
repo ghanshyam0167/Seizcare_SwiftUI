@@ -7,7 +7,8 @@ import SwiftUI
 
 struct SensitivitySetupView: View {
     @ObservedObject var vm: AuthViewModel
-    @StateObject private var sensitivityModel = SensitivityDataModel.shared
+    @ObservedObject private var sensitivityModel = SensitivityDataModel.shared
+    @Environment(\.dismiss) private var dismiss
     
     // We use a local state to track current selection for smooth UI interactions
     @State private var localSelection: SensitivityLevel = .medium
@@ -22,7 +23,13 @@ struct SensitivitySetupView: View {
         VStack(spacing: 0) {
             // Navigation Bar
             HStack {
-                Button(action: { vm.goBack() }) {
+                Button(action: { 
+                    if vm.isAuthenticated {
+                        dismiss()
+                    } else {
+                        vm.goBack() 
+                    }
+                }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.authPrimaryText)
@@ -136,14 +143,18 @@ struct SensitivitySetupView: View {
             
             // Footer Action
             Button(action: {
-                vm.completeSensitivitySetup()
+                if vm.isAuthenticated {
+                    dismiss()
+                } else {
+                    vm.completeSensitivitySetup()
+                }
             }) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(Color.authPrimaryButton)
                         .frame(height: 56)
                     
-                    Text("Confirm & Finish")
+                    Text(vm.isAuthenticated ? "Done" : "Confirm & Finish")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                 }
