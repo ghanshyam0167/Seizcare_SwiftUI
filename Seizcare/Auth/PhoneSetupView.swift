@@ -79,7 +79,7 @@ struct PhoneSetupView: View {
                 }
             }
             .padding(.horizontal, 24)
-            .onChange(of: vm.onboardingPhoneNumber) { newValue in
+            .onChange(of: vm.onboardingPhoneNumber) { _, newValue in
                 // Only allow digits and max 10 characters
                 let filtered = newValue.filter { $0.isNumber }
                 if filtered.count > 10 {

@@ -4,7 +4,9 @@
 //
 
 import SwiftUI
+import SwiftData
 import Charts
+import CoreLocation
 
 // MARK: - Active Chart Enum
 
@@ -30,8 +32,11 @@ enum ActiveChart: Identifiable {
 
 struct DashboardView: View {
     @EnvironmentObject var vm: RecordsViewModel
+    @StateObject private var locationManager = LocationManager()
+    @StateObject private var emergencyVM = EmergencyViewModel()
     @State private var activeChart: ActiveChart?
     @State private var frequencyRange: TimeFrameRange = .weekly
+    @State private var showLocationSettingsAlert = false
 
     private var records: [SeizureRecord] { vm.records }
     private let sleep   = MockDashboardData.sleepRecords
@@ -64,7 +69,23 @@ struct DashboardView: View {
                     HeroCardView(
                         records: records,
                         sleepRecords: sleep,
-                        onSendAlert: { /* TODO: implement alert */ }
+                        onSendAlert: { 
+                            if locationManager.location == nil {
+                                if locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted {
+                                    showLocationSettingsAlert = true
+                                } else {
+                                    locationManager.requestWhenInUseAuthorization()
+                                    withAnimation {
+                                        emergencyVM.errorMessage = "Waiting for location connection... Please ensure GPS is enabled and try again."
+                                        emergencyVM.status = .failed
+                                    }
+                                }
+                            } else {
+                                withAnimation {
+                                    emergencyVM.startEmergencyCountdown(location: locationManager.location)
+                                }
+                            }
+                        }
                     )
 
                     // ── Analysis Cards ───────────────────────
@@ -130,7 +151,112 @@ struct DashboardView: View {
                 .padding(.top, 8)
             }
 
-
+            // ── Alert Toast Overlay ───────────────────────
+            if emergencyVM.status != .idle && emergencyVM.status != .countingDown {
+                VStack {
+                    HStack(spacing: 12) {
+                        if emergencyVM.status == .sending {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else if emergencyVM.status == .success {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.system(size: 24))
+                        } else if emergencyVM.status == .failed {
+                            Image(systemName: "xmark.octagon.fill")
+                                .foregroundColor(.red)
+                                .font(.system(size: 24))
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(emergencyVM.status.rawValue)
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            if let errorMessage = emergencyVM.errorMessage, emergencyVM.status == .failed {
+                                Text(errorMessage)
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                                    .lineLimit(2)
+                            }
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding()
+                    .background(Color.black.opacity(0.85))
+                    .cornerRadius(12)
+                    .shadow(radius: 10)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .padding(.top, 40)
+                    .onAppear {
+                        if emergencyVM.status == .success || emergencyVM.status == .failed {
+                            scheduleToastDismissal()
+                        }
+                    }
+                    .onChange(of: emergencyVM.status) { _, newStatus in
+                        if newStatus == .success || newStatus == .failed {
+                            scheduleToastDismissal()
+                        }
+                    }
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, alignment: .top)
+                .zIndex(100)
+            }
+            
+            // ── Full Screen Countdown Overlay ─────────────────────
+            if emergencyVM.status == .countingDown {
+                ZStack {
+                    Color.black.opacity(0.95)
+                        .ignoresSafeArea()
+                    
+                    VStack(spacing: 40) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 80))
+                            .foregroundColor(.red)
+                            .symbolEffect(.pulse, options: .repeating)
+                        
+                        VStack(spacing: 10) {
+                            Text("EMERGENCY ALERT")
+                                .font(.system(size: 28, weight: .black, design: .rounded))
+                                .foregroundColor(.white)
+                            
+                            Text("Sending automatically in...")
+                                .font(.title3)
+                                .foregroundColor(.gray)
+                        }
+                        
+                        Text("\(emergencyVM.countdownTime)")
+                            .font(.system(size: 110, weight: .bold, design: .rounded))
+                            .foregroundColor(.red)
+                            .contentTransition(.numericText(value: Double(emergencyVM.countdownTime)))
+                        
+                        Spacer().frame(height: 50)
+                        
+                        Button(action: {
+                            withAnimation {
+                                emergencyVM.cancelEmergencyAlert()
+                            }
+                        }) {
+                            ZStack {
+                                Capsule()
+                                    .fill(Color.red)
+                                    .frame(height: 70)
+                                    .frame(maxWidth: 300)
+                                
+                                Text("CANCEL ALERT")
+                                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                    }
+                    .padding()
+                }
+                .zIndex(200)
+                .transition(.opacity)
+            }
         }
         .fullScreenCover(item: $activeChart) { chart in
             switch chart {
@@ -144,6 +270,28 @@ struct DashboardView: View {
                 TriggerCorrelationChartView(records: records)
             case .heartRateTimeline(let rec):
                 HeartRateTimelineChartView(record: rec)
+            }
+        }
+        .animation(.easeInOut, value: emergencyVM.status)
+        .alert("Location Access Required", isPresented: $showLocationSettingsAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+        } message: {
+            Text("We need your location to send emergency alerts. Please enable it in Settings.")
+        }
+        .toolbar(emergencyVM.status == .countingDown ? .hidden : .visible, for: .bottomBar)
+    }
+    
+    private func scheduleToastDismissal() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            withAnimation {
+                if emergencyVM.status != .sending {
+                    emergencyVM.status = .idle
+                }
             }
         }
     }
