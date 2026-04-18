@@ -1,29 +1,19 @@
-//
-//  DashboardView.swift
-//  Seizcare
-//
-
 import SwiftUI
-import SwiftData
 import Charts
 import CoreLocation
 
-// MARK: - Active Chart Enum
+// MARK: - Active Chart
 
 enum ActiveChart: Identifiable {
     case seizureFrequency
     case sleepVsSeizures
-    case streak
-    case triggerCorrelation
     case heartRateTimeline(SeizureRecord)
 
     var id: String {
         switch self {
-        case .seizureFrequency:         return "freq"
-        case .sleepVsSeizures:          return "sleep"
-        case .streak:                   return "streak"
-        case .triggerCorrelation:       return "trigger"
-        case .heartRateTimeline(let r): return "hr-\(r.id.uuidString)"
+        case .seizureFrequency:          return "freq"
+        case .sleepVsSeizures:           return "sleep"
+        case .heartRateTimeline(let r):  return "hr-\(r.id.uuidString)"
         }
     }
 }
@@ -31,31 +21,31 @@ enum ActiveChart: Identifiable {
 // MARK: - Dashboard View
 
 struct DashboardView: View {
+    @EnvironmentObject var authVM: AuthViewModel
     @Binding var selectedTab: Tab
-    @EnvironmentObject var vm: RecordsViewModel
+
+    @StateObject private var viewModel: DashboardViewModel
     @StateObject private var locationManager = LocationManager()
     @StateObject private var emergencyVM = EmergencyViewModel()
-    @State private var activeChart: ActiveChart?
-    @State private var frequencyRange: TimeFrameRange = .weekly
+
     @State private var showLocationSettingsAlert = false
 
-    private var records: [SeizureRecord] { vm.records }
-    private let sleep   = MockDashboardData.sleepRecords
-
-    private var recentRecord: SeizureRecord? { records.first }
-    private var avgSleep7Days: Double {
-        let recent = sleep.prefix(7)
-        guard !recent.isEmpty else { return 0 }
-        return recent.reduce(0) { $0 + $1.hours } / Double(recent.count)
+    init(selectedTab: Binding<Tab>, recordsVM: RecordsViewModel, healthVM: HealthViewModel) {
+        self._selectedTab = selectedTab
+        _viewModel = StateObject(
+            wrappedValue: DashboardViewModel(
+                recordsVM: recordsVM,
+                healthVM: healthVM
+            )
+        )
     }
 
-    // Seizure control: inverse of seizure frequency relative to max expected (3/week)
-    private var controlPercent: Double {
-        let thisMonthCount = records.filter {
-            Calendar.current.isDate($0.startTime, equalTo: Date(), toGranularity: .month)
-        }.count
-        return max(0, 1.0 - Double(thisMonthCount) / 12.0)
-    }
+    // MARK: - Computed
+
+    private var records: [SeizureRecord] { viewModel.records }
+    private var sleep: [SleepData] { viewModel.sleepData }
+
+    // MARK: - Body
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -63,86 +53,109 @@ struct DashboardView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    // ── Header ──────────────────────────────
-                    DashboardHeaderView()
 
-                    // ── Hero Card ───────────────────────────
+                    // Header
+                    HStack(alignment: .center) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Summary")
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color.dashLabel)
+                            Text(Date().formatted(.dateTime.weekday(.wide).month().day()))
+                                .font(.subheadline)
+                                .foregroundStyle(Color.dashSecondary)
+                        }
+                        Spacer()
+                        NavigationLink(destination: SettingsView(vm: authVM)) {
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .frame(width: 32, height: 32)
+                                .foregroundStyle(Color.dashSecondary)
+                        }
+                    }
+                    .padding(.top, 4)
+
+                    // Hero Card
                     HeroCardView(
                         records: records,
-                        sleepRecords: sleep,
-                        onSendAlert: { 
-                            if locationManager.location == nil {
-                                if locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted {
-                                    showLocationSettingsAlert = true
-                                } else {
-                                    locationManager.requestWhenInUseAuthorization()
-                                    withAnimation {
-                                        emergencyVM.errorMessage = "Waiting for location connection... Please ensure GPS is enabled and try again."
-                                        emergencyVM.status = .failed
-                                    }
-                                }
-                            } else {
-                                withAnimation {
-                                    emergencyVM.startEmergencyCountdown(location: locationManager.location)
-                                }
-                            }
-                        }
+                        sleepHours: viewModel.avgSleep7Days,
+                        heartRate: viewModel.currentHeartRate,
+                        onSendAlert: handleEmergency
                     )
 
-                    // ── Analysis Cards ───────────────────────
+                    // Analysis Section
                     VStack(alignment: .leading, spacing: 12) {
                         SectionHeader(title: "Analysis", icon: "chart.xyaxis.line")
-                        LazyVGrid(columns: [
-                            GridItem(.flexible(), spacing: 12),
-                            GridItem(.flexible(), spacing: 12)
-                        ], spacing: 12) {
-                            
-                            // 1. FREQUENCY CARD
-                            Button(action: { activeChart = .seizureFrequency }) {
+
+                        LazyVGrid(
+                            columns: [
+                                GridItem(.flexible(), spacing: 12),
+                                GridItem(.flexible(), spacing: 12)
+                            ],
+                            spacing: 12
+                        ) {
+                            // Frequency card
+                            Button { viewModel.activeChart = .seizureFrequency } label: {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    HStack(alignment: .center) {
+                                    HStack {
                                         Text("Event Count")
-                                            .font(.system(size: 15, weight: .semibold))
+                                            .font(.system(size: 14, weight: .semibold))
                                             .foregroundStyle(Color.dashLabel)
                                         Spacer()
                                         Image(systemName: "chevron.right")
-                                            .font(.system(size: 12, weight: .semibold))
-                                            .foregroundStyle(Color.dashSecondary)
-                                            .padding(6)
-                                            .background(Circle().fill(Color.dashSecondary.opacity(0.15)))
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(Color.dashTertiary)
                                     }
-                                    
-                                    SeizureFrequencyMiniChart(records: records, range: frequencyRange)
-                                        .padding(.top, 4)
+                                    SeizureFrequencyMiniChart(
+                                        records: records,
+                                        range: viewModel.frequencyRange
+                                    )
+                                    .padding(.top, 4)
                                 }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                                 .padding(14)
                                 .background(Color.dashCard)
                                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .stroke(Color.dashSeizure.opacity(0.15), lineWidth: 1)
-                                )
+                                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .stroke(Color.dashSeizure.opacity(0.15), lineWidth: 1))
                             }
                             .buttonStyle(ScaleButtonStyle())
 
-                            // 2. SLEEP CARD
-                            GraphCard(
-                                title: "Sleep",
-                                color: .dashSleep
-                            ) {
-                                SleepVsSeizuresMiniChart(records: records, sleep: sleep)
-                            } onTap: {
-                                activeChart = .sleepVsSeizures
+                            // Sleep card
+                            Button { viewModel.activeChart = .sleepVsSeizures } label: {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text("Sleep")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundStyle(Color.dashLabel)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(Color.dashTertiary)
+                                    }
+                                    SleepVsSeizuresMiniChart(
+                                        records: records,
+                                        sleep: sleep
+                                    )
+                                    .padding(.top, 4)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                                .padding(14)
+                                .background(Color.dashCard)
+                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .stroke(Color.dashSleep.opacity(0.15), lineWidth: 1))
                             }
+                            .buttonStyle(ScaleButtonStyle())
                         }
                     }
-                    
-                    // ── Recent Records ───────────────────────
+
+                    // Recent Records
                     RecentRecordsView(records: records) {
                         withAnimation {
                             selectedTab = .records
                         }
                     }
+                    .environmentObject(viewModel.recordsVM)
 
                     Spacer().frame(height: 100)
                 }
@@ -150,229 +163,97 @@ struct DashboardView: View {
                 .padding(.top, 8)
             }
 
-            // ── Alert Toast Overlay ───────────────────────
+            // Toast Overlay
+            emergencyToast
+
+            // Countdown Overlay
+            emergencyCountdown
+        }
+        .fullScreenCover(item: $viewModel.activeChart) { chart in
+            switch chart {
+            case .seizureFrequency:
+                SeizureFrequencyChartView(records: records, initialRange: viewModel.frequencyRange)
+            case .sleepVsSeizures:
+                SleepVsSeizuresChartView(records: records, sleep: sleep)
+            case .heartRateTimeline(let rec):
+                HeartRateTimelineChartView(record: rec)
+            }
+        }
+        .alert("Location Access Required", isPresented: $showLocationSettingsAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Settings") {
+                UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
+            }
+        } message: {
+            Text("Enable location to send emergency alerts.")
+        }
+        .toolbar(emergencyVM.status == .countingDown ? .hidden : .visible, for: .bottomBar)
+    }
+
+    // MARK: - Emergency Logic
+
+    private func handleEmergency() {
+        if locationManager.location == nil {
+            if locationManager.authorizationStatus == .denied ||
+               locationManager.authorizationStatus == .restricted {
+                showLocationSettingsAlert = true
+            } else {
+                locationManager.requestWhenInUseAuthorization()
+                emergencyVM.errorMessage = "Waiting for location..."
+                emergencyVM.status = .failed
+            }
+        } else {
+            emergencyVM.startEmergencyCountdown(location: locationManager.location)
+        }
+    }
+
+    // MARK: - Overlays
+
+    private var emergencyToast: some View {
+        Group {
             if emergencyVM.status != .idle && emergencyVM.status != .countingDown {
                 VStack {
-                    HStack(spacing: 12) {
-                        if emergencyVM.status == .sending {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        } else if emergencyVM.status == .success {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                                .font(.system(size: 24))
-                        } else if emergencyVM.status == .failed {
-                            Image(systemName: "xmark.octagon.fill")
-                                .foregroundColor(.red)
-                                .font(.system(size: 24))
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(emergencyVM.status.rawValue)
-                                .font(.headline)
-                                .foregroundColor(.white)
-                            
-                            if let errorMessage = emergencyVM.errorMessage, emergencyVM.status == .failed {
-                                Text(errorMessage)
-                                    .font(.caption)
-                                    .foregroundColor(.red)
-                                    .lineLimit(2)
-                            }
-                        }
-                        
+                    HStack {
+                        Text(emergencyVM.status.rawValue)
+                            .foregroundColor(.white)
                         Spacer()
                     }
                     .padding()
                     .background(Color.black.opacity(0.85))
                     .cornerRadius(12)
-                    .shadow(radius: 10)
-                    .transition(.move(edge: .top).combined(with: .opacity))
                     .padding(.top, 40)
-                    .onAppear {
-                        if emergencyVM.status == .success || emergencyVM.status == .failed {
-                            scheduleToastDismissal()
-                        }
-                    }
-                    .onChange(of: emergencyVM.status) { _, newStatus in
-                        if newStatus == .success || newStatus == .failed {
-                            scheduleToastDismissal()
-                        }
-                    }
-                    
+
                     Spacer()
                 }
-                .frame(maxWidth: .infinity, alignment: .top)
-                .zIndex(100)
+                .transition(.move(edge: .top))
             }
-            
-            // ── Full Screen Countdown Overlay ─────────────────────
+        }
+    }
+
+    private var emergencyCountdown: some View {
+        Group {
             if emergencyVM.status == .countingDown {
                 ZStack {
-                    Color.black.opacity(0.95)
-                        .ignoresSafeArea()
-                    
-                    VStack(spacing: 40) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 80))
-                            .foregroundColor(.red)
-                            .symbolEffect(.pulse, options: .repeating)
-                        
-                        VStack(spacing: 10) {
-                            Text("EMERGENCY ALERT")
-                                .font(.system(size: 28, weight: .black, design: .rounded))
-                                .foregroundColor(.white)
-                            
-                            Text("Sending automatically in...")
-                                .font(.title3)
-                                .foregroundColor(.gray)
-                        }
-                        
+                    Color.black.opacity(0.95).ignoresSafeArea()
+
+                    VStack(spacing: 30) {
+                        Text("EMERGENCY ALERT")
+                            .foregroundColor(.white)
+
                         Text("\(emergencyVM.countdownTime)")
-                            .font(.system(size: 110, weight: .bold, design: .rounded))
+                            .font(.system(size: 80, weight: .bold))
                             .foregroundColor(.red)
-                            .contentTransition(.numericText(value: Double(emergencyVM.countdownTime)))
-                        
-                        Spacer().frame(height: 50)
-                        
-                        Button(action: {
-                            withAnimation {
-                                emergencyVM.cancelEmergencyAlert()
-                            }
-                        }) {
-                            ZStack {
-                                Capsule()
-                                    .fill(Color.red)
-                                    .frame(height: 70)
-                                    .frame(maxWidth: 300)
-                                
-                                Text("CANCEL ALERT")
-                                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-                            }
+
+                        Button("Cancel") {
+                            emergencyVM.cancelEmergencyAlert()
                         }
+                        .padding()
+                        .background(Color.red)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
                     }
-                    .padding()
-                }
-                .zIndex(200)
-                .transition(.opacity)
-            }
-        }
-        .fullScreenCover(item: $activeChart) { chart in
-            switch chart {
-            case .seizureFrequency:
-                SeizureFrequencyChartView(records: records, initialRange: frequencyRange)
-            case .sleepVsSeizures:
-                SleepVsSeizuresChartView(records: records, sleep: sleep)
-            case .streak:
-                SeizureStreakChartView(records: records)
-            case .triggerCorrelation:
-                TriggerCorrelationChartView(records: records)
-            case .heartRateTimeline(let rec):
-                HeartRateTimelineChartView(record: rec)
-            }
-        }
-        .animation(.easeInOut, value: emergencyVM.status)
-        .alert("Location Access Required", isPresented: $showLocationSettingsAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Settings") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
-            }
-        } message: {
-            Text("We need your location to send emergency alerts. Please enable it in Settings.")
-        }
-        .toolbar(emergencyVM.status == .countingDown ? .hidden : .visible, for: .bottomBar)
-    }
-    
-    private func scheduleToastDismissal() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            withAnimation {
-                if emergencyVM.status != .sending {
-                    emergencyVM.status = .idle
                 }
             }
         }
     }
 }
-
-// MARK: - Header
-
-private struct DashboardHeaderView: View {
-    @EnvironmentObject var authVM: AuthViewModel
-
-    private var dateString: String {
-        let f = DateFormatter()
-        f.dateFormat = "EEEE, MMM d"
-        return f.string(from: Date())
-    }
-
-    var body: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Summary")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.dashLabel)
-                Text(dateString)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.dashSecondary)
-            }
-            Spacer()
-            NavigationLink(destination: SettingsView(vm: authVM)) {
-                Circle()
-                    .fill(Color.dashCardElevated)
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(Color.dashSecondary)
-                    )
-            }
-        }
-        .padding(.top, 8)
-    }
-}
-
-// MARK: - Graph Card
-
-private struct GraphCard<Content: View>: View {
-    let title: String
-    let color: Color
-    @ViewBuilder let chart: Content
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .center) {
-                    Text(title)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color.dashLabel)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color.dashSecondary)
-                        .padding(6)
-                        .background(Circle().fill(Color.dashSecondary.opacity(0.15)))
-                }
-                
-                chart
-                    .frame(height: 125)
-                    .clipped()
-                    .padding(.top, 4)
-            }
-            .padding(14)
-            .background(Color.dashCard)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(color.opacity(0.15), lineWidth: 1)
-            )
-        }
-        .buttonStyle(ScaleButtonStyle())
-    }
-}
-
-
-
-

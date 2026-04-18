@@ -14,6 +14,7 @@ enum Tab {
 struct MainTabView: View {
     @ObservedObject var authVM: AuthViewModel
     @StateObject private var recordsVM = RecordsViewModel()
+    @StateObject private var healthVM = HealthViewModel()
     
     @State private var selectedTab: Tab = .dashboard
 
@@ -22,9 +23,12 @@ struct MainTabView: View {
             Group {
                 switch selectedTab {
                 case .dashboard:
-                    DashboardView(selectedTab: $selectedTab)
-                        .environmentObject(recordsVM)
-                        .environmentObject(authVM)
+DashboardView(
+    selectedTab: $selectedTab,
+    recordsVM: recordsVM,
+    healthVM: healthVM
+)
+.environmentObject(authVM)
                 case .records:
                     RecordsListView()
                         .environmentObject(recordsVM)
@@ -39,28 +43,20 @@ struct MainTabView: View {
                             selectedTab = .dashboard
                         }
                     } label: {
-                        VStack(spacing: 2) {
-                            Image(systemName: "chart.xyaxis.line")
-                                .font(.system(size: 18))
-                            Text("Dashboard")
-                                .font(.system(size: 10, weight: .medium))
-                        }
+                        Image(systemName: "chart.xyaxis.line")
+                            .font(.system(size: 24))
                     }
-                    .foregroundStyle(selectedTab == .dashboard ? .primary : .secondary)
+                    .foregroundStyle(selectedTab == .dashboard ? Color.blue : Color.secondary)
 
                     Button {
                         withAnimation {
                             selectedTab = .records
                         }
                     } label: {
-                        VStack(spacing: 2) {
-                            Image(systemName: "list.bullet.rectangle")
-                                .font(.system(size: 18))
-                            Text("Records")
-                                .font(.system(size: 10, weight: .medium))
-                        }
+                        Image(systemName: "list.bullet.rectangle")
+                            .font(.system(size: 24))
                     }
-                    .foregroundStyle(selectedTab == .records ? .primary : .secondary)
+                    .foregroundStyle(selectedTab == .records ? Color.blue : Color.secondary)
 
                     Spacer()
 

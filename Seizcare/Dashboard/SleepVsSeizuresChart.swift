@@ -11,222 +11,126 @@ import Charts
 private struct TimePoint: Identifiable {
     let id = UUID()
     let date: Date
-    let sleepValue: Double? // Optional: prevents line from crashing to 0 when no data
-    let seizureCount: Int  // Count (daily total or monthly total)
+    let sleepHours: Double?
+    let seizureCount: Int
 }
 
 // MARK: - Data Aggregation
 
-private func alignedData(records: [SeizureRecord], sleep: [SleepRecord], range: TimeFrameRange) -> [TimePoint] {
+private func alignedData(
+    records: [SeizureRecord],
+    sleep: [SleepData],
+    range: TimeFrameRange
+) -> [TimePoint] {
     let cal = Calendar.current
     let now = Date()
-    
+
     switch range {
     case .daily:
         return []
-        
+
     case .weekly:
         var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-        comps.weekday = 2 // Monday
+        comps.weekday = 2
         guard let startOfMonday = cal.date(from: comps) else { return [] }
-        
-        return (0..<7).compactMap { dayOffset -> TimePoint? in
-            guard let start = cal.date(byAdding: .day, value: dayOffset, to: startOfMonday),
-                  let end = cal.date(byAdding: .day, value: 1, to: start) else { return nil }
-            let sCount = records.filter { $0.startTime >= start && $0.startTime < end }.count
-            let sHours = sleep.first { cal.isDate($0.date, inSameDayAs: start) }?.hours
-            return TimePoint(date: start, sleepValue: sHours, seizureCount: sCount)
+        return (0..<7).compactMap { offset -> TimePoint? in
+            guard let start = cal.date(byAdding: .day, value: offset, to: startOfMonday),
+                  let end   = cal.date(byAdding: .day, value: 1, to: start) else { return nil }
+            let count = records.filter { $0.startTime >= start && $0.startTime < end }.count
+            let hours = sleep.first { cal.isDate($0.date, inSameDayAs: start) }?.duration
+            return TimePoint(date: start, sleepHours: hours, seizureCount: count)
         }
-        
+
     case .monthly:
         let comps = cal.dateComponents([.year, .month], from: now)
         guard let startOfMonth = cal.date(from: comps),
-              let daysRange = cal.range(of: .day, in: .month, for: startOfMonth) else { return [] }
-        
-        return (0..<daysRange.count).compactMap { dayOffset -> TimePoint? in
-            guard let start = cal.date(byAdding: .day, value: dayOffset, to: startOfMonth),
-                  let end = cal.date(byAdding: .day, value: 1, to: start) else { return nil }
-            let sCount = records.filter { $0.startTime >= start && $0.startTime < end }.count
-            let sHours = sleep.first { cal.isDate($0.date, inSameDayAs: start) }?.hours
-            return TimePoint(date: start, sleepValue: sHours, seizureCount: sCount)
+              let range = cal.range(of: .day, in: .month, for: startOfMonth) else { return [] }
+        return (0..<range.count).compactMap { offset -> TimePoint? in
+            guard let start = cal.date(byAdding: .day, value: offset, to: startOfMonth),
+                  let end   = cal.date(byAdding: .day, value: 1, to: start) else { return nil }
+            let count = records.filter { $0.startTime >= start && $0.startTime < end }.count
+            let hours = sleep.first { cal.isDate($0.date, inSameDayAs: start) }?.duration
+            return TimePoint(date: start, sleepHours: hours, seizureCount: count)
         }
-        
+
     case .yearly:
         let year = cal.component(.year, from: now)
         guard let startOfYear = cal.date(from: DateComponents(year: year, month: 1, day: 1)) else { return [] }
-        
-        return (0..<12).compactMap { monthOffset -> TimePoint? in
-            guard let start = cal.date(byAdding: .month, value: monthOffset, to: startOfYear),
-                  let end = cal.date(byAdding: .month, value: 1, to: start) else { return nil }
-            
-            let sCount = records.filter { $0.startTime >= start && $0.startTime < end }.count
+        return (0..<12).compactMap { offset -> TimePoint? in
+            guard let start = cal.date(byAdding: .month, value: offset, to: startOfYear),
+                  let end   = cal.date(byAdding: .month, value: 1, to: start) else { return nil }
+            let count = records.filter { $0.startTime >= start && $0.startTime < end }.count
             let monthSleeps = sleep.filter { $0.date >= start && $0.date < end }
-            let avgSleep: Double? = monthSleeps.isEmpty ? nil : monthSleeps.reduce(0.0) { $0 + $1.hours } / Double(monthSleeps.count)
-            
-            return TimePoint(date: start, sleepValue: avgSleep, seizureCount: sCount)
+            let avgHours: Double? = monthSleeps.isEmpty ? nil
+                : monthSleeps.reduce(0) { $0 + $1.duration } / Double(monthSleeps.count)
+            return TimePoint(date: start, sleepHours: avgHours, seizureCount: count)
         }
     }
 }
 
-// MARK: - Formatting Helpers
-
-private func xAxisLabel(for date: Date, range: TimeFrameRange) -> String {
-    let f = DateFormatter()
-    switch range {
-    case .weekly:  f.dateFormat = "EEE" // Mon, Tue
-    case .monthly: f.dateFormat = "d"   // 1, 2, 15
-    case .yearly:  f.dateFormat = "MMM" // Jan, Feb
-    default: return ""
-    }
-    return f.string(from: date)
-}
-
-private func tooltipDateLabel(for date: Date, range: TimeFrameRange) -> String {
-    let f = DateFormatter()
-    switch range {
-    case .weekly, .monthly: f.dateFormat = "d MMM yyyy"
-    case .yearly: f.dateFormat = "MMMM yyyy"
-    default: return ""
-    }
-    return f.string(from: date)
-}
-
-// MARK: - Mini Preview
-
-struct SleepVsSeizuresMiniChart: View {
-    let records: [SeizureRecord]
-    let sleep: [SleepRecord]
-
-    private var data: [TimePoint] { alignedData(records: records, sleep: sleep, range: .weekly) }
-    
-    private var totalSeizures: Int { data.reduce(0) { $0 + $1.seizureCount } }
-    private var avgSleep: Double {
-        let validDays = data.compactMap { $0.sleepValue }.filter { $0 > 0 }
-        if validDays.isEmpty { return 0 }
-        return validDays.reduce(0.0, +) / Double(validDays.count)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("This Week")
-                .font(.system(size: 13, weight: .regular))
-                .foregroundStyle(Color.dashSecondary)
-            
-            HStack(alignment: .lastTextBaseline, spacing: 4) {
-                Text(String(format: "%.1f", avgSleep))
-                    .font(.system(size: 22, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color.dashSleep)
-                Text("HRS AVG")
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundStyle(Color.dashSleep)
-                
-                Text("\(totalSeizures)")
-                    .font(.system(size: 22, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color.dashSeizure)
-                    .padding(.leading, 8)
-                Text("EVENTS")
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundStyle(Color.dashSeizure)
-            }
-            .padding(.bottom, 4)
-            
-            let maxSleep = max(10.0, (data.compactMap { $0.sleepValue }.max() ?? 8.0) + 2.0)
-            let maxSeizures = max(1, data.map { $0.seizureCount }.max() ?? 1)
-            // Decouple seizure bars: keep them in the bottom 35% of the chart
-            let seizureScaleFactor = (maxSleep * 0.35) / Double(maxSeizures)
-            
-            Chart(data) { pt in
-                // SLEEP LINE
-                if let sleepVal = pt.sleepValue {
-                    LineMark(
-                        x: .value("Time", pt.date, unit: .day),
-                        y: .value("Sleep", sleepVal)
-                    )
-                    .interpolationMethod(.linear)
-                    .foregroundStyle(Color.dashSleep)
-                    .lineStyle(StrokeStyle(lineWidth: 1.5))
-                    
-                    if pt.seizureCount > 0 {
-                        PointMark(
-                            x: .value("Time", pt.date, unit: .day),
-                            y: .value("Sleep", sleepVal)
-                        )
-                        .symbol {
-                            Circle()
-                                .fill(Color.dashBg)
-                                .overlay(Circle().stroke(Color.dashSleep, lineWidth: 1.5))
-                                .frame(width: 6, height: 6)
-                        }
-                    }
-                }
-
-                // SEIZURE BARS
-                if pt.seizureCount > 0 {
-                    BarMark(
-                        x: .value("Time", pt.date, unit: .day),
-                        y: .value("Seizures", Double(pt.seizureCount) * seizureScaleFactor)
-                    )
-                    .foregroundStyle(Color.dashSeizure.opacity(0.8))
-                }
-            }
-            .chartYScale(domain: 0...maxSleep)
-            .chartXScale(range: .plotDimension(padding: 15))
-            .chartXAxis {
-                AxisMarks(preset: .aligned, values: .stride(by: .day, count: 1)) { value in
-                    AxisValueLabel {
-                        if let date = value.as(Date.self) {
-                            Text(xAxisLabel(for: date, range: .weekly))
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(Color.dashSecondary)
-                        }
-                    }
-                }
-            }
-            .chartYAxis(.hidden)
-            .frame(height: 70)
-        }
-    }
-}
-
-// MARK: - Full Screen
+// MARK: - Full Screen Chart View
 
 struct SleepVsSeizuresChartView: View {
-    @Environment(\.dismiss) private var dismiss
     let records: [SeizureRecord]
-    let sleep: [SleepRecord]
-
+    let sleep: [SleepData]
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedRange: TimeFrameRange = .weekly
-
-    private let availableRanges: [TimeFrameRange] = [.weekly, .monthly, .yearly]
-
     @State private var selectedDate: Date?
 
-    private var data: [TimePoint] { alignedData(records: records, sleep: sleep, range: selectedRange) }
+    private var data: [TimePoint] {
+        alignedData(records: records, sleep: sleep, range: selectedRange)
+    }
+
+    private var avgSleep: Double {
+        let vals = data.compactMap { $0.sleepHours }
+        return vals.isEmpty ? 0 : vals.reduce(0, +) / Double(vals.count)
+    }
+
+    private var totalSeizures: Int { data.reduce(0) { $0 + $1.seizureCount } }
 
     private var selectedPoint: TimePoint? {
-        guard let selectedDate else { return nil }
-        let cal = Calendar.current
-        return data.first(where: {
-            let start = $0.date
-            let end: Date
-            switch selectedRange {
-            case .weekly, .monthly: end = cal.date(byAdding: .day, value: 1, to: start)!
-            case .yearly: end = cal.date(byAdding: .month, value: 1, to: start)!
-            default: end = cal.date(byAdding: .day, value: 1, to: start)!
-            }
-            return selectedDate >= start && selectedDate < end && $0.seizureCount > 0
+        guard let sel = selectedDate else { return nil }
+        let closest = data.min(by: {
+            abs($0.date.timeIntervalSince(sel)) < abs($1.date.timeIntervalSince(sel))
         })
+        if closest?.seizureCount == 0 { return nil }
+        return closest
     }
+
+    private var insightText: String {
+        let poorDays = data.filter { ($0.sleepHours ?? 99) < 6 && $0.seizureCount > 0 }.count
+        let unit = selectedRange == .yearly ? "months" : "days"
+        return "\(poorDays) \(unit) with poor sleep (<6h) coincided with a seizure."
+    }
+
+    private var avgSleepLabel: String {
+        selectedRange == .yearly ? "Avg Monthly Sleep" : "Avg Sleep"
+    }
+
+    private func barColor(for pt: TimePoint) -> Color {
+        let base = Color(red: 1.0, green: 0.38, blue: 0.38)
+        return (selectedPoint == nil || selectedPoint?.id == pt.id) ? base.opacity(0.85) : base.opacity(0.3)
+    }
+
+    private func outerCircleSize(for pt: TimePoint) -> CGFloat {
+        return selectedPoint?.id == pt.id ? 80 : 55
+    }
+
+    private func innerCircleSize(for pt: TimePoint) -> CGFloat {
+        return selectedPoint?.id == pt.id ? 30 : 18
+    }
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.dashBg.ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        
-                        // Range Picker
+                Color(UIColor.systemGroupedBackground).ignoresSafeArea()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+
+                        // Segmented range picker
                         Picker("Range", selection: $selectedRange) {
                             Text("This Week").tag(TimeFrameRange.weekly)
                             Text("This Month").tag(TimeFrameRange.monthly)
@@ -234,170 +138,139 @@ struct SleepVsSeizuresChartView: View {
                         }
                         .pickerStyle(.segmented)
                         .padding(.horizontal, 16)
-                        .padding(.top, 10)
-                        
-                        // Summary Stats
-                        let validSleep = data.compactMap { $0.sleepValue }.filter { $0 > 0 }
-                        let overallAvgSleep = validSleep.isEmpty ? 0.0 : validSleep.reduce(0.0, +) / Double(validSleep.count)
-                        let overallTotalSeizures = data.reduce(0) { $0 + $1.seizureCount }
-                        
+                        .padding(.bottom, 20)
+                        .onChange(of: selectedRange) { _, _ in selectedDate = nil }
+
+                        // Stat cards
+                        HStack(spacing: 12) {
+                            statCard(label: avgSleepLabel,
+                                     value: String(format: "%.1fh", avgSleep),
+                                     color: Color(red: 0.27, green: 0.57, blue: 1.0))
+                            statCard(label: "Total Seizures",
+                                     value: "\(totalSeizures)",
+                                     color: Color(red: 1.0, green: 0.38, blue: 0.38))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 20)
+
+                        // Legend row
                         HStack(spacing: 16) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(selectedRange == .yearly ? "Avg Monthly Sleep" : "Avg Sleep")
-                                    .font(.system(size: 13, weight: .regular))
-                                    .foregroundStyle(Color.dashSecondary)
-                                Text(String(format: "%.1fh", overallAvgSleep))
-                                    .font(.system(size: 24, weight: .semibold, design: .rounded))
-                                    .foregroundStyle(Color.dashSleep)
+                            legendDot(color: Color(red: 0.27, green: 0.57, blue: 1.0),
+                                      label: selectedRange == .yearly ? "Avg Sleep (hrs)" : "Sleep (hrs)")
+                            legendDot(color: Color(red: 1.0, green: 0.38, blue: 0.38),
+                                      label: selectedRange == .yearly ? "Total Seizures" : "Seizures")
+                            Spacer()
+                            if let pt = selectedPoint {
+                                Text(tooltipDateLabel(pt.date))
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(Color(UIColor.label))
+                            } else {
+                                Text(tooltipDateLabel(Date()))
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(Color.clear)
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(16)
-                            .background(Color.dashCard)
-                            .cornerRadius(12)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Total Seizures")
-                                    .font(.system(size: 13, weight: .regular))
-                                    .foregroundStyle(Color.dashSecondary)
-                                Text("\(overallTotalSeizures)")
-                                    .font(.system(size: 24, weight: .semibold, design: .rounded))
-                                    .foregroundStyle(Color.dashSeizure)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(16)
-                            .background(Color.dashCard)
-                            .cornerRadius(12)
                         }
                         .padding(.horizontal, 16)
+                        .padding(.bottom, 10)
 
-                        // Legend
-                        HStack(spacing: 20) {
-                            LegendDot(color: .dashSleep,   label: selectedRange == .yearly ? "Avg Sleep (hrs)" : "Sleep (hrs)")
-                            LegendDot(color: .dashSeizure, label: selectedRange == .yearly ? "Total Seizures" : "Seizures")
-                        }
-                        .padding(.horizontal, 16)
-                        
-                        let unit: Calendar.Component = selectedRange == .yearly ? .month : .day
-                        let maxSleep = max(10.0, (data.compactMap { $0.sleepValue }.max() ?? 8.0) + 2.0)
-                        let maxSeizures = max(1, data.map { $0.seizureCount }.max() ?? 1)
-                        // Decouple seizure bars: keep them in the bottom 35% of the chart
-                        let seizureScaleFactor = (maxSleep * 0.35) / Double(maxSeizures)
-                        
-                        // Main Interactive Chart
-                        Chart(data) { pt in
-                            // SLEEP LINE
-                            if let sleepVal = pt.sleepValue {
-                                LineMark(
-                                    x: .value("Time", pt.date, unit: unit),
-                                    y: .value("Sleep", sleepVal),
-                                    series: .value("Series", "Sleep")
+                        // Chart — directly on gray, no card wrapper
+                        Chart {
+                            ForEach(data) { pt in
+                                BarMark(
+                                    x: .value("Date", pt.date),
+                                    y: .value("Seizures", pt.seizureCount)
                                 )
-                                .interpolationMethod(.linear)
-                                .foregroundStyle(Color.dashSleep)
-                                .lineStyle(StrokeStyle(lineWidth: 3))
+                                .foregroundStyle(barColor(for: pt))
+                                .cornerRadius(3)
+                            }
 
-                                // SLEEP POINTS (only on seizure days/months)
-                                if pt.seizureCount > 0 {
-                                    PointMark(
-                                        x: .value("Time", pt.date, unit: unit),
-                                        y: .value("Sleep", sleepVal)
+                            ForEach(data) { pt in
+                                if let h = pt.sleepHours {
+                                    LineMark(
+                                        x: .value("Date", pt.date),
+                                        y: .value("Sleep", h)
                                     )
-                                    .symbol {
-                                        Circle()
-                                            .fill(Color.dashBg)
-                                            .overlay(Circle().stroke(Color.dashSleep, lineWidth: 3))
-                                            .frame(width: 14, height: 14)
-                                    }
+                                    .interpolationMethod(.linear)
+                                    .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
+                                    .lineStyle(StrokeStyle(lineWidth: 2))
+
+                                    // Open circle outer (background fill)
+                                    PointMark(
+                                        x: .value("Date", pt.date),
+                                        y: .value("Sleep", h)
+                                    )
+                                    .foregroundStyle(Color(UIColor.systemGroupedBackground))
+                                    .symbolSize(outerCircleSize(for: pt))
+
+                                    // Open circle inner (blue ring)
+                                    PointMark(
+                                        x: .value("Date", pt.date),
+                                        y: .value("Sleep", h)
+                                    )
+                                    .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
+                                    .symbolSize(innerCircleSize(for: pt))
                                 }
                             }
 
-                            // SEIZURE BARS
-                            if pt.seizureCount > 0 {
-                                BarMark(
-                                    x: .value("Time", pt.date, unit: unit),
-                                    y: .value("Seizures", Double(pt.seizureCount) * seizureScaleFactor)
-                                )
-                                .foregroundStyle(Color.dashSeizure.opacity(0.8))
-                            } else if pt.sleepValue == nil {
-                                // Invisible mark to preserve X-axis domain when no data exists
-                                BarMark(
-                                    x: .value("Time", pt.date, unit: unit),
-                                    y: .value("Seizures", 0)
-                                )
-                                .foregroundStyle(Color.clear)
-                            }
-                            
-                            // TOOLTIP ANNOTATION
-                            if let selectedPoint, selectedPoint.date == pt.date {
-                                RuleMark(x: .value("Time", pt.date, unit: unit))
-                                    .foregroundStyle(Color.gray.opacity(0.3))
-                                    .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                                        VStack(alignment: .leading, spacing: 6) {
-                                            Text(tooltipDateLabel(for: pt.date, range: selectedRange))
-                                                .font(.system(size: 13, weight: .bold))
-                                                .foregroundStyle(Color.dashLabel)
-                                            
-                                            HStack(spacing: 12) {
-                                                if let sleepVal = pt.sleepValue {
-                                                    HStack(spacing: 4) {
-                                                        Circle().fill(Color.dashSleep).frame(width: 8, height: 8)
-                                                        Text("\(String(format: "%.1f", sleepVal))h")
-                                                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                                                            .foregroundStyle(Color.dashLabel)
-                                                    }
-                                                } else {
-                                                    HStack(spacing: 4) {
-                                                        Circle().fill(Color.dashSleep).frame(width: 8, height: 8)
-                                                        Text("No Data")
-                                                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                                                            .foregroundStyle(Color.dashSecondary)
-                                                    }
-                                                }
-                                                HStack(spacing: 4) {
-                                                    Circle().fill(Color.dashSeizure).frame(width: 8, height: 8)
-                                                    Text("\(pt.seizureCount)")
-                                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                                                        .foregroundStyle(Color.dashLabel)
-                                                }
-                                            }
-                                        }
-                                        .padding(12)
-                                        .background(Color.dashCardElevated)
-                                        .cornerRadius(12)
-                                        .shadow(color: .black.opacity(0.1), radius: 5, y: 2)
-                                    }
+                            if let pt = selectedPoint {
+                                RuleMark(x: .value("Selected", pt.date))
+                                    .foregroundStyle(Color(UIColor.secondaryLabel).opacity(0.3))
+                                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                             }
                         }
-                        .chartYScale(domain: 0...maxSleep)
-                        .chartXSelection(value: $selectedDate)
-                        .chartXAxis {
-                            let strideCount = selectedRange == .monthly ? 5 : 1
-                            AxisMarks(values: .stride(by: unit, count: strideCount)) { value in
-                                if let date = value.as(Date.self) {
-                                    AxisValueLabel {
-                                        Text(xAxisLabel(for: date, range: selectedRange))
+                        .chartYScale(domain: 0...10)
+                        .chartYAxis {
+                            AxisMarks(position: .leading, values: [0, 2, 4, 6, 8, 10]) { v in
+                                AxisGridLine()
+                                    .foregroundStyle(Color(UIColor.separator).opacity(0.4))
+                                AxisValueLabel {
+                                    if let val = v.as(Int.self) {
+                                        Text("\(val)")
                                             .font(.system(size: 11))
-                                            .foregroundStyle(Color.dashSecondary)
+                                            .foregroundStyle(Color(UIColor.secondaryLabel))
+                                            .padding(.trailing, 8)
                                     }
                                 }
                             }
                         }
-                        .chartYAxis {
-                            AxisMarks(position: .leading, values: .automatic(desiredCount: 5)) { value in
-                                AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [6, 4]))
-                                    .foregroundStyle(Color.gray.opacity(0.2))
-                                AxisValueLabel()
-                                    .foregroundStyle(Color.dashSecondary)
+                        .chartXAxis {
+                            AxisMarks { v in
+                                AxisValueLabel {
+                                    if let d = v.as(Date.self) {
+                                        Text(xAxisLabel(d))
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(Color(UIColor.secondaryLabel))
+                                            .opacity(selectedPoint == nil ? 1 : 0)
+                                    }
+                                }
                             }
                         }
-                        .frame(height: 300)
-                        .padding(.horizontal, 20)
-                        
-                        // Insight Card
-                        CorrelationInsightCard(data: data, range: selectedRange)
+                        .chartXSelection(value: $selectedDate)
+                        .chartOverlay { proxy in
+                            GeometryReader { geo in
+                                if let pt = selectedPoint,
+                                   let plotFrame = proxy.plotFrame,
+                                   let xPos = proxy.position(forX: pt.date) {
+                                    
+                                    // Keep bubble within screen bounds
+                                    let safeX = min(max(xPos + geo[plotFrame].origin.x, 60), geo.size.width - 60)
+                                    
+                                    tooltipBubble(pt)
+                                        .position(x: safeX, y: geo[plotFrame].origin.y - 12)
+                                }
+                            }
+                        }
+                        .frame(height: 320)
+                        .padding(.top, 24)
+                        .padding(.horizontal, 16)
+
+                        // Insight card
+                        insightCard
                             .padding(.horizontal, 16)
-                            .padding(.top, 20)
+                            .padding(.top, 24)
+                            .padding(.bottom, 40)
                     }
+                    .padding(.top, 16)
                 }
             }
             .navigationTitle("Sleep vs Seizures")
@@ -406,54 +279,208 @@ struct SleepVsSeizuresChartView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(action: { dismiss() }) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(Color.dashLabel)
-                            .padding(8)
-                            .background(Circle().fill(Color.dashCard))
                     }
                 }
             }
         }
     }
-}
 
-private struct CorrelationInsightCard: View {
-    let data: [TimePoint]
-    let range: TimeFrameRange
+    // MARK: - Helpers
 
-    private var poorSleepSeizureDays: Int {
-        data.filter { ($0.sleepValue ?? 0) > 0 && ($0.sleepValue ?? 0) < 6 && $0.seizureCount > 0 }.count
+    private func statCard(label: String, value: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.system(size: 13))
+                .foregroundStyle(Color(UIColor.secondaryLabel))
+            Text(value)
+                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .foregroundStyle(color)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    var body: some View {
-        HStack(spacing: 14) {
+    private var insightCard: some View {
+        HStack(alignment: .top, spacing: 12) {
             Image(systemName: "lightbulb.fill")
-                .foregroundStyle(Color(red: 1, green: 0.85, blue: 0.0))
-                .font(.system(size: 18))
+                .font(.system(size: 15))
+                .foregroundStyle(.yellow)
+                .padding(.top, 1)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Insight")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Color.dashLabel)
-                let unit = range == .yearly ? "months" : "days"
-                Text("\(poorSleepSeizureDays) \(unit) with poor sleep (<6h) coincided with a seizure.")
-                    .font(.caption)
-                    .foregroundStyle(Color.dashSecondary)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color(UIColor.label))
+                Text(insightText)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color(UIColor.secondaryLabel))
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            Spacer()
         }
         .padding(16)
-        .background(Color.dashCard)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
-}
 
-private struct LegendDot: View {
-    let color: Color
-    let label: String
-    var body: some View {
+    @ViewBuilder
+    private func tooltipBubble(_ pt: TimePoint) -> some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(Color(red: 0.27, green: 0.57, blue: 1.0))
+                    .frame(width: 7, height: 7)
+                Text(String(format: "%.1fh", pt.sleepHours ?? 0.0))
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
+            }
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(Color(red: 1.0, green: 0.38, blue: 0.38))
+                    .frame(width: 7, height: 7)
+                Text("\(pt.seizureCount) event\(pt.seizureCount == 1 ? "" : "s")")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38))
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Color(UIColor.secondarySystemGroupedBackground))
+                .shadow(color: .black.opacity(0.1), radius: 6, y: 2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .stroke(Color(UIColor.separator).opacity(0.3), lineWidth: 0.5)
+        )
+    }
+
+    private func legendDot(color: Color, label: String) -> some View {
         HStack(spacing: 6) {
             Circle().fill(color).frame(width: 8, height: 8)
-            Text(label).font(.caption).foregroundStyle(Color.dashSecondary)
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundStyle(Color(UIColor.secondaryLabel))
         }
+    }
+
+    private func xAxisLabel(_ date: Date) -> String {
+        let fmt = DateFormatter()
+        switch selectedRange {
+        case .weekly:  fmt.dateFormat = "EEE"
+        case .monthly: fmt.dateFormat = "d"
+        case .yearly:  fmt.dateFormat = "MMM"
+        default:       fmt.dateFormat = "d"
+        }
+        return fmt.string(from: date)
+    }
+
+    private func tooltipDateLabel(_ date: Date) -> String {
+        let fmt = DateFormatter()
+        switch selectedRange {
+        case .weekly:  fmt.dateFormat = "EEEE"
+        case .monthly: fmt.dateFormat = "MMMM d"
+        case .yearly:  fmt.dateFormat = "MMMM yyyy"
+        default:       fmt.dateFormat = "MMMM d"
+        }
+        return fmt.string(from: date)
     }
 }
 
+// MARK: - Mini Chart (Dashboard Preview)
+
+struct SleepVsSeizuresMiniChart: View {
+    let records: [SeizureRecord]
+    let sleep: [SleepData]
+
+    private var weekData: [TimePoint] {
+        alignedData(records: records, sleep: sleep, range: .weekly)
+    }
+
+    private var avgSleep: Double {
+        let vals = weekData.compactMap { $0.sleepHours }
+        return vals.isEmpty ? 0 : vals.reduce(0, +) / Double(vals.count)
+    }
+
+    private var totalSeizures: Int { weekData.reduce(0) { $0 + $1.seizureCount } }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // Period label
+            Text("This Week")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Color.dashSecondary)
+
+            // Stats row
+            HStack(spacing: 12) {
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text(String(format: "%.1f", avgSleep))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
+                    Text("HRS AVG")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0).opacity(0.8))
+                }
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text("\(totalSeizures)")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38))
+                    Text("EVENTS")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38).opacity(0.8))
+                }
+                Spacer()
+            }
+
+            // Mini chart
+            Chart {
+                ForEach(weekData) { pt in
+                    BarMark(
+                        x: .value("Day", pt.date),
+                        y: .value("Seizures", pt.seizureCount)
+                    )
+                    .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38).opacity(0.8))
+                    .cornerRadius(3)
+                }
+                ForEach(weekData) { pt in
+                    if let h = pt.sleepHours {
+                        LineMark(x: .value("Day", pt.date), y: .value("Sleep", h))
+                            .interpolationMethod(.linear)
+                            .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
+                            .lineStyle(StrokeStyle(lineWidth: 2))
+                        PointMark(x: .value("Day", pt.date), y: .value("Sleep", h))
+                            .foregroundStyle(Color.dashCard)
+                            .symbolSize(36)
+                        PointMark(x: .value("Day", pt.date), y: .value("Sleep", h))
+                            .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
+                            .symbolSize(14)
+                    }
+                }
+            }
+            .chartYScale(domain: 0...10)
+            .chartXAxis {
+                AxisMarks(values: .automatic) { value in
+                    AxisValueLabel(centered: false) {
+                        if let date = value.as(Date.self) {
+                            Text(miniXLabel(date))
+                                .font(.system(size: 8))
+                                .foregroundStyle(Color.dashSecondary)
+                        }
+                    }
+                }
+            }
+            .chartYAxis(.hidden)
+            .frame(height: 88)
+        }
+    }
+
+    private func miniXLabel(_ date: Date) -> String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "EEE"
+        return String(fmt.string(from: date).prefix(3))
+    }
+}
