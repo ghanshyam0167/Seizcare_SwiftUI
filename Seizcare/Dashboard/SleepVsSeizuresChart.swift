@@ -181,10 +181,11 @@ struct SleepVsSeizuresChartView: View {
                                     y: .value("Seizures", pt.seizureCount)
                                 )
                                 .foregroundStyle(barColor(for: pt))
-                                .cornerRadius(3)
+                                .cornerRadius(4)
                             }
 
-                            ForEach(data) { pt in
+                            // Sleep circles — only on days that ALSO have a seizure event
+                            ForEach(data.filter { $0.seizureCount > 0 }) { pt in
                                 if let h = pt.sleepHours {
                                     LineMark(
                                         x: .value("Date", pt.date),
@@ -218,9 +219,8 @@ struct SleepVsSeizuresChartView: View {
                                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                             }
                         }
-                        .chartYScale(domain: 0...10)
                         .chartYAxis {
-                            AxisMarks(position: .leading, values: [0, 2, 4, 6, 8, 10]) { v in
+                            AxisMarks(position: .leading) { v in
                                 AxisGridLine()
                                     .foregroundStyle(Color(UIColor.separator).opacity(0.4))
                                 AxisValueLabel {
@@ -443,10 +443,11 @@ struct SleepVsSeizuresMiniChart: View {
                         x: .value("Day", pt.date),
                         y: .value("Seizures", pt.seizureCount)
                     )
-                    .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38).opacity(0.8))
-                    .cornerRadius(3)
+                    .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38).opacity(0.85))
+                    .cornerRadius(4)
                 }
-                ForEach(weekData) { pt in
+                // Sleep circles — only on seizure days
+                ForEach(weekData.filter { $0.seizureCount > 0 }) { pt in
                     if let h = pt.sleepHours {
                         LineMark(x: .value("Day", pt.date), y: .value("Sleep", h))
                             .interpolationMethod(.linear)
@@ -461,7 +462,6 @@ struct SleepVsSeizuresMiniChart: View {
                     }
                 }
             }
-            .chartYScale(domain: 0...10)
             .chartXAxis {
                 AxisMarks(values: .automatic) { value in
                     AxisValueLabel(centered: false) {
