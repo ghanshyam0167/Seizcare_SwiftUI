@@ -218,15 +218,14 @@ struct SettingsView: View {
             self.user = UserDataModel.shared.getCurrentUser()
             self.refreshID = UUID() // Forces the view and card to completely redraw!
         }
-        .confirmationDialog(
+        .alert(
             "Log Out",
-            isPresented: $showingLogoutConfirmation,
-            titleVisibility: .visible
+            isPresented: $showingLogoutConfirmation
         ) {
+            Button("Cancel", role: .cancel) { }
             Button("Log Out", role: .destructive) {
                 vm.logout()
             }
-            Button("Cancel", role: .cancel) { }
         } message: {
             Text("Are you sure you want to log out of your account?")
         }

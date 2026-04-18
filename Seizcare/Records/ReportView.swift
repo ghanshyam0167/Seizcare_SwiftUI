@@ -9,6 +9,7 @@ import Charts
 // MARK: - Report Duration
 
 enum ReportDuration: String, CaseIterable, Identifiable {
+    case week1 = "Last 7 Days"
     case month1 = "Last 1 Month"
     case month3 = "Last 3 Months"
     case month6 = "Last 6 Months"
@@ -16,6 +17,7 @@ enum ReportDuration: String, CaseIterable, Identifiable {
 
     var days: Int {
         switch self {
+        case .week1: return 7
         case .month1: return 30
         case .month3: return 90
         case .month6: return 180
@@ -30,7 +32,26 @@ struct ReportOptionsSheet: View {
     var onSelect: (ReportDuration) -> Void
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            // Custom Header
+            HStack {
+                Spacer()
+                Text("Generate Report")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.dashLabel)
+                Spacer()
+            }
+            .overlay(
+                Button("Cancel") { dismiss() }
+                    .foregroundStyle(Color.dashSecondary)
+                    .font(.system(size: 16, weight: .medium)),
+                alignment: .trailing
+            )
+            .padding(.horizontal, 20)
+            .padding(.top, 30)
+            .padding(.bottom, 24)
+            
+            // Options List
             VStack(spacing: 12) {
                 ForEach(ReportDuration.allCases) { duration in
                     Button {
@@ -56,20 +77,13 @@ struct ReportOptionsSheet: View {
                     }
                     .buttonStyle(ScaleButtonStyle())
                 }
-                Spacer()
             }
-            .padding(20)
-            .background(Color.dashBg.ignoresSafeArea())
-            .navigationTitle("Generate Report")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundStyle(Color.dashSecondary)
-                }
-            }
+            .padding(.horizontal, 20)
+            
+            Spacer()
         }
-        .presentationDetents([.height(280)])
+        .background(Color.dashBg.ignoresSafeArea())
+        .presentationDetents([.height(380)])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
     }
