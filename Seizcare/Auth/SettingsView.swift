@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var showingEditProfile = false
     @State private var showingLanguage = false
     @State private var showingWatchConnection = false
+    @State private var showingDeleteConfirmation = false
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -138,6 +139,29 @@ struct SettingsView: View {
                         )
                     }
                     
+                    // Danger Zone / Account Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("ACCOUNT")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.authSecondaryText)
+                            .padding(.leading, 12)
+                        
+                        VStack(spacing: 0) {
+                            SettingsRowCard(
+                                icon: "trash.fill",
+                                title: "Delete Account",
+                                iconColor: .errorRed,
+                                showDivider: false
+                            ) {
+                                showingDeleteConfirmation = true
+                            }
+                        }
+                        .background(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(Color.authCardBackground)
+                        )
+                    }
+                    
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
@@ -167,6 +191,19 @@ struct SettingsView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UserDataModel.avatarDidChangeNotification)) { _ in
             self.user = UserDataModel.shared.getCurrentUser()
+        }
+        .confirmationDialog(
+            "Delete Account?",
+            isPresented: $showingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Permanently", role: .destructive) {
+                print("🔘 [SettingsView] Delete Permanently clicked")
+                vm.deleteAccount()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This action is permanent and cannot be undone. All your data, seizure records, and credentials will be purged from our servers.")
         }
     }
 }

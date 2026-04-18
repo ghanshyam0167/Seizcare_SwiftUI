@@ -275,6 +275,11 @@ final class AuthViewModel: ObservableObject {
             do {
                 try await service.login(email: loginEmail.trimmingCharacters(in: .whitespaces),
                                         password: loginPassword)
+                
+                // Sync user data
+                await EmergencyContactDataModel.shared.refreshContacts()
+                await SensitivityDataModel.shared.refreshSensitivity()
+                
                 isAuthenticated = true
             } catch {
                 alertMessage = error.localizedDescription
@@ -327,6 +332,11 @@ final class AuthViewModel: ObservableObject {
                     otp: signupOTP,
                     isResend: isResendSignupOTP
                 )
+                
+                // Sync user data
+                await EmergencyContactDataModel.shared.refreshContacts()
+                await SensitivityDataModel.shared.refreshSensitivity()
+                
                 triggerSuccessToast(message: "Account verified successfully!")
                 isAuthenticated = true
             } catch {
@@ -487,21 +497,60 @@ final class AuthViewModel: ObservableObject {
 
     func tryRestoreSession() async {
         let restored = await service.restoreSession()
+        if restored {
+            // Re-hydrate user preferences
+            await EmergencyContactDataModel.shared.refreshContacts()
+            await SensitivityDataModel.shared.refreshSensitivity()
+        }
         isAuthenticated = restored
     }
 
     // MARK: - Logout
 
     func logout() {
+        print("🔄 [AuthViewModel] Starting logout process...")
+        
+        // 1. Force immediate UI state change on MainActor with animation
+        withAnimation(.easeInOut(duration: 0.35)) {
+            self.objectWillChange.send()
+            self.activeScreen = .login
+            self.isAuthenticated = false
+        }
+        
+        // 2. Perform background cleanup
         Task {
             try? await service.signOut()
+            
+            // Clear local caches
+            EmergencyContactDataModel.shared.clearCache()
+            SensitivityDataModel.shared.resetToDefault()
+            
             loginEmail = ""
             loginPassword = ""
             signupEmail = ""
             signupPassword = ""
             signupConfirmPassword = ""
-            activeScreen = .onboarding
-            isAuthenticated = false
+        }
+    }
+
+    func deleteAccount() {
+        print("🗑️ [AuthViewModel] deleteAccount() called")
+        isLoading = true
+        Task {
+            defer { 
+                isLoading = false
+            }
+            
+            do {
+                print("📲 [AuthViewModel] Calling SupabaseService.deleteAccount()...")
+                try await SupabaseService.shared.deleteAccount()
+                print("✅ [AuthViewModel] Delete success confirmed by server.")
+                // ONLY logout on success
+                print("🔄 [AuthViewModel] Transitioning to login screen.")
+                logout()
+            } catch {
+                print("⚠️ [AuthViewModel] Server deletion failed: \(error.localizedDescription)")
+            }
         }
     }
 
