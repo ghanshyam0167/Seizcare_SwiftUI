@@ -8,13 +8,14 @@ struct SettingsView: View {
     @State private var showingEditProfile = false
     @State private var showingLanguage = false
     @State private var showingWatchConnection = false
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         VStack(spacing: 0) {
             // Navigation Bar
             HStack {
                 Button(action: { 
-                    // Add back logic if needed, e.g., vm.goBack() 
+                    dismiss()
                 }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .bold))
@@ -160,6 +161,7 @@ struct SettingsView: View {
             .padding(.bottom, 40)
         }
         .background(Color.authBackground.ignoresSafeArea())
+        .navigationBarBackButtonHidden(true)
         .onAppear {
             self.user = UserDataModel.shared.getCurrentUser()
         }

@@ -10,8 +10,7 @@
 import Foundation
 import Supabase
 import Auth
-
-// MARK: - AuthServiceError
+import Combine
 
 enum AuthServiceError: Error, LocalizedError {
     case invalidCredentials

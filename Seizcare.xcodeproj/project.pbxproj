@@ -428,11 +428,12 @@
 				CODE_SIGN_ENTITLEMENTS = Seizcare/Seizcare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HTW9G6WB72;
+				DEVELOPMENT_TEAM = WQ98R62YF4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Seizcare reads your heart rate and sleep data to help you understand your health patterns. Your data is kept private and is never shared.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Seizcare does not modify or write any health data.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to attach it to emergency texts.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -464,11 +465,12 @@
 				CODE_SIGN_ENTITLEMENTS = Seizcare/Seizcare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HTW9G6WB72;
+				DEVELOPMENT_TEAM = WQ98R62YF4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Seizcare reads your heart rate and sleep data to help you understand your health patterns. Your data is kept private and is never shared.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Seizcare does not modify or write any health data.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to attach it to emergency texts.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

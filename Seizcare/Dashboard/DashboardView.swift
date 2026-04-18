@@ -1,12 +1,8 @@
-//
-//  DashboardView.swift
-//  Seizcare
-//
-
 import SwiftUI
 import Charts
+import CoreLocation
 
-// MARK: - Active Chart Enum
+// MARK: - Active Chart
 
 enum ActiveChart: Identifiable {
     case seizureFrequency
@@ -17,10 +13,10 @@ enum ActiveChart: Identifiable {
 
     var id: String {
         switch self {
-        case .seizureFrequency:         return "freq"
-        case .sleepVsSeizures:          return "sleep"
-        case .streak:                   return "streak"
-        case .triggerCorrelation:       return "trigger"
+        case .seizureFrequency: return "freq"
+        case .sleepVsSeizures: return "sleep"
+        case .streak: return "streak"
+        case .triggerCorrelation: return "trigger"
         case .heartRateTimeline(let r): return "hr-\(r.id.uuidString)"
         }
     }
@@ -29,117 +25,124 @@ enum ActiveChart: Identifiable {
 // MARK: - Dashboard View
 
 struct DashboardView: View {
+
+    @Binding var selectedTab: Tab
+
     @StateObject private var viewModel: DashboardViewModel
-    
-    init(recordsVM: RecordsViewModel, healthVM: HealthViewModel) {
-        _viewModel = StateObject(wrappedValue: DashboardViewModel(recordsVM: recordsVM, healthVM: healthVM))
+    @StateObject private var locationManager = LocationManager()
+    @StateObject private var emergencyVM = EmergencyViewModel()
+
+    @State private var showLocationSettingsAlert = false
+
+    init(selectedTab: Binding<Tab>, recordsVM: RecordsViewModel, healthVM: HealthViewModel) {
+        self._selectedTab = selectedTab
+        _viewModel = StateObject(
+            wrappedValue: DashboardViewModel(
+                recordsVM: recordsVM,
+                healthVM: healthVM
+            )
+        )
     }
+
+    // MARK: - Computed
 
     private var records: [SeizureRecord] { viewModel.records }
     private var sleep: [SleepData] { viewModel.sleepData }
-    private var avgSleep7Days: Double { viewModel.avgSleep7Days }
-    private var controlPercent: Double { viewModel.controlPercent }
+
+    // MARK: - Body
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             Color.dashBg.ignoresSafeArea()
 
-            if viewModel.isLoading {
-                VStack(spacing: 16) {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                        .tint(Color.dashPurple)
-                    Text("Fetching health data...")
-                        .font(.system(size: 15, weight: .medium, design: .rounded))
-                        .foregroundStyle(Color.dashSecondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 20) {
-                        // ── Header ──────────────────────────────
-                        DashboardHeaderView()
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
 
-                        // ── Hero Card ───────────────────────────
-                        HeroCardView(
-                            records: records,
-                            sleepHours: avgSleep7Days,
-                            heartRate: viewModel.currentHeartRate,
-                            onSendAlert: { /* TODO: implement alert */ }
-                        )
+                    // Header
+                    DashboardHeaderView()
 
-                        // ── Analysis Cards ───────────────────────
-                        VStack(alignment: .leading, spacing: 12) {
-                            SectionHeader(title: "Analysis", icon: "chart.xyaxis.line")
-                            LazyVGrid(columns: [
+                    // Hero Card
+                    HeroCardView(
+                        records: records,
+                        sleepHours: viewModel.avgSleep7Days,
+                        heartRate: viewModel.currentHeartRate,
+                        onSendAlert: handleEmergency
+                    )
+
+                    // Analysis Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        SectionHeader(title: "Analysis", icon: "chart.xyaxis.line")
+
+                        LazyVGrid(
+                            columns: [
                                 GridItem(.flexible(), spacing: 12),
                                 GridItem(.flexible(), spacing: 12)
-                            ], spacing: 12) {
-                                
-                                // 1. FREQUENCY CARD
-                                GraphCard(
-                                    title: "Frequency",
-                                    subtitle: "Seizure count over time",
-                                    color: .dashSeizure
-                                ) {
-                                    SeizureFrequencyMiniChart(records: records, range: viewModel.frequencyRange)
-                                } onTap: {
-                                    viewModel.activeChart = .seizureFrequency
-                                }
+                            ],
+                            spacing: 12
+                        ) {
 
-                                // 2. SLEEP CARD
-                                GraphCard(
-                                    title: "Sleep",
-                                    subtitle: "Sleep vs events",
-                                    color: .dashSleep
-                                ) {
-                                    SleepVsSeizuresMiniChart(records: records, sleep: sleep)
-                                } onTap: {
-                                    viewModel.activeChart = .sleepVsSeizures
-                                }
+                            GraphCard(
+                                title: "Frequency",
+                                color: .dashSeizure
+                            ) {
+                                SeizureFrequencyMiniChart(
+                                    records: records,
+                                    range: viewModel.frequencyRange
+                                )
+                            } onTap: {
+                                viewModel.activeChart = .seizureFrequency
+                            }
 
-                                // 3. TRIGGERS CARD
-                                GraphCard(
-                                    title: "Triggers",
-                                    subtitle: "Top correlation",
-                                    color: Color(red: 1.0, green: 0.6, blue: 0.2)
-                                ) {
-                                    TriggerCorrelationMiniChart(records: records)
-                                } onTap: {
-                                    viewModel.activeChart = .triggerCorrelation
-                                }
-                                
-                                // 4. STREAK CARD
-                                GraphCard(
-                                    title: "Streak",
-                                    subtitle: "Seizure-free days",
-                                    color: Color.dashGreen
-                                ) {
-                                    SeizureStreakMiniChart(records: records)
-                                } onTap: {
-                                    viewModel.activeChart = .streak
-                                }
+                            GraphCard(
+                                title: "Sleep",
+                                color: .dashSleep
+                            ) {
+                                SleepVsSeizuresMiniChart(
+                                    records: records,
+                                    sleep: sleep
+                                )
+                            } onTap: {
+                                viewModel.activeChart = .sleepVsSeizures
+                            }
+
+                            GraphCard(
+                                title: "Triggers",
+                                color: .orange
+                            ) {
+                                TriggerCorrelationMiniChart(records: records)
+                            } onTap: {
+                                viewModel.activeChart = .triggerCorrelation
+                            }
+
+                            GraphCard(
+                                title: "Streak",
+                                color: .green
+                            ) {
+                                SeizureStreakMiniChart(records: records)
+                            } onTap: {
+                                viewModel.activeChart = .streak
                             }
                         }
-                        
-                        // ── Recent Records ───────────────────────
-                        RecentRecordsView(records: records)
-                        
-                        if !viewModel.healthVM.guidanceText.isEmpty {
-                            Text(viewModel.healthVM.guidanceText)
-                                .font(.system(size: 13, weight: .medium, design: .rounded))
-                                .foregroundStyle(Color.dashSecondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 24)
-                                .padding(.top, 4)
-                        }
-
-                        Spacer().frame(height: 100)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
+
+                    // Recent Records
+                    RecentRecordsView(records: records) {
+                        withAnimation {
+                            selectedTab = .records
+                        }
+                    }
+
+                    Spacer().frame(height: 100)
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
             }
+
+            // Toast Overlay
+            emergencyToast
+
+            // Countdown Overlay
+            emergencyCountdown
         }
         .fullScreenCover(item: $viewModel.activeChart) { chart in
             switch chart {
@@ -155,84 +158,81 @@ struct DashboardView: View {
                 HeartRateTimelineChartView(record: rec)
             }
         }
-    }
-}
-
-// MARK: - Header
-
-private struct DashboardHeaderView: View {
-    private var dateString: String {
-        let f = DateFormatter()
-        f.dateFormat = "EEEE, MMM d"
-        return f.string(from: Date())
-    }
-
-    var body: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Summary")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.dashLabel)
-                Text(dateString)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.dashSecondary)
+        .alert("Location Access Required", isPresented: $showLocationSettingsAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Settings") {
+                UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
             }
-            Spacer()
-            Circle()
-                .fill(Color.dashCardElevated)
-                .frame(width: 40, height: 40)
-                .overlay(
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(Color.dashSecondary)
-                )
+        } message: {
+            Text("Enable location to send emergency alerts.")
         }
-        .padding(.top, 8)
+        .toolbar(emergencyVM.status == .countingDown ? .hidden : .visible, for: .bottomBar)
     }
-}
 
-// MARK: - Graph Card
+    // MARK: - Emergency Logic
 
-private struct GraphCard<Content: View>: View {
-    let title: String
-    let subtitle: String
-    let color: Color
-    @ViewBuilder let chart: Content
-    let onTap: () -> Void
+    private func handleEmergency() {
+        if locationManager.location == nil {
+            if locationManager.authorizationStatus == .denied ||
+               locationManager.authorizationStatus == .restricted {
+                showLocationSettingsAlert = true
+            } else {
+                locationManager.requestWhenInUseAuthorization()
+                emergencyVM.errorMessage = "Waiting for location..."
+                emergencyVM.status = .failed
+            }
+        } else {
+            emergencyVM.startEmergencyCountdown(location: locationManager.location)
+        }
+    }
 
-    var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(title)
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(Color.dashLabel)
-                        Text(subtitle)
-                            .font(.caption2)
-                            .foregroundStyle(Color.dashSecondary)
+    // MARK: - Overlays
+
+    private var emergencyToast: some View {
+        Group {
+            if emergencyVM.status != .idle && emergencyVM.status != .countingDown {
+                VStack {
+                    HStack {
+                        Text(emergencyVM.status.rawValue)
+                            .foregroundColor(.white)
+                        Spacer()
                     }
+                    .padding()
+                    .background(Color.black.opacity(0.85))
+                    .cornerRadius(12)
+                    .padding(.top, 40)
+
                     Spacer()
-                    Image(systemName: "arrow.up.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(color.opacity(0.8))
                 }
-                chart
-                    .frame(height: 60)
-                    .clipped()
+                .transition(.move(edge: .top))
             }
-            .padding(14)
-            .background(Color.dashCard)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(color.opacity(0.15), lineWidth: 1)
-            )
         }
-        .buttonStyle(ScaleButtonStyle())
+    }
+
+    private var emergencyCountdown: some View {
+        Group {
+            if emergencyVM.status == .countingDown {
+                ZStack {
+                    Color.black.opacity(0.95).ignoresSafeArea()
+
+                    VStack(spacing: 30) {
+                        Text("EMERGENCY ALERT")
+                            .foregroundColor(.white)
+
+                        Text("\(emergencyVM.countdownTime)")
+                            .font(.system(size: 80, weight: .bold))
+                            .foregroundColor(.red)
+
+                        Button("Cancel") {
+                            emergencyVM.cancelEmergencyAlert()
+                        }
+                        .padding()
+                        .background(Color.red)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+                }
+            }
+        }
     }
 }
-
-
-
-

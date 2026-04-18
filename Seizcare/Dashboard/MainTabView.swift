@@ -16,14 +16,19 @@ struct MainTabView: View {
     @StateObject private var recordsVM = RecordsViewModel()
     @StateObject private var healthVM = HealthViewModel()
     
-    @State private var selectedTab: Tab = .records
+    @State private var selectedTab: Tab = .dashboard
 
     var body: some View {
         NavigationStack {
             Group {
                 switch selectedTab {
                 case .dashboard:
-                    DashboardView(recordsVM: recordsVM, healthVM: healthVM)
+DashboardView(
+    selectedTab: $selectedTab,
+    recordsVM: recordsVM,
+    healthVM: healthVM
+)
+.environmentObject(authVM)
                 case .records:
                     RecordsListView()
                         .environmentObject(recordsVM)
@@ -66,10 +71,10 @@ struct MainTabView: View {
                     Button {
                         recordsVM.showAddRecord = true
                     } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundStyle(Color.dashSeizure)
+                        Image(systemName: "plus")
+                            .font(.system(size: 22, weight: .semibold))
                     }
+                    .foregroundStyle(.secondary)
                 }
             }
             .toolbarBackground(.visible, for: .bottomBar)

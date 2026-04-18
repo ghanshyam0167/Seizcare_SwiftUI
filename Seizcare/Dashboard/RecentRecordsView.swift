@@ -6,23 +6,57 @@
 import SwiftUI
 
 struct RecentRecordsView: View {
+    @EnvironmentObject var vm: RecordsViewModel
     let records: [SeizureRecord]
+    var onViewAll: () -> Void = {}
+    
+    @State private var selectedRecord: SeizureRecord? = nil
 
     private var recent: [SeizureRecord] { Array(records.prefix(5)) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Recent Seizures", icon: "waveform.path.ecg")
+            HStack {
+                SectionHeader(title: "Recent Seizures", icon: "waveform.path.ecg")
+                Spacer()
+                Button(action: {
+                    onViewAll()
+                }) {
+                    HStack(spacing: 4) {
+                        Text("View All")
+                        Image(systemName: "chevron.right")
+                    }
+                }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.dashSeizure)
+            }
 
             if recent.isEmpty {
                 EmptyStateCard(message: "No seizures recorded yet")
             } else {
-                VStack(spacing: 8) {
-                    ForEach(recent) { record in
-                        RecordRow(record: record)
+                VStack(spacing: 0) {
+                    ForEach(Array(recent.enumerated()), id: \.element.id) { index, record in
+                        Button {
+                            selectedRecord = record
+                        } label: {
+                            RecordRow(record: record)
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                        
+                        if index < recent.count - 1 {
+                            Divider()
+                                .padding(.leading, 16)
+                        }
                     }
                 }
+                .background(Color.dashCard)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .shadow(color: Color.black.opacity(0.02), radius: 8, y: 4)
             }
+        }
+        .navigationDestination(item: $selectedRecord) { record in
+            RecordDetailView(record: record)
+                .environmentObject(vm)
         }
     }
 }
@@ -54,11 +88,6 @@ private struct RecordRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            // Severity indicator
-            RoundedRectangle(cornerRadius: 3)
-                .fill(record.type.color)
-                .frame(width: 4, height: 44)
-
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(dateText)
@@ -92,9 +121,8 @@ private struct RecordRow: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(Color.dashCard)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
     }
 }
 

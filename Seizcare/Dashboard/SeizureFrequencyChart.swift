@@ -21,17 +21,119 @@ struct SeizureFrequencyMiniChart: View {
         }
     }
 
+    private var totalInView: Int { data.reduce(0) { $0 + $1.count } }
+
     var body: some View {
-        Chart(data, id: \.date) { point in
-            BarMark(
-                x: .value("Day", point.date),
-                y: .value("Count", point.count)
-            )
-            .foregroundStyle(Color.dashSeizure.opacity(0.7))
-            .cornerRadius(2)
+        VStack(alignment: .leading, spacing: 2) {
+            Text(dateLabel(for: range))
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(Color.dashSecondary)
+            
+            Text("\(totalInView)")
+                .font(.system(size: 28, weight: .semibold, design: .rounded))
+                .foregroundStyle(Color.cyan)
+                .padding(.bottom, 4)
+            
+            let barUnit: Calendar.Component = {
+                switch range {
+                case .daily: return .hour
+                case .weekly: return .day
+                case .monthly: return .day
+                case .yearly: return .month
+                }
+            }()
+            
+            let maxCount = Double(data.map(\.count).max() ?? 0)
+            let yDomain = maxCount == 0 ? 1.0 : maxCount * 1.2
+            
+            Chart(data, id: \.date) { point in
+                if point.count == 0 {
+                    BarMark(
+                        x: .value("Time", point.date, unit: barUnit),
+                        y: .value("Count", yDomain * 0.95),
+                        width: .fixed(1.5)
+                    )
+                    .foregroundStyle(Color.gray.opacity(0.15))
+                    .cornerRadius(1)
+                } else {
+                    BarMark(
+                        x: .value("Time", point.date, unit: barUnit),
+                        y: .value("Count", Double(point.count)),
+                        width: .fixed(1.5)
+                    )
+                    .foregroundStyle(Color.cyan)
+                    .cornerRadius(1)
+                }
+            }
+            .chartXAxis {
+                AxisMarks(preset: .aligned, values: xAxisValues(for: range)) { value in
+                    AxisValueLabel {
+                        if let date = value.as(Date.self) {
+                            Text(xAxisLabel(for: date, range: range))
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(Color.dashSecondary)
+                        }
+                    }
+                }
+            }
+            .chartYAxis(.hidden)
+            .chartYScale(domain: 0...yDomain)
+            .frame(height: 70)
         }
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
+    }
+}
+
+// MARK: - Fileprivate Helpers
+
+fileprivate func dateLabel(for range: TimeFrameRange) -> String {
+    switch range {
+    case .daily: return "Today"
+    case .weekly: return "This Week"
+    case .monthly:
+        let f = DateFormatter(); f.dateFormat = "MMM yyyy"
+        return f.string(from: Date()).uppercased()
+    case .yearly:
+        let f = DateFormatter(); f.dateFormat = "yyyy"
+        return f.string(from: Date())
+    }
+}
+
+fileprivate func xAxisValues(for range: TimeFrameRange) -> [Date] {
+    let cal = Calendar.current
+    var dates: [Date] = []
+    let now = Date()
+    
+    switch range {
+    case .daily:
+        let start = cal.startOfDay(for: now)
+        for h in [0, 6, 12, 18] { if let d = cal.date(byAdding: .hour, value: h, to: start) { dates.append(d) } }
+    case .weekly:
+        var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
+        comps.weekday = 2 // Monday
+        if let start = cal.date(from: comps) {
+            for d in 0..<7 { if let dt = cal.date(byAdding: .day, value: d, to: start) { dates.append(dt) } }
+        }
+    case .monthly:
+        let comps = cal.dateComponents([.year, .month], from: now)
+        if let start = cal.date(from: comps) {
+            for d in [0, 7, 14, 21, 28] { if let dt = cal.date(byAdding: .day, value: d, to: start) { dates.append(dt) } }
+        }
+    case .yearly:
+        let year = cal.component(.year, from: now)
+        if let start = cal.date(from: DateComponents(year: year, month: 1, day: 1)) {
+            for m in 0..<12 { if let dt = cal.date(byAdding: .month, value: m, to: start) { dates.append(dt) } }
+        }
+    }
+    return dates
+}
+
+fileprivate func xAxisLabel(for date: Date, range: TimeFrameRange) -> String {
+    let f = DateFormatter()
+    switch range {
+    case .daily: f.dateFormat = "h a"; return f.string(from: date)
+    case .weekly: f.dateFormat = "EEE"; return f.string(from: date).capitalized
+    case .monthly: f.dateFormat = "d"; return f.string(from: date)
+    case .yearly: f.dateFormat = "MMM"; return String(f.string(from: date).prefix(1)).uppercased()
     }
 }
 
@@ -84,7 +186,7 @@ struct SeizureFrequencyChartView: View {
     private var selectedPoint: (date: Date, count: Int)? {
         guard let selectedDate else { return nil }
         let cal = Calendar.current
-        return data.first(where: {
+        let pt = data.first(where: {
             let start = $0.date
             let end: Date
             switch initialRange {
@@ -94,6 +196,10 @@ struct SeizureFrequencyChartView: View {
             }
             return selectedDate >= start && selectedDate < end
         })
+        if let pt = pt, pt.count > 0 {
+            return pt
+        }
+        return nil
     }
 
     var body: some View {
@@ -115,63 +221,34 @@ struct SeizureFrequencyChartView: View {
                         
                         // Header Metrics
                         VStack(alignment: .leading, spacing: 4) {
-                            if let pt = selectedPoint {
-                                Text(exactDateLabel(for: pt.date, range: initialRange).uppercased())
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(Color.dashSecondary)
-                                
-                                HStack(alignment: .lastTextBaseline, spacing: 2) {
-                                    Text("\(pt.count)")
-                                        .font(.system(size: 34, weight: .semibold, design: .rounded))
-                                        .foregroundStyle(Color.cyan)
-                                    Text("EVENTS")
-                                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                                        .foregroundStyle(Color.cyan)
-                                }
-                                
-                                let mins = Int(round(durationForPoint(pt) / 60.0))
-                                let durationStr = pt.count > 0 ? "\(mins) min duration" : "No events"
-                                
-                                if initialRange == .yearly && pt.count > 0 {
-                                    let daysInMonth = Calendar.current.range(of: .day, in: .month, for: pt.date)?.count ?? 30
-                                    let monthlyAvg = Double(pt.count) / Double(daysInMonth)
-                                    Text("\(String(format: "%.1f", monthlyAvg)) avg/day • \(durationStr)")
-                                        .font(.system(size: 15, weight: .regular))
-                                        .foregroundStyle(Color.dashSecondary)
-                                } else {
-                                    Text(durationStr)
-                                        .font(.system(size: 15, weight: .regular))
-                                        .foregroundStyle(Color.dashSecondary)
-                                }
-                            } else {
-                                Text(headerTitle(for: initialRange))
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(Color.dashSecondary)
-                                
-                                HStack(alignment: .lastTextBaseline, spacing: 2) {
-                                    let valString: String = {
-                                        if initialRange == .daily {
-                                            return "\(totalInView)"
-                                        } else {
-                                            let avg = Double(totalInView) / divisor(for: initialRange)
-                                            return String(format: "%.1f", avg)
-                                        }
-                                    }()
-                                    Text(valString)
-                                        .font(.system(size: 34, weight: .semibold, design: .rounded))
-                                        .foregroundStyle(Color.cyan)
-                                    Text("EVENTS")
-                                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                                        .foregroundStyle(Color.cyan)
-                                }
-                                
-                                Text(dateLabel(for: initialRange))
-                                    .font(.system(size: 15, weight: .regular))
-                                    .foregroundStyle(Color.dashSecondary)
+                            Text(headerTitle(for: initialRange))
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(Color.dashSecondary)
+                            
+                            HStack(alignment: .lastTextBaseline, spacing: 2) {
+                                let valString: String = {
+                                    if initialRange == .daily {
+                                        return "\(totalInView)"
+                                    } else {
+                                        let avg = Double(totalInView) / divisor(for: initialRange)
+                                        return "\(Int(round(avg)))"
+                                    }
+                                }()
+                                Text(valString)
+                                    .font(.system(size: 34, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(Color.cyan)
+                                Text("EVENTS")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundStyle(Color.cyan)
                             }
+                            
+                            Text(dateLabel(for: initialRange))
+                                .font(.system(size: 15, weight: .regular))
+                                .foregroundStyle(Color.dashSecondary)
                         }
                         .padding(.horizontal, 16)
                         .frame(height: 75, alignment: .bottomLeading)
+                        .opacity(selectedPoint != nil ? 0 : 1)
                         
                         // Main Chart
                         let barUnit: Calendar.Component = {
@@ -189,6 +266,34 @@ struct SeizureFrequencyChartView: View {
                                 y: .value("Count", point.count)
                             )
                             .foregroundStyle(selectedPoint == nil || selectedPoint?.date == point.date ? Color.cyan : Color.cyan.opacity(0.3))
+                            
+                            if let selectedPoint, selectedPoint.date == point.date {
+                                RuleMark(x: .value("Time", point.date, unit: barUnit))
+                                    .foregroundStyle(Color.cyan.opacity(0.5))
+                                    .offset(yStart: -10)
+                                    .zIndex(-1)
+                                    .annotation(
+                                        position: .top,
+                                        spacing: 0,
+                                        overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
+                                    ) {
+                                        VStack(spacing: 4) {
+                                            Text("TOTAL")
+                                                .font(.system(size: 10, weight: .bold))
+                                                .foregroundStyle(Color.white.opacity(0.8))
+                                            Text("\(selectedPoint.count)")
+                                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                                .foregroundStyle(.white)
+                                            Text(tooltipDateLabel(for: selectedPoint.date, range: initialRange))
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundStyle(Color.white.opacity(0.8))
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color.cyan.opacity(0.8))
+                                        .cornerRadius(8)
+                                    }
+                            }
                         }
                         .chartXSelection(value: $selectedDate)
                         .chartXScale(range: .plotDimension(padding: 20))
@@ -284,6 +389,24 @@ struct SeizureFrequencyChartView: View {
         }
     }
     
+    private func tooltipDateLabel(for date: Date, range: TimeFrameRange) -> String {
+        let f = DateFormatter()
+        switch range {
+        case .daily:
+            f.dateFormat = "h a"
+            let start = f.string(from: date)
+            let endDate = Calendar.current.date(byAdding: .hour, value: 1, to: date)!
+            let end = f.string(from: endDate)
+            return "\(start) - \(end)"
+        case .weekly, .monthly:
+            f.dateFormat = "d MMM yyyy"
+            return f.string(from: date)
+        case .yearly:
+            f.dateFormat = "MMM yyyy"
+            return f.string(from: date)
+        }
+    }
+    
     private func headerTitle(for range: TimeFrameRange) -> String {
         switch range {
         case .daily: return "TOTAL"
@@ -309,58 +432,7 @@ struct SeizureFrequencyChartView: View {
         }
     }
     
-    private func dateLabel(for range: TimeFrameRange) -> String {
-        switch range {
-        case .daily: return "Today"
-        case .weekly: return "This Week"
-        case .monthly:
-            let f = DateFormatter(); f.dateFormat = "MMM yyyy"
-            return f.string(from: Date()).uppercased()
-        case .yearly:
-            let f = DateFormatter(); f.dateFormat = "yyyy"
-            return f.string(from: Date())
-        }
-    }
-    
-    private func xAxisValues(for range: TimeFrameRange) -> [Date] {
-        let cal = Calendar.current
-        var dates: [Date] = []
-        let now = Date()
-        
-        switch range {
-        case .daily:
-            let start = cal.startOfDay(for: now)
-            for h in [0, 6, 12, 18] { if let d = cal.date(byAdding: .hour, value: h, to: start) { dates.append(d) } }
-        case .weekly:
-            var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-            comps.weekday = 2 // Monday
-            if let start = cal.date(from: comps) {
-                for d in 0..<7 { if let dt = cal.date(byAdding: .day, value: d, to: start) { dates.append(dt) } }
-            }
-        case .monthly:
-            let comps = cal.dateComponents([.year, .month], from: now)
-            if let start = cal.date(from: comps) {
-                // Show 1, 8, 15, 22, 29 as in Health app
-                for d in [0, 7, 14, 21, 28] { if let dt = cal.date(byAdding: .day, value: d, to: start) { dates.append(dt) } }
-            }
-        case .yearly:
-            let year = cal.component(.year, from: now)
-            if let start = cal.date(from: DateComponents(year: year, month: 1, day: 1)) {
-                for m in 0..<12 { if let dt = cal.date(byAdding: .month, value: m, to: start) { dates.append(dt) } }
-            }
-        }
-        return dates
-    }
-    
-    private func xAxisLabel(for date: Date, range: TimeFrameRange) -> String {
-        let f = DateFormatter()
-        switch range {
-        case .daily: f.dateFormat = "h a"; return f.string(from: date)
-        case .weekly: f.dateFormat = "EEE"; return f.string(from: date).capitalized
-        case .monthly: f.dateFormat = "d"; return f.string(from: date)
-        case .yearly: f.dateFormat = "MMM"; return String(f.string(from: date).prefix(1)).uppercased()
-        }
-    }
+
 }
 
 private struct TypeBreakdownView: View {

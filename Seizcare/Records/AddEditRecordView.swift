@@ -32,15 +32,16 @@ struct AddEditRecordView: View {
 
     // Form state
     @State private var startTime: Date
-    @State private var endTime: Date
+    @State private var durationMinutes: Int
     @State private var seizureType: SeizureType
     @State private var selectedTriggers: Set<SeizureTrigger>
     @State private var notes: String
     @State private var location: String
 
     // Validation
-    @State private var showValidationError: Bool = false
-    @State private var validationMessage: String = ""
+    private var isFormValid: Bool {
+        !selectedTriggers.isEmpty && !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     // Scroll focus
     @FocusState private var notesFieldFocused: Bool
@@ -51,14 +52,15 @@ struct AddEditRecordView: View {
         switch mode {
         case .add:
             _startTime         = State(initialValue: Date())
-            _endTime           = State(initialValue: Date().addingTimeInterval(300)) // +5 min default
+            _durationMinutes   = State(initialValue: 5)
             _seizureType       = State(initialValue: .mild)
             _selectedTriggers  = State(initialValue: [])
             _notes             = State(initialValue: "")
             _location          = State(initialValue: "")
         case .edit(let record):
             _startTime         = State(initialValue: record.startTime)
-            _endTime           = State(initialValue: record.endTime)
+            let mins = Int(record.duration / 60)
+            _durationMinutes   = State(initialValue: mins == 0 ? 1 : mins)
             _seizureType       = State(initialValue: record.type)
             _selectedTriggers  = State(initialValue: Set(record.triggers))
             _notes             = State(initialValue: record.notes ?? "")
@@ -74,8 +76,6 @@ struct AddEditRecordView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
 
-                        // ── Entry Type (always Manual here) ──────────────
-                        entryTypeBadge
 
                         // ── Time Pickers ──────────────────────────────────
                         timePickers
@@ -116,82 +116,50 @@ struct AddEditRecordView: View {
                         Text("Save")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(Color.dashSeizure)
+                            .opacity(isFormValid ? 1.0 : 0.4)
                     }
+                    .disabled(!isFormValid)
                 }
             }
-            .alert("Validation Error", isPresented: $showValidationError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(validationMessage)
-            }
         }
-        .preferredColorScheme(.dark)
     }
 
     // MARK: - Sub-views
 
-    private var entryTypeBadge: some View {
-        HStack {
-            HStack(spacing: 8) {
-                Image(systemName: "pencil.circle.fill")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.dashSecondary)
-                Text("Manual Entry")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color.dashSecondary)
-            }
-            Spacer()
-            Image(systemName: "lock.fill")
-                .font(.caption)
-                .foregroundStyle(Color.dashTertiary)
-            Text("Manual only")
-                .font(.caption2)
-                .foregroundStyle(Color.dashTertiary)
-        }
-        .padding(14)
-        .background(Color.dashCard)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
+
 
     private var timePickers: some View {
         VStack(spacing: 0) {
             FormSectionHeader(title: "Timing")
 
             VStack(spacing: 1) {
-                DatePickerRow(label: "Start Time", icon: "play.circle.fill", color: .dashSleep, date: $startTime)
+                DatePickerRow(label: "Date & Time", icon: "calendar.badge.clock", color: .dashSleep, date: $startTime)
                 Divider().background(Color.dashTertiary.opacity(0.2)).padding(.leading, 50)
-                DatePickerRow(label: "End Time", icon: "stop.circle.fill", color: .dashGreen, date: $endTime)
+                
+                HStack(spacing: 14) {
+                    Image(systemName: "timer")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color.dashGreen)
+                        .frame(width: 28)
+                    
+                    Text("Duration")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Color.dashLabel)
+                    
+                    Spacer()
+                    
+                    Picker("Duration", selection: $durationMinutes) {
+                        ForEach(1...120, id: \.self) { min in
+                            Text("\(min) min").tag(min)
+                        }
+                    }
+                    .tint(Color.dashGreen)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
             .background(Color.dashCard)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-            // Duration preview
-            let dur = endTime.timeIntervalSince(startTime)
-            if dur > 0 {
-                HStack(spacing: 6) {
-                    Image(systemName: "timer")
-                        .font(.caption)
-                        .foregroundStyle(Color.dashSecondary)
-                    Text("Duration: \(durationString(dur))")
-                        .font(.caption)
-                        .foregroundStyle(Color.dashSecondary)
-                    Spacer()
-                }
-                .padding(.horizontal, 4)
-                .padding(.top, 8)
-            } else if dur <= 0 {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundStyle(Color.dashSeizure)
-                    Text("End time must be after start time")
-                        .font(.caption)
-                        .foregroundStyle(Color.dashSeizure)
-                    Spacer()
-                }
-                .padding(.horizontal, 4)
-                .padding(.top, 8)
-            }
         }
     }
 
@@ -332,19 +300,14 @@ struct AddEditRecordView: View {
     // MARK: - Actions
 
     private func saveRecord() {
-        // Validate
-        guard endTime > startTime else {
-            validationMessage = "End time must be after start time."
-            showValidationError = true
-            return
-        }
+        let finalEndTime = startTime.addingTimeInterval(TimeInterval(durationMinutes * 60))
 
         let record = SeizureRecord(
             id: existingId,
             userId: MockDashboardData.userId,
             entryType: .manual,
             startTime: startTime,
-            endTime: endTime,
+            endTime: finalEndTime,
             type: seizureType,
             triggers: Array(selectedTriggers),
             location: location.isEmpty ? nil : location,
@@ -365,15 +328,7 @@ struct AddEditRecordView: View {
         return UUID()
     }
 
-    private func durationString(_ interval: TimeInterval) -> String {
-        let totalSecs = Int(interval)
-        let h = totalSecs / 3600
-        let m = (totalSecs % 3600) / 60
-        let s = totalSecs % 60
-        if h > 0 { return "\(h)h \(m)m" }
-        if m > 0 { return "\(m)m \(s)s" }
-        return "\(s)s"
-    }
+
 }
 
 // MARK: - Form Helpers
@@ -412,7 +367,6 @@ private struct DatePickerRow: View {
             DatePicker("", selection: $date, displayedComponents: [.date, .hourAndMinute])
                 .labelsHidden()
                 .datePickerStyle(.compact)
-                .colorScheme(.dark)
                 .tint(color)
         }
         .padding(.horizontal, 16)

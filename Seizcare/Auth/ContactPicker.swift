@@ -5,6 +5,7 @@
 
 import SwiftUI
 import ContactsUI
+import Combine
 
 struct ContactPicker: UIViewControllerRepresentable {
     @Binding var isPresented: Bool

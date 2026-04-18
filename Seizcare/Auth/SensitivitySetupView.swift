@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct SensitivitySetupView: View {
     @ObservedObject var vm: AuthViewModel
@@ -171,7 +172,7 @@ struct SensitivitySetupView: View {
             }
         }
         // Keep localSelection in sync as model updates from Supabase
-        .onChange(of: sensitivityModel.currentSensitivity) { newValue in
+        .onChange(of: sensitivityModel.currentSensitivity) { _, newValue in
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                 localSelection = newValue
             }

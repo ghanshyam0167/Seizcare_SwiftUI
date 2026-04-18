@@ -48,11 +48,6 @@ struct RecordCard: View {
     var body: some View {
         HStack(spacing: 14) {
 
-            // Severity color bar
-            RoundedRectangle(cornerRadius: 3)
-                .fill(record.type.color)
-                .frame(width: 4, height: 52)
-
             // Main content
             VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .center, spacing: 6) {
@@ -63,6 +58,11 @@ struct RecordCard: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.dashLabel)
                         .lineLimit(1)
+                    
+                    Image(systemName: record.entryType == .automatic ? "waveform" : "pencil")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.dashTertiary)
+                        .padding(.leading, 2)
                 }
                 HStack(spacing: 8) {
                     SeverityBadge(type: record.type)
@@ -99,13 +99,8 @@ struct RecordCard: View {
                 .foregroundStyle(Color.dashTertiary)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 13)
-        .background(Color.dashCard)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(record.type.color.opacity(0.10), lineWidth: 1)
-        )
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
     }
 }
 
