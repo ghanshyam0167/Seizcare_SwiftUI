@@ -136,7 +136,7 @@ struct AddEditRecordView: View {
                         .foregroundStyle(Color.dashSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: saveRecord) {
+                    Button(action: { Task { await saveRecord() } }) {
                         Text("Save")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(Color.dashSeizure)
@@ -329,13 +329,16 @@ struct AddEditRecordView: View {
 
     // MARK: - Actions
 
-    private func saveRecord() {
+    private func saveRecord() async {
+        // Get the real authenticated user ID; fall back to mock only in previews
+        let userId = await SupabaseService.shared.currentUserId() ?? MockDashboardData.userId
+        
         let finalEndTime = startTime.addingTimeInterval(TimeInterval(durationMinutes * 60))
 
         let record = SeizureRecord(
             id: existingId,
-            userId: MockDashboardData.userId,
-            entryType: .manual,
+            userId: userId,
+            entryType: isAutomatic ? .automatic : .manual,
             startTime: startTime,
             endTime: finalEndTime,
             type: seizureType,

@@ -261,22 +261,31 @@ struct GlassHeaderActionsView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @EnvironmentObject var recordsVM: RecordsViewModel
     
+    @State private var hasUnread: Bool = false
+    
     var body: some View {
         HStack(spacing: 24) {
             // Notifications Icon
-            NavigationLink(destination: NotificationsView().environmentObject(recordsVM)) {
+            NavigationLink(destination:
+                NotificationsView()
+                    .environmentObject(recordsVM)
+                    .onDisappear { Task { await refreshUnreadCount() } }
+            ) {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: "bell")
                         .font(.system(size: 20, weight: .medium))
                         .foregroundStyle(Color.dashLabel)
                     
-                    // Unread indicator dot
-                    Circle()
-                        .fill(Color.errorRed)
-                        .frame(width: 8, height: 8)
-                        .overlay(Circle().stroke(Color.white.opacity(0.6), lineWidth: 1.5))
-                        .offset(x: 2, y: -2)
-                        .shadow(color: Color.errorRed.opacity(0.4), radius: 3, x: 0, y: 2)
+                    // Unread indicator dot — only shown when there are unread notifications
+                    if hasUnread {
+                        Circle()
+                            .fill(Color.errorRed)
+                            .frame(width: 8, height: 8)
+                            .overlay(Circle().stroke(Color.white.opacity(0.6), lineWidth: 1.5))
+                            .offset(x: 2, y: -2)
+                            .shadow(color: Color.errorRed.opacity(0.4), radius: 3, x: 0, y: 2)
+                            .transition(.scale.combined(with: .opacity))
+                    }
                 }
             }
             .buttonStyle(ScaleButtonStyle())
@@ -306,12 +315,30 @@ struct GlassHeaderActionsView: View {
         .padding(.vertical, 10)
         // Liquid Glass Effect
         .background(.ultraThinMaterial)
-        .background(Color.white.opacity(0.2)) // Inner highlight overlay
+        .background(Color.white.opacity(0.2))
         .clipShape(Capsule())
         .overlay(
             Capsule()
-                .stroke(Color.white.opacity(0.3), lineWidth: 0.5) // Subtle glass border
+                .stroke(Color.white.opacity(0.3), lineWidth: 0.5)
         )
-        .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4) // Floating drop shadow
+        .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
+        .task { await refreshUnreadCount() }
+        .animation(.spring(response: 0.3), value: hasUnread)
+    }
+    
+    // MARK: - Helpers
+    
+    private func refreshUnreadCount() async {
+        guard let userId = await SupabaseService.shared.currentUserId() else {
+            // Fallback for demo / unauthenticated previews
+            hasUnread = true
+            return
+        }
+        do {
+            let notifications = try await SupabaseService.shared.fetchNotifications(userId: userId)
+            hasUnread = notifications.contains { !$0.isRead }
+        } catch {
+            // Keep previous state on network error
+        }
     }
 }

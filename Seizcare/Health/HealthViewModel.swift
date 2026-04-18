@@ -23,6 +23,7 @@ class HealthViewModel: ObservableObject {
     init() {
         setupHealthKit()
         setupNotifications()
+        Task { await fetchSleepFromSupabase() }
     }
     
     private func setupNotifications() {
@@ -145,11 +146,33 @@ class HealthViewModel: ObservableObject {
                 self?.sleepData = data
                 if let lastNight = data.first {
                     self?.lastNightSleep = lastNight.duration
-                    // Sync with Watch
                     WatchConnectivityManager.shared.sendSleepDataToWatch(lastNight.duration)
                 }
                 print("[HK] Updated sleepData: \(data.count) entries, last night: \(self?.lastNightSleep ?? 0)h")
             }
+        }
+    }
+    
+    /// Fetch 90 days of sleep data from Supabase as a backup/complement to HealthKit.
+    func fetchSleepFromSupabase() async {
+        guard let userId = await SupabaseService.shared.currentUserId() else { return }
+        do {
+            let supabaseRecords = try await SupabaseService.shared.fetchSleepRecords(userId: userId)
+            await MainActor.run {
+                // Merge with HealthKit data — avoid duplicates by date
+                let existingDates = Set(sleepData.map { Calendar.current.startOfDay(for: $0.date) })
+                let newItems: [SleepData] = supabaseRecords.compactMap { record in
+                    let day = Calendar.current.startOfDay(for: record.date)
+                    guard !existingDates.contains(day) else { return nil }
+                    return SleepData(date: record.date, duration: record.hours)
+                }
+                if !newItems.isEmpty {
+                    sleepData.append(contentsOf: newItems)
+                    sleepData.sort { $0.date > $1.date }
+                }
+            }
+        } catch {
+            print("[Supabase] Failed to fetch sleep records: \(error.localizedDescription)")
         }
     }
     
