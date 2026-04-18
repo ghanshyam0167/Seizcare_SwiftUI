@@ -7,17 +7,13 @@ import CoreLocation
 enum ActiveChart: Identifiable {
     case seizureFrequency
     case sleepVsSeizures
-    case streak
-    case triggerCorrelation
     case heartRateTimeline(SeizureRecord)
 
     var id: String {
         switch self {
-        case .seizureFrequency: return "freq"
-        case .sleepVsSeizures: return "sleep"
-        case .streak: return "streak"
-        case .triggerCorrelation: return "trigger"
-        case .heartRateTimeline(let r): return "hr-\(r.id.uuidString)"
+        case .seizureFrequency:          return "freq"
+        case .sleepVsSeizures:           return "sleep"
+        case .heartRateTimeline(let r):  return "hr-\(r.id.uuidString)"
         }
     }
 }
@@ -25,7 +21,7 @@ enum ActiveChart: Identifiable {
 // MARK: - Dashboard View
 
 struct DashboardView: View {
-
+    @EnvironmentObject var authVM: AuthViewModel
     @Binding var selectedTab: Tab
 
     @StateObject private var viewModel: DashboardViewModel
@@ -59,7 +55,24 @@ struct DashboardView: View {
                 VStack(spacing: 20) {
 
                     // Header
-                    DashboardHeaderView()
+                    HStack(alignment: .center) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Summary")
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color.dashLabel)
+                            Text(Date().formatted(.dateTime.weekday(.wide).month().day()))
+                                .font(.subheadline)
+                                .foregroundStyle(Color.dashSecondary)
+                        }
+                        Spacer()
+                        NavigationLink(destination: SettingsView(vm: authVM)) {
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .frame(width: 32, height: 32)
+                                .foregroundStyle(Color.dashSecondary)
+                        }
+                    }
+                    .padding(.top, 4)
 
                     // Hero Card
                     HeroCardView(
@@ -80,48 +93,59 @@ struct DashboardView: View {
                             ],
                             spacing: 12
                         ) {
-
-                            GraphCard(
-                                title: "Frequency",
-                                color: .dashSeizure
-                            ) {
-                                SeizureFrequencyMiniChart(
-                                    records: records,
-                                    range: viewModel.frequencyRange
-                                )
-                            } onTap: {
-                                viewModel.activeChart = .seizureFrequency
+                            // Frequency card
+                            Button { viewModel.activeChart = .seizureFrequency } label: {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text("Event Count")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundStyle(Color.dashLabel)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(Color.dashTertiary)
+                                    }
+                                    SeizureFrequencyMiniChart(
+                                        records: records,
+                                        range: viewModel.frequencyRange
+                                    )
+                                    .padding(.top, 4)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                                .padding(14)
+                                .background(Color.dashCard)
+                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .stroke(Color.dashSeizure.opacity(0.15), lineWidth: 1))
                             }
+                            .buttonStyle(ScaleButtonStyle())
 
-                            GraphCard(
-                                title: "Sleep",
-                                color: .dashSleep
-                            ) {
-                                SleepVsSeizuresMiniChart(
-                                    records: records,
-                                    sleep: sleep
-                                )
-                            } onTap: {
-                                viewModel.activeChart = .sleepVsSeizures
+                            // Sleep card
+                            Button { viewModel.activeChart = .sleepVsSeizures } label: {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text("Sleep")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundStyle(Color.dashLabel)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(Color.dashTertiary)
+                                    }
+                                    SleepVsSeizuresMiniChart(
+                                        records: records,
+                                        sleep: sleep
+                                    )
+                                    .padding(.top, 4)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                                .padding(14)
+                                .background(Color.dashCard)
+                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .stroke(Color.dashSleep.opacity(0.15), lineWidth: 1))
                             }
-
-                            GraphCard(
-                                title: "Triggers",
-                                color: .orange
-                            ) {
-                                TriggerCorrelationMiniChart(records: records)
-                            } onTap: {
-                                viewModel.activeChart = .triggerCorrelation
-                            }
-
-                            GraphCard(
-                                title: "Streak",
-                                color: .green
-                            ) {
-                                SeizureStreakMiniChart(records: records)
-                            } onTap: {
-                                viewModel.activeChart = .streak
-                            }
+                            .buttonStyle(ScaleButtonStyle())
                         }
                     }
 
@@ -131,6 +155,7 @@ struct DashboardView: View {
                             selectedTab = .records
                         }
                     }
+                    .environmentObject(viewModel.recordsVM)
 
                     Spacer().frame(height: 100)
                 }
@@ -150,10 +175,6 @@ struct DashboardView: View {
                 SeizureFrequencyChartView(records: records, initialRange: viewModel.frequencyRange)
             case .sleepVsSeizures:
                 SleepVsSeizuresChartView(records: records, sleep: sleep)
-            case .streak:
-                SeizureStreakChartView(records: records)
-            case .triggerCorrelation:
-                TriggerCorrelationChartView(records: records)
             case .heartRateTimeline(let rec):
                 HeartRateTimelineChartView(record: rec)
             }
