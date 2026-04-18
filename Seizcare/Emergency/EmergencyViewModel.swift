@@ -76,9 +76,11 @@ class EmergencyViewModel: ObservableObject {
         
         Task {
             do {
+                let contacts = EmergencyContactDataModel.shared.getContactsForCurrentUser()
                 try await EmergencyService.shared.triggerEmergencyAlert(
                     latitude: location.coordinate.latitude,
-                    longitude: location.coordinate.longitude
+                    longitude: location.coordinate.longitude,
+                    contacts: contacts
                 )
                 await MainActor.run {
                     self.status = .success

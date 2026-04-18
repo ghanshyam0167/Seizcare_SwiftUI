@@ -15,12 +15,14 @@ enum SensitivityLevel: String, Codable {
 }
 
 // MARK: - SensitivityDataModel
+@MainActor
 final class SensitivityDataModel: ObservableObject {
 
     static let shared = SensitivityDataModel()
 
     // In-memory cache — exposed for reactive UI binding
     @Published var currentSensitivity: SensitivityLevel = .medium
+    private var isRefreshing = false
 
     private init() {}
 
@@ -29,20 +31,27 @@ final class SensitivityDataModel: ObservableObject {
     /// If no preference exists, it defaults to `.medium` and inserts a new record to Supabase.
     func refreshSensitivity() async {
         guard let userId = UserDataModel.shared.getCurrentUser()?.id else { return }
+        if isRefreshing { return }
+        
+        isRefreshing = true
+        defer { isRefreshing = false }
 
         do {
             if let dto = try await SupabaseService.shared.fetchSensitivity(userId: userId) {
-                // Record found — update cache
                 if let level = SensitivityLevel(rawValue: dto.sensitivityLevel) {
-                    await MainActor.run { currentSensitivity = level }
+                    self.currentSensitivity = level
+                    print("✅ [Sensitivity] Successfully fetched preference: \(level.rawValue)")
                 }
             } else {
                 // No record — upsert default (.medium)
                 let defaultLevel: SensitivityLevel = .medium
-                await MainActor.run { currentSensitivity = defaultLevel }
+                self.currentSensitivity = defaultLevel
                 let dto = SensitivityDTO(userId: userId, sensitivityLevel: defaultLevel.rawValue)
                 try await SupabaseService.shared.upsertSensitivity(dto: dto)
+                print("✅ [Sensitivity] No existing preference; initialized to \(defaultLevel.rawValue)")
             }
+        } catch where error is CancellationError {
+            // Silently ignore task cancellations
         } catch {
             print("⚠️ [SensitivityDataModel] refreshSensitivity failed: \(error.localizedDescription)")
         }
@@ -73,5 +82,12 @@ final class SensitivityDataModel: ObservableObject {
                 print("❌ [Sensitivity] Write failed: \(error.localizedDescription)")
             }
         }
+    }
+    
+    // MARK: - Reset
+    /// Resets the local sensitivity state to default. Called during logout.
+    func resetToDefault() {
+        currentSensitivity = .medium
+        print("🔄 [Sensitivity] Reset to default (.medium)")
     }
 }

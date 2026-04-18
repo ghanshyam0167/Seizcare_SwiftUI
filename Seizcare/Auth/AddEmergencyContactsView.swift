@@ -187,25 +187,21 @@ struct AddEmergencyContactsView: View {
                 let displayName = fullName.isEmpty ? "Unknown" : fullName
                 
                 if let phone = cnContact.phoneNumbers.first?.value.stringValue {
-                    // Clean number: remove all non-digits
                     let digitsOnly = phone.filter { $0.isNumber }
-                    
-                    // We require at least 10 digits. If longer (e.g. +91), we'll take the last 10.
                     if digitsOnly.count >= 10 {
                         let validNumber = String(digitsOnly.suffix(10))
-                        
-                        // Defer the UI state update
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
                             withAnimation {
                                 contactModel.addContact(name: displayName, contactNumber: validNumber)
                             }
                         }
-                    } else {
-                        // Optionally we could show an alert, but per 'dont save', we simply skip
-                        print("Skipping contact: number too short (\(digitsOnly))")
                     }
                 }
             }
+        }
+        .task {
+            // Load existing contacts from Supabase
+            await contactModel.refreshContacts()
         }
     }
 }

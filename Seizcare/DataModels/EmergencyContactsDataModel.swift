@@ -35,11 +35,13 @@ struct EmergencyContact: Equatable, Codable {
 }
 
 // MARK: - Emergency Contact Data Model
+@MainActor
 class EmergencyContactDataModel: ObservableObject {
 
     static let shared = EmergencyContactDataModel()
 
     @Published private var cachedContacts: [EmergencyContact] = []
+    private var isRefreshing = false
 
     private init() {}
 
@@ -47,10 +49,22 @@ class EmergencyContactDataModel: ObservableObject {
 
     /// Fetches contacts for the current user from Supabase and updates the cache.
     func refreshContacts() async {
-        guard let userId = UserDataModel.shared.getCurrentUser()?.id else { return }
+        guard let userId = UserDataModel.shared.getCurrentUser()?.id else {
+            print("⚠️ [EmergencyContactDataModel] refreshContacts aborted: No user logged in.")
+            return
+        }
+        
+        if isRefreshing { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+        
+        print("📲 [EmergencyContactDataModel] Fetching contacts for userId: \(userId.uuidString.lowercased())")
         do {
             let dtos = try await SupabaseService.shared.fetchContacts(userId: userId)
             cachedContacts = dtos.map { $0.toDomain() }
+            print("✅ [EmergencyContactDataModel] Successfully fetched \(cachedContacts.count) contacts.")
+        } catch where error is CancellationError {
+            // Standard SwiftUI task cancellation, ignore
         } catch {
             print("⚠️ [EmergencyContactDataModel] refreshContacts failed:", error.localizedDescription)
         }
@@ -66,10 +80,13 @@ class EmergencyContactDataModel: ObservableObject {
     /// Returns contacts for the currently logged-in user from the local cache.
     func getContactsForCurrentUser() -> [EmergencyContact] {
         guard let currentUser = UserDataModel.shared.getCurrentUser() else {
-            print("No user logged in.")
+            print("⚠️ [Diagnostic] getContactsForCurrentUser: No user session found.")
             return []
         }
-        return cachedContacts.filter { $0.userId == currentUser.id }
+        
+        let filtered = cachedContacts.filter { $0.userId == currentUser.id }
+        print("⚠️ [Diagnostic] getContactsForCurrentUser: userId=\(currentUser.id.uuidString.lowercased()), totalCached=\(cachedContacts.count), matched=\(filtered.count)")
+        return filtered
     }
 
     /// Adds a new contact for the currently logged-in user.
@@ -93,9 +110,12 @@ class EmergencyContactDataModel: ObservableObject {
             contactNumber: formattedNumber
         )
         cachedContacts.append(newContact)
+        print("📲 [EmergencyContactDataModel] Adding contact: \(name) (\(formattedNumber))")
+        
         Task {
             do {
                 try await SupabaseService.shared.insertContact(EmergencyContactDTO(from: newContact))
+                print("✅ [EmergencyContactDataModel] Contact successfully saved to Supabase.")
             } catch {
                 print("⚠️ [EmergencyContactDataModel] addContact failed:", error.localizedDescription)
             }
@@ -131,5 +151,11 @@ class EmergencyContactDataModel: ObservableObject {
                 print("⚠️ [EmergencyContactDataModel] deleteContact failed:", error.localizedDescription)
             }
         }
+    }
+
+    /// Clears the local cache of contacts. Called during logout.
+    func clearCache() {
+        cachedContacts = []
+        print("🔄 [EmergencyContactDataModel] Cache cleared.")
     }
 }

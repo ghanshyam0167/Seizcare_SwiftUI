@@ -46,39 +46,72 @@ final class SupabaseService {
     
     /// Completely deletes the user's account by calling the Supabase Edge Function
     func deleteAccount() async throws {
+        print("🟢 [SupabaseService] START ACCOUNT DELETION")
         
-        // ✅ Get session correctly
-        let session = try await client.auth.session
+        // 1. Get current session and throw if nil
+        guard let _ = try? await client.auth.session else {
+            throw SupabaseServiceError.authFailed("User not logged in")
+        }
         
-        let accessToken = session.accessToken
+        // 2. Explicitly refresh the session to ensure not expired
+        let freshSession = try await client.auth.refreshSession()
+        let accessToken = freshSession.accessToken
+        let userId = freshSession.user.id
         
-        guard let url = URL(string: "https://ydbudbenyxrfwdzumxbu.supabase.co/functions/v1/smooth-handler") else {
-            return
+        print("✅ Session refreshed. User ID: \(userId)")
+
+        // 3. Build POST request to the explicit URL
+        guard let url = URL(string: "https://ydbudbenyxrfwdzumxbu.supabase.co/functions/v1/delete-user") else {
+            throw URLError(.badURL)
         }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         
-        // 🔥 ONLY THIS HEADER IS NEEDED
+        // 4. Headers: STRICTLY use accessToken for Authorization
+        let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw"
+        
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Required for routing payload; but Authorization is strictly user session now.
+        request.setValue(anonKey, forHTTPHeaderField: "apikey") 
         
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
+        // 5. Build Payload
+        let payload = ["user_id": userId.uuidString.lowercased()]
+        guard let httpBody = try? JSONSerialization.data(withJSONObject: payload) else {
+            print("❌ [SupabaseService] ERROR: Could not serialize payload")
+            throw URLError(.cannotParseResponse)
         }
+        request.httpBody = httpBody
         
-        print("Status:", httpResponse.statusCode)
-        
-        if !(200...299).contains(httpResponse.statusCode) {
-            let errorMsg = String(data: data, encoding: .utf8) ?? "Server Error"
-            print("❌ delete-user raw response:", errorMsg)
-            throw SupabaseServiceError.authFailed("Failed to delete account (HTTP \(httpResponse.statusCode)): \(errorMsg)")
+        print("➡️ Request Headers:")
+        if let authHeader = request.allHTTPHeaderFields?["Authorization"] {
+            // Mask the token to keep console clean
+            let maskedAuth = String(authHeader.prefix(20)) + "...[MASKED]..." + String(authHeader.suffix(10))
+            print("   Authorization: \(maskedAuth)")
         }
+        print("   apikey: [MASKED]")
         
-        print("✅ Account deleted successfully.")
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("❌ [SupabaseService] ERROR: Invalid response object")
+                throw URLError(.badServerResponse)
+            }
+            
+            let responseBody = String(data: data, encoding: .utf8) ?? "Unreadable body"
+            print("⬅️ Response Status Code: \(httpResponse.statusCode)")
+            print("⬅️ Response Body JSON: \n\(responseBody)\n========================================")
+            
+            if !(200...299).contains(httpResponse.statusCode) {
+                throw SupabaseServiceError.authFailed("HTTP \(httpResponse.statusCode) - \(responseBody)")
+            }
+            
+        } catch {
+            print("❌ [SupabaseService] CATCH BLOCK ERROR: \(error.localizedDescription)")
+            print("========================================")
+            throw error
+        }
     }
     
     // MARK: - Password Reset (OTP)
@@ -148,7 +181,7 @@ final class SupabaseService {
         let response = try await client
             .from("users")
             .select()
-            .eq("id", value: id.uuidString)
+            .eq("id", value: id.uuidString.lowercased())
             .limit(1)
             .execute()
         
@@ -223,7 +256,7 @@ final class SupabaseService {
         let rows: [EmergencyContactDTO] = try await client
             .from("emergency_contacts")
             .select()
-            .eq("user_id", value: userId.uuidString)
+            .eq("user_id", value: userId.uuidString.lowercased())
             .execute()
             .value
         return rows
@@ -240,7 +273,7 @@ final class SupabaseService {
         try await client
             .from("emergency_contacts")
             .delete()
-            .eq("id", value: id.uuidString)
+            .eq("id", value: id.uuidString.lowercased())
             .execute()
     }
     
@@ -251,7 +284,7 @@ final class SupabaseService {
         let response = try await client
             .from("user_sensitivity")
             .select()
-            .eq("user_id", value: userId.uuidString)
+            .eq("user_id", value: userId.uuidString.lowercased())
             .limit(1)
             .execute()
         

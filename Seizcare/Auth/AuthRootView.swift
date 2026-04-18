@@ -20,6 +20,7 @@ struct AuthRootView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let _ = print("🛡️ [AuthRootView] Re-evaluating: isAuthenticated = \(vm.isAuthenticated)")
         Group {
             if vm.isAuthenticated {
                 // ── Authenticated ─────────────────────────────────────────
@@ -31,6 +32,7 @@ struct AuthRootView: View {
                     .transition(.opacity)
             }
         }
+        .id(vm.isAuthenticated) // Force a full reset of the view hierarchy
         .animation(.easeInOut(duration: 0.35), value: vm.isAuthenticated)
     }
 

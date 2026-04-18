@@ -20,7 +20,7 @@ class EmergencyService {
     private init() {}
     
     /// Triggers an emergency alert using the latest location coordinates and currently authenticated user.
-    func triggerEmergencyAlert(latitude: Double, longitude: Double) async throws {
+    func triggerEmergencyAlert(latitude: Double, longitude: Double, contacts: [EmergencyContact] = []) async throws {
         // 1. Debounce Check
         if let lastTrigger = lastTriggerTime, Date().timeIntervalSince(lastTrigger) < cooldownSeconds {
             print("⏳ [EmergencyService] Alert aborted due to cooldown.")
@@ -43,24 +43,31 @@ class EmergencyService {
         dateFormatter.dateStyle = .none
         let timeString = dateFormatter.string(from: Date())
         
+        let contactsList = contacts.map { "\($0.name) (\($0.contactNumber))" }.joined(separator: ", ")
+        
         let messageLog = """
         🚨 EMERGENCY ALERT
         Possible seizure detected.
         
         🕒 Time: \(timeString)
-        
-        📍 Location:
-        \(mapLink)
+        📍 Location: \(mapLink)
+        👥 Contacts notified: \(contactsList.isEmpty ? "None" : contactsList)
         
         Immediate assistance required.
         """
         print("📲 [EmergencyService] Prepared Alert:\n\(messageLog)")
         
         // 5. Payload Construction
+        let contactDTOs = contacts.map { [
+            "name": $0.name,
+            "contact_number": $0.contactNumber
+        ] }
+        
         let payload: [String: Any] = [
             "latitude": latitude,
             "longitude": longitude,
-            "user_id": currentUserId.uuidString
+            "user_id": currentUserId.uuidString,
+            "contacts": contactDTOs
         ]
         
         guard let httpBody = try? JSONSerialization.data(withJSONObject: payload, options: []) else {
