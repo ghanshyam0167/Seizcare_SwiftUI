@@ -1,15 +1,26 @@
 import SwiftUI
 
 // MARK: - Dummy Notification Model
-struct AppNotification: Identifiable {
-    let id = UUID()
+struct AppNotification: Identifiable, Codable {
+    let id: UUID
+    let userId: UUID
     let title: String
     let message: String
     let type: NotificationType
     let date: Date
     var isRead: Bool
     
-    enum NotificationType {
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case title
+        case message
+        case type = "notification_type"
+        case date = "event_date"
+        case isRead = "is_read"
+    }
+    
+    enum NotificationType: String, Codable {
         case seizure
         case heartRate
         case abnormalActivity
@@ -41,39 +52,52 @@ struct NotificationsView: View {
     @EnvironmentObject var recordsVM: RecordsViewModel
     
     @State private var showReportSheet: Bool = false
+    @State private var notifications: [AppNotification] = []
+    @State private var isLoading: Bool = false
     
-    // Dummy Data
-    @State private var notifications: [AppNotification] = [
-        AppNotification(
-            title: "Seizure Detected",
-            message: "A possible seizure was detected 5 minutes ago. Please check your logs.",
-            type: .seizure,
-            date: Date().addingTimeInterval(-300),
-            isRead: false
-        ),
-        AppNotification(
-            title: "Heart Rate Spike",
-            message: "Your heart rate spiked to 130 BPM while resting.",
-            type: .heartRate,
-            date: Date().addingTimeInterval(-3600),
-            isRead: false
-        ),
-        AppNotification(
-            title: "Abnormal Activity",
-            message: "Unusual movement patterns detected during your sleep.",
-            type: .abnormalActivity,
-            date: Date().addingTimeInterval(-86400),
-            isRead: true
-        ),
-        AppNotification(
-            title: "Weekly Report Ready",
-            message: "Your seizure and health activity report for this week is ready to view.",
-            type: .system,
-            date: Date().addingTimeInterval(-172800),
-            isRead: true
-        )
-    ]
+    // MARK: - Fetch
     
+    private func fetchNotifications() async {
+        isLoading = true
+        defer { isLoading = false }
+        guard let userId = await SupabaseService.shared.currentUserId() else {
+            loadDemoNotifications(); return
+        }
+        do {
+            let fetched = try await SupabaseService.shared.fetchNotifications(userId: userId)
+            notifications = fetched.sorted { $0.date > $1.date }
+        } catch {
+            print("[NotificationsView] Fetch failed: \(error.localizedDescription)")
+            if notifications.isEmpty { loadDemoNotifications() }
+        }
+    }
+    
+    private func loadDemoNotifications() {
+        let uid = UUID()
+        notifications = [
+            AppNotification(id: UUID(), userId: uid, title: "Weekly Report Ready",
+                message: "Your seizure activity report for the last 7 days is now available.",
+                type: .system, date: Date().addingTimeInterval(-3600 * 2), isRead: false),
+            AppNotification(id: UUID(), userId: uid, title: "Seizure Detected",
+                message: "A moderate seizure was detected 5 minutes ago.",
+                type: .seizure, date: Date().addingTimeInterval(-300), isRead: false),
+            AppNotification(id: UUID(), userId: uid, title: "Heart Rate Spike",
+                message: "Your heart rate spiked to 140 bpm during sleep.",
+                type: .heartRate, date: Date().addingTimeInterval(-86400), isRead: true),
+            AppNotification(id: UUID(), userId: uid, title: "Abnormal Movement",
+                message: "Unusual movement detected during the night.",
+                type: .abnormalActivity, date: Date().addingTimeInterval(-86400 * 2), isRead: true)
+        ]
+    }
+    
+    private func markRead(at index: Int) {
+        guard !notifications[index].isRead else { return }
+        notifications[index].isRead = true
+        let id = notifications[index].id
+        Task { try? await SupabaseService.shared.markNotificationRead(id: id) }
+    }
+    
+
     var body: some View {
         VStack(spacing: 0) {
             // Custom Navigation Bar
@@ -111,7 +135,7 @@ struct NotificationsView: View {
                     ForEach(notifications.indices, id: \.self) { index in
                         if notifications[index].type == .system {
                             Button {
-                                notifications[index].isRead = true
+                                markRead(at: index)
                                 showReportSheet = true
                             } label: {
                                 NotificationRow(notification: notifications[index])
@@ -123,7 +147,7 @@ struct NotificationsView: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                             .simultaneousGesture(TapGesture().onEnded {
-                                notifications[index].isRead = true
+                                markRead(at: index)
                             })
                         }
                         
@@ -145,6 +169,7 @@ struct NotificationsView: View {
         }
         .background(Color.dashBg.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
+        .task { await fetchNotifications() }
         .sheet(isPresented: $showReportSheet) {
             let duration = ReportDuration.week1
             let cutoff = Calendar.current.date(byAdding: .day, value: -duration.days, to: Date()) ?? Date()

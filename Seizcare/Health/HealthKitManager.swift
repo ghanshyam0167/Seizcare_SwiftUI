@@ -146,6 +146,7 @@ class HealthKitManager {
             let result = samples.map { sample in
                 HeartRateSample(
                     id: UUID(),
+                    userId: nil,
                     timestamp: sample.startDate,
                     bpm: Int(sample.quantity.doubleValue(for: HKUnit(from: "count/min"))),
                     recordId: nil
