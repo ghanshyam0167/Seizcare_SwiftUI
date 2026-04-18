@@ -127,6 +127,7 @@ extension Color {
     static let dashSeizure       = Color(red: 1.0,  green: 0.27, blue: 0.27)
     static let dashSleep         = Color(red: 0.25, green: 0.60, blue: 1.0)
     static let dashGreen         = Color(red: 0.20, green: 0.78, blue: 0.35)
+    static let dashPurple        = Color(red: 0.58, green: 0.44, blue: 1.0)
 }
 
 // MARK: - Mock Data
