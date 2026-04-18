@@ -43,6 +43,13 @@ struct AddEditRecordView: View {
         !selectedTriggers.isEmpty && !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var isAutomatic: Bool {
+        if case .edit(let record) = mode {
+            return record.entryType == .automatic
+        }
+        return false
+    }
+
     // Scroll focus
     @FocusState private var notesFieldFocused: Bool
     @FocusState private var locationFieldFocused: Bool
@@ -76,6 +83,23 @@ struct AddEditRecordView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
 
+                        // ── Auto-detected banner ───────────────────────────
+                        if isAutomatic {
+                            HStack(spacing: 10) {
+                                Image(systemName: "waveform.path.ecg")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(Color.dashSleep)
+                                Text("Date, time & duration are locked because this event was automatically detected.")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Color.dashSecondary)
+                                    .lineSpacing(3)
+                            }
+                            .padding(12)
+                            .background(Color.dashSleep.opacity(0.10))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Color.dashSleep.opacity(0.25), lineWidth: 1))
+                        }
 
                         // ── Time Pickers ──────────────────────────────────
                         timePickers
@@ -134,6 +158,8 @@ struct AddEditRecordView: View {
 
             VStack(spacing: 1) {
                 DatePickerRow(label: "Date & Time", icon: "calendar.badge.clock", color: .dashSleep, date: $startTime)
+                    .disabled(isAutomatic)
+                    .opacity(isAutomatic ? 0.6 : 1.0)
                 Divider().background(Color.dashTertiary.opacity(0.2)).padding(.leading, 50)
                 
                 HStack(spacing: 14) {
@@ -154,7 +180,9 @@ struct AddEditRecordView: View {
                         }
                     }
                     .tint(Color.dashGreen)
+                    .disabled(isAutomatic)
                 }
+                .opacity(isAutomatic ? 0.6 : 1.0)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
             }
@@ -173,6 +201,8 @@ struct AddEditRecordView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .disabled(isAutomatic)
+            .opacity(isAutomatic ? 0.6 : 1.0)
             .padding(14)
             .background(Color.dashCard)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))

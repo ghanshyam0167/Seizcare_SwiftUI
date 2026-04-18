@@ -88,6 +88,25 @@ struct RecordFilter {
         customStart = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
         customEnd = Date()
     }
+
+    mutating func removeChip(_ chip: String) {
+        if let s = severities.first(where: { $0.displayName == chip }) {
+            severities.remove(s)
+            return
+        }
+        if let t = triggers.first(where: { $0.rawValue == chip }) {
+            triggers.remove(t)
+            return
+        }
+        if let d = durations.first(where: { $0.rawValue == chip }) {
+            durations.remove(d)
+            return
+        }
+        if dateRange?.rawValue == chip {
+            dateRange = nil
+            return
+        }
+    }
 }
 
 // MARK: - Records View Model

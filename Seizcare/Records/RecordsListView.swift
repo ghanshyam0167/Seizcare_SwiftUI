@@ -29,8 +29,8 @@ struct RecordsListView: View {
             }
         }
         .navigationTitle("Records")
-        .navigationBarTitleDisplayMode(.large)
-        .searchable(text: $vm.searchQuery, prompt: "Search records")
+        .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $vm.searchQuery, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search records")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 // Report button
@@ -40,7 +40,7 @@ struct RecordsListView: View {
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.system(size: 15, weight: .medium))
                 }
-                .foregroundStyle(Color.dashSleep)
+                .foregroundStyle(Color.dashLabel)
 
                 // Filter button
                 Button {
@@ -57,7 +57,7 @@ struct RecordsListView: View {
                         }
                     }
                 }
-                .foregroundStyle(vm.filter.isActive ? Color.dashSeizure : Color.dashSecondary)
+                .foregroundStyle(vm.filter.isActive ? Color.dashSeizure : Color.dashLabel)
             }
         }
         .navigationDestination(item: $selectedRecord) { record in
@@ -120,19 +120,24 @@ struct RecordsListView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(vm.filter.activeChips, id: \.self) { chip in
-                    HStack(spacing: 5) {
-                        Text(chip)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Color.dashSleep)
-                        Image(systemName: "xmark")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(Color.dashSleep.opacity(0.7))
+                    Button {
+                        withAnimation { vm.filter.removeChip(chip) }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Text(chip)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Color.dashSleep)
+                            Image(systemName: "xmark")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(Color.dashSleep.opacity(0.7))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.dashSleep.opacity(0.12))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.dashSleep.opacity(0.25), lineWidth: 1))
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.dashSleep.opacity(0.12))
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(Color.dashSleep.opacity(0.25), lineWidth: 1))
+                    .buttonStyle(ScaleButtonStyle())
                 }
 
                 Button {

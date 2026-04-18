@@ -98,6 +98,11 @@ private struct RecordRow: View {
                     Text(timeText)
                         .font(.system(size: 13))
                         .foregroundStyle(Color.dashSecondary)
+                        
+                    Image(systemName: record.entryType == .automatic ? "waveform" : "pencil")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.dashTertiary)
+                        .padding(.leading, 2)
                 }
                 HStack(spacing: 8) {
                     SeverityBadge(type: record.type)
@@ -119,6 +124,10 @@ private struct RecordRow: View {
                     .font(.caption2)
                     .foregroundStyle(Color.dashTertiary)
             }
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.dashTertiary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)

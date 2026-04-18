@@ -12,13 +12,8 @@ struct RecordCard: View {
     let record: SeizureRecord
 
     private var durationText: String {
-        let totalSecs = Int(record.duration)
-        let h = totalSecs / 3600
-        let m = (totalSecs % 3600) / 60
-        let s = totalSecs % 60
-        if h > 0 { return "\(h)h \(m)m" }
-        if m > 0 { return "\(m)m \(s)s" }
-        return "\(s)s"
+        let m = Int(record.duration / 60)
+        return m > 0 ? "\(m) min" : "<1 min"
     }
 
     private var dateText: String {
@@ -36,29 +31,19 @@ struct RecordCard: View {
         return f.string(from: record.startTime)
     }
 
-    private var title: String {
-        if let notes = record.notes, !notes.isEmpty {
-            // Show a preview of the note
-            let preview = String(notes.prefix(30))
-            return notes.count > 30 ? "\(preview)…" : preview
-        }
-        return "Seizure Event"
-    }
-
     var body: some View {
         HStack(spacing: 14) {
-
-            // Main content
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(alignment: .center, spacing: 6) {
-                    Circle()
-                        .fill(record.type.color)
-                        .frame(width: 7, height: 7)
-                    Text(title)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(dateText)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.dashLabel)
-                        .lineLimit(1)
-                    
+                    Text("·")
+                        .foregroundStyle(Color.dashTertiary)
+                    Text(timeText)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.dashSecondary)
+                        
                     Image(systemName: record.entryType == .automatic ? "waveform" : "pencil")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Color.dashTertiary)
@@ -68,30 +53,21 @@ struct RecordCard: View {
                     SeverityBadge(type: record.type)
                     if let trigger = record.triggers.first {
                         Text(trigger.rawValue)
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(Color.dashSecondary)
-                    }
-                    if record.triggers.count > 1 {
-                        Text("+\(record.triggers.count - 1)")
-                            .font(.caption2)
-                            .foregroundStyle(Color.dashTertiary)
                     }
                 }
             }
 
-            Spacer(minLength: 0)
+            Spacer()
 
-            // Date + Duration (right-aligned)
             VStack(alignment: .trailing, spacing: 4) {
-                Text(dateText)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.dashSecondary)
-                Text(timeText)
+                Text(durationText)
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.dashLabel)
+                Text("duration")
                     .font(.caption2)
                     .foregroundStyle(Color.dashTertiary)
-                Text(durationText)
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color.dashLabel)
             }
 
             Image(systemName: "chevron.right")

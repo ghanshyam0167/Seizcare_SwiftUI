@@ -110,8 +110,10 @@ struct RecordDetailView: View {
                         }
                     }
 
-                    // ── Heart Rate Graph ──────────────────────
-                    heartRateSection
+                    // ── Heart Rate Graph (automatic only) ────
+                    if currentRecord.entryType == .automatic {
+                        heartRateSection
+                    }
 
                     Spacer().frame(height: 32)
                 }
@@ -122,14 +124,12 @@ struct RecordDetailView: View {
         .navigationTitle("Detail")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if currentRecord.entryType == .manual {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Edit") {
-                        showEditSheet = true
-                    }
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.dashSeizure)
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Edit") {
+                    showEditSheet = true
                 }
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color.dashSeizure)
             }
         }
         .sheet(isPresented: $showEditSheet, onDismiss: {

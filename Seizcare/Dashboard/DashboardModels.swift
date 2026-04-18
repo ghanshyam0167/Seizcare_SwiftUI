@@ -140,37 +140,54 @@ struct MockDashboardData {
         let now = Date()
         var records: [SeizureRecord] = []
 
-        let entries: [(dayOffset: Int, hour: Int, durationMin: Int, type: SeizureType, triggers: [SeizureTrigger])] = [
-            (-28, 8,  3,  .mild,     [.stress]),
-            (-26, 14, 8,  .moderate, [.poorSleep, .stress]),
-            (-24, 22, 12, .severe,   [.missedMedication]),
-            (-22, 7,  2,  .mild,     [.exercise]),
-            (-22, 20, 15, .moderate, [.stress]),
-            (-17, 9,  5,  .mild,     [.stress]),
-            (-15, 16, 20, .severe,   [.poorSleep, .missedMedication]),
-            (-13, 11, 7,  .moderate, [.flashingLights]),
-            (-12, 23, 10, .mild,     [.alcohol]),
-            (-10, 8,  4,  .moderate, [.stress, .poorSleep]),
-            (-8,  19, 6,  .mild,     [.exercise]),
-            (-6,  13, 8,  .mild,     [.stress]),
-            (-3,  10, 5,  .mild,     [.stress]),
-            (-1,  15, 12, .moderate, [.poorSleep]),
+        // Manual entries — user logged these themselves
+        let manualEntries: [(dayOffset: Int, hour: Int, durationMin: Int, type: SeizureType, triggers: [SeizureTrigger], notes: String?, location: String?)] = [
+            (-28, 8,  3,  .mild,     [.stress],           "Felt slight aura before onset. Recovered quickly.", "Home - Living Room"),
+            (-22, 20, 15, .moderate, [.stress],           "Happened after a stressful work call. Rested for 30 mins after.", nil),
+            (-13, 11, 7,  .moderate, [.flashingLights],   "At the cinema. Lights on screen may have triggered it.", "Cineplex Mall"),
+            (-3,  10, 5,  .mild,     [.stress],           "Minor episode. Was feeling anxious before it started.", "Office"),
         ]
 
-        for e in entries {
+        for e in manualEntries {
             guard let day   = calendar.date(byAdding: .day, value: e.dayOffset, to: now),
                   let start = calendar.date(bySettingHour: e.hour, minute: 0, second: 0, of: day),
                   let end   = calendar.date(byAdding: .minute, value: e.durationMin, to: start)
             else { continue }
-
             records.append(SeizureRecord(
                 id: UUID(), userId: userId,
                 entryType: .manual,
                 startTime: start, endTime: end,
                 type: e.type, triggers: e.triggers,
-                location: nil, notes: nil
+                location: e.location, notes: e.notes
             ))
         }
+
+        // Automatic entries — detected by Apple Watch / HealthKit
+        let autoEntries: [(dayOffset: Int, hour: Int, minute: Int, durationMin: Int, type: SeizureType, triggers: [SeizureTrigger], location: String?)] = [
+            (-26, 14, 23, 8,  .moderate, [.poorSleep, .stress],      "Bedroom"),
+            (-24, 22, 47, 12, .severe,   [.missedMedication],        "Home"),
+            (-17, 9,  11, 5,  .mild,     [.stress],                  "Gym"),
+            (-15, 16, 55, 20, .severe,   [.poorSleep, .missedMedication], "Home - Bedroom"),
+            (-10, 8,  34, 4,  .moderate, [.stress, .poorSleep],      "Home"),
+            (-8,  19, 2,  6,  .mild,     [.exercise],                "Park"),
+            (-6,  13, 18, 8,  .mild,     [.stress],                  "Office"),
+            (-1,  15, 41, 12, .moderate, [.poorSleep],               "Home"),
+        ]
+
+        for e in autoEntries {
+            guard let day   = calendar.date(byAdding: .day, value: e.dayOffset, to: now),
+                  let start = calendar.date(bySettingHour: e.hour, minute: e.minute, second: 0, of: day),
+                  let end   = calendar.date(byAdding: .minute, value: e.durationMin, to: start)
+            else { continue }
+            records.append(SeizureRecord(
+                id: UUID(), userId: userId,
+                entryType: .automatic,
+                startTime: start, endTime: end,
+                type: e.type, triggers: e.triggers,
+                location: e.location, notes: "Automatically detected via Apple Watch. Heart rate spike and motion pattern confirmed seizure activity."
+            ))
+        }
+
         return records.sorted { $0.startTime > $1.startTime }
     }()
 

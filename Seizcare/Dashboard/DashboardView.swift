@@ -69,7 +69,7 @@ struct DashboardView: View {
                             Image(systemName: "person.crop.circle.fill")
                                 .resizable()
                                 .frame(width: 32, height: 32)
-                                .foregroundStyle(Color.dashSecondary)
+                                .foregroundStyle(Color.dashLabel)
                         }
                     }
                     .padding(.top, 4)
