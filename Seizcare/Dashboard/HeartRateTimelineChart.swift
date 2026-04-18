@@ -35,9 +35,24 @@ struct HeartRateMiniChart: View {
 struct HeartRateTimelineChartView: View {
     @Environment(\.dismiss) private var dismiss
     let record: SeizureRecord
+    @State private var samples: [HeartRateSample] = []
+    @State private var isLoading = true
 
-    private var samples: [HeartRateSample] {
-        MockDashboardData.heartRateSamples(for: record)
+    private func fetchSamples() {
+        let start = record.startTime.addingTimeInterval(-3600)
+        let end = record.endTime.addingTimeInterval(3600)
+        
+        HealthKitManager.shared.fetchHeartRateSamples(from: start, to: end) { fetched in
+            DispatchQueue.main.async {
+                if fetched.isEmpty {
+                    // Fallback to mock if no real data found for this window
+                    self.samples = MockDashboardData.heartRateSamples(for: record)
+                } else {
+                    self.samples = fetched
+                }
+                self.isLoading = false
+            }
+        }
     }
 
     // Relative minutes from seizure start
@@ -193,7 +208,9 @@ struct HeartRateTimelineChartView: View {
                 }
                 .padding(16)
             }
-            .background(Color.dashBg.ignoresSafeArea())
+            .onAppear {
+                fetchSamples()
+            }
             .navigationTitle("Heart Rate")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
