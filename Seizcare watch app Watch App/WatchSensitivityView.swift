@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct WatchSensitivityView: View {
-    @State private var sensitivity: Int = 2 // 0: Low, 1: Medium, 2: High
+    @ObservedObject var connectivity = WatchConnectivityManager.shared
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -16,7 +16,7 @@ struct WatchSensitivityView: View {
             
             HStack(spacing: 0) {
                 ForEach(0..<3) { index in
-                    Button(action: { sensitivity = index }) {
+                    Button(action: { connectivity.updateSensitivity(index) }) {
                         segmentedButton(for: index)
                     }
                     .buttonStyle(.plain)
@@ -37,7 +37,7 @@ struct WatchSensitivityView: View {
     }
     
     private var description: String {
-        switch sensitivity {
+        switch connectivity.sensitivity {
         case 0: return "Detects only major movements."
         case 1: return "Balanced detection for standard activity."
         case 2: return "Highly sensitive, detects even mild activity."
@@ -60,6 +60,6 @@ struct WatchSensitivityView: View {
             .font(.system(size: 12, weight: .medium))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(sensitivity == index ? Color.blue : Color.gray.opacity(0.2))
+            .background(connectivity.sensitivity == index ? Color.blue : Color.gray.opacity(0.2))
     }
 }

@@ -8,6 +8,7 @@ import Combine
 
 class HealthViewModel: ObservableObject {
     @Published var currentHeartRate: Double = 0
+    @Published var currentSpO2: Double = 0
     @Published var heartRateHistory: [Double] = []
     @Published var sleepData: [SleepData] = []
     @Published var lastNightSleep: Double = 0
@@ -85,9 +86,13 @@ class HealthViewModel: ObservableObject {
             }
         }
         
-        // Fetch today's sleep
-        fetchTodaySleep()
+        // Fetch latest SpO2 — also requests auth if not yet granted
+        fetchSpO2()
         
+        // Fetch last night's sleep and sync to Watch
+        fetchSleep()
+        
+
         // Start Polling Timer (Fallback every 2 seconds)
         startPolling()
         
@@ -122,21 +127,47 @@ class HealthViewModel: ObservableObject {
             }
     }
     
-    private func fetchTodaySleep() {
-        hkManager.fetchTodaySleep { [weak self] hours in
+
+    private func stopDataCollection() {
+        print("[VM] HealthViewModel: Stopping data collection")
+        pollingTimer?.cancel()
+        loadingTimeout?.cancel()
+        
+        DispatchQueue.main.async {
+            self.isLoading = false
+        }
+        
+        hkManager.stopHeartRateStreaming()
+    }
+    
+    /// Public: call from view .onAppear or refresh button
+    func fetchSpO2() {
+        print("[VM] Triggering SpO2 fetch...")
+        hkManager.fetchLatestSpO2 { [weak self] spo2 in
             DispatchQueue.main.async {
-                self?.lastNightSleep = hours
-                self?.isLoading = false
-                print("[HK] Sleep Today Updated: \(hours) hours")
-                // Sync with Watch
-                WatchConnectivityManager.shared.sendSleepDataToWatch(hours)
+                if let spo2 = spo2 {
+                    print("[VM] SpO2 fetched: \(spo2)%")
+                    self?.currentSpO2 = spo2
+                    WatchConnectivityManager.shared.sendSpO2ToWatch(spo2)
+                } else {
+                    print("[VM] SpO2: No data returned")
+                }
             }
         }
     }
     
-    private func stopDataCollection() {
-        print("[VM] HealthViewModel: Stopping data collection")
-        hkManager.stopHeartRateStreaming()
+    /// Public: call from view .onAppear or refresh button
+    func fetchSleep() {
+        print("[VM] Triggering last-night sleep fetch...")
+        hkManager.fetchLastNightSleep { [weak self] hours in
+            guard let self = self else { return }
+            self.lastNightSleep = hours
+            print("[VM] Sleep result: \(String(format: "%.2f", hours)) hrs — sending to Watch")
+            WatchConnectivityManager.shared.sendSleepToWatch(hours)
+        }
+        
+        // Debug Extraction: Print 30-day history to console as requested
+        hkManager.printDailySleepHistory()
     }
     
     func fetchSleepData() {

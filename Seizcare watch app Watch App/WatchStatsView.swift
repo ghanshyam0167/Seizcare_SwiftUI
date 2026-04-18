@@ -18,21 +18,33 @@ struct WatchStatsView: View {
             
             HStack {
                 VStack(alignment: .leading) {
-                    Text("SpO2")
+                    Text("SpO₂")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-                    Text("98%")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(.blue)
+                    if connectivity.spo2 == 0 {
+                        Text("No data")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("\(Int(connectivity.spo2))%")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundStyle(.blue)
+                    }
                 }
                 Spacer()
                 VStack(alignment: .trailing) {
                     Text("Sleep")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-                    Text("\(String(format: "%.1f", connectivity.sleepHours)) hr")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(.indigo)
+                    if connectivity.sleepHours == 0 {
+                        Text("No data")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(String(format: "%.1f hrs", connectivity.sleepHours))
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundStyle(.indigo)
+                    }
                 }
             }
             

@@ -30,6 +30,10 @@ class HealthKitManager_Watch: ObservableObject {
     }
     
     func startHeartRateStreaming() {
+        if hrQuery != nil {
+            print("[Watch-HK] Streaming already active, skipping re-start")
+            return
+        }
         print("[Watch-HK] Starting local HR Streaming")
         
         let query = HKAnchoredObjectQuery(
@@ -47,6 +51,16 @@ class HealthKitManager_Watch: ObservableObject {
         
         healthStore.execute(query)
         self.hrQuery = query
+    }
+    
+    func stopHeartRateStreaming() {
+        guard let query = hrQuery else {
+            print("[Watch-HK] No local HR Query to stop")
+            return
+        }
+        print("[Watch-HK] Stopping local HR Streaming")
+        healthStore.stop(query)
+        self.hrQuery = nil
     }
     
     private func processHRSamples(_ samples: [HKSample]?) {

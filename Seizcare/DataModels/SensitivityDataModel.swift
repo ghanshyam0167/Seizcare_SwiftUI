@@ -48,8 +48,11 @@ final class SensitivityDataModel: ObservableObject {
                 self.currentSensitivity = defaultLevel
                 let dto = SensitivityDTO(userId: userId, sensitivityLevel: defaultLevel.rawValue)
                 try await SupabaseService.shared.upsertSensitivity(dto: dto)
-                print("✅ [Sensitivity] No existing preference; initialized to \(defaultLevel.rawValue)")
             }
+            
+            // Push updated setting to Apple Watch
+            WatchConnectivityManager.shared.sendSensitivityToWatch(currentSensitivity.rawValue)
+            
         } catch where error is CancellationError {
             // Silently ignore task cancellations
         } catch {
@@ -80,6 +83,36 @@ final class SensitivityDataModel: ObservableObject {
                 print("✅ [Sensitivity] Saved '\(level.rawValue)' for user \(userId)")
             } catch {
                 print("❌ [Sensitivity] Write failed: \(error.localizedDescription)")
+            }
+        }
+        
+        // Push the update to the Apple Watch
+        WatchConnectivityManager.shared.sendSensitivityToWatch(level.rawValue)
+    }
+    
+    /// Called by WatchConnectivityManager when a new sensitivity level is received from the Watch.
+    /// Updates local state and pushes back to Supabase, but does NOT re-push to Watch.
+    func applySyncUpdate(levelString: String) {
+        guard let level = SensitivityLevel(rawValue: levelString.lowercased()) else {
+            print("⚠️ [Sensitivity] Received invalid sync level: \(levelString)")
+            return
+        }
+        
+        // Prevent redundant updates
+        guard level != currentSensitivity else { return }
+        
+        print("🔄 [Sensitivity] Applying sync update from Watch: \(level.rawValue)")
+        self.currentSensitivity = level
+        
+        // Persistence to Supabase
+        guard let userId = UserDataModel.shared.getCurrentUser()?.id else { return }
+        Task {
+            do {
+                let dto = SensitivityDTO(userId: userId, sensitivityLevel: level.rawValue)
+                try await SupabaseService.shared.upsertSensitivity(dto: dto)
+                print("✅ [Sensitivity] Synced Watch update saved to Supabase")
+            } catch {
+                print("❌ [Sensitivity] Failed to save Watch sync to Supabase: \(error.localizedDescription)")
             }
         }
     }
