@@ -181,7 +181,27 @@ struct SeizureFrequencyChartView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            // Navigation Bar
+            HStack {
+                CustomBackButton { dismiss() }
+                
+                Spacer()
+                
+                Text("Seizure Frequency")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundColor(.authPrimaryText)
+                
+                Spacer()
+                
+                Circle()
+                    .fill(Color.clear)
+                    .frame(width: 42, height: 42)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            .background(Color.dashBg)
+            
             ZStack {
                 Color.dashBg.ignoresSafeArea()
                 
@@ -195,7 +215,8 @@ struct SeizureFrequencyChartView: View {
                         }
                         .pickerStyle(.segmented)
                         .padding(.horizontal, 16)
-                        .padding(.top, 10)
+                        .padding(.top, 24)
+                        .padding(.bottom, 16)
                         
                         // Header Metrics
                         VStack(alignment: .leading, spacing: 4) {
@@ -319,14 +340,8 @@ struct SeizureFrequencyChartView: View {
                         }
                         .padding(.horizontal, 16)
                     }
-                }
-            }
-            .navigationTitle("Seizure Frequency")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    CustomBackButton { dismiss() }
+                    .padding(.top, 16)
+                    .padding(.bottom, 24)
                 }
             }
         }

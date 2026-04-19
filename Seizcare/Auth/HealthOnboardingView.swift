@@ -14,12 +14,13 @@ struct HealthOnboardingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
+            // Navigation Bar
             HStack {
                 CustomBackButton { vm.goBack() }
                 Spacer()
             }
-            .padding(.top, 40)
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {

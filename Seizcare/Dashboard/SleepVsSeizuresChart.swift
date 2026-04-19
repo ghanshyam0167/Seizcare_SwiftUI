@@ -139,7 +139,27 @@ struct SleepVsSeizuresChartView: View {
     // MARK: - Body
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            // Navigation Bar
+            HStack {
+                CustomBackButton { dismiss() }
+                
+                Spacer()
+                
+                Text("Sleep vs Seizures")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundColor(.authPrimaryText)
+                
+                Spacer()
+                
+                Circle()
+                    .fill(Color.clear)
+                    .frame(width: 42, height: 42)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            .background(Color(UIColor.systemGroupedBackground))
+            
             ZStack {
                 Color(UIColor.systemGroupedBackground).ignoresSafeArea()
 
@@ -154,7 +174,8 @@ struct SleepVsSeizuresChartView: View {
                         }
                         .pickerStyle(.segmented)
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 20)
+                        .padding(.top, 24)
+                        .padding(.bottom, 16)
                         .onChange(of: selectedRange) { _, _ in selectedDate = nil }
 
                         // Stat cards
@@ -229,7 +250,7 @@ struct SleepVsSeizuresChartView: View {
                                     .symbolSize(innerCircleSize(for: pt))
                                 }
                             }
-                            }
+                            
 
                             if let pt = selectedPoint {
                                 RuleMark(x: .value("Selected", pt.date))
@@ -291,14 +312,6 @@ struct SleepVsSeizuresChartView: View {
                             .padding(.bottom, 40)
                     }
                     .padding(.top, 16)
-                }
-            }
-            .navigationTitle("Sleep vs Seizures")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    CustomBackButton { dismiss() }
                 }
             }
         }
@@ -463,28 +476,11 @@ if records.isEmpty {
     .frame(height: 110)
 } else {
 
-    // Stats row (IMPROVED VERSION)
-    HStack(spacing: 12) {
-        HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text(String(format: "%.1f", avgSleep))
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
-            Text("HRS AVG")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0).opacity(0.8))
-        }
-
-        HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text("\(totalSeizures)")
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38))
-            Text("EVENTS")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38).opacity(0.8))
-        }
-
-        Spacer()
-    }
+    // Stats row
+    Text("\(String(format: "%.1f", avgSleep)) vs \(totalSeizures)")
+        .font(.system(size: 28, weight: .semibold, design: .rounded))
+        .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
+        .padding(.bottom, 4)
 
     // Mini chart (CORRECT VERSION)
     Chart {
@@ -540,12 +536,6 @@ if records.isEmpty {
     .chartYAxis(.hidden)
     .frame(height: 88)
 }
-                        }
-                    }
-                }
-                .chartYAxis(.hidden)
-                .frame(height: 88)
-            }
         }
     }
 
