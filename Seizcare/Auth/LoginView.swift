@@ -76,6 +76,9 @@ struct LoginView: View {
                                 }
                             }
                             .font(.system(size: 15))
+                            .textContentType(.password)
+                            .autocapitalization(.none)
+                            .autocorrectionDisabled()
 
                             Button(action: { isPasswordRevealed.toggle() }) {
                                 Image(systemName: isPasswordRevealed ? "eye.slash" : "eye")

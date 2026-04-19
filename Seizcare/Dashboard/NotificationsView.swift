@@ -110,10 +110,12 @@ struct NotificationsView: View {
         ]
     }
     
-    private func markRead(at index: Int) {
-        guard !notifications[index].isRead else { return }
-        notifications[index].isRead = true
-        let id = notifications[index].id
+    @MainActor
+    private func markRead(id: UUID) {
+        guard let idx = notifications.firstIndex(where: { $0.id == id }) else { return }
+        guard notifications.indices.contains(idx) else { return }
+        guard !notifications[idx].isRead else { return }
+        notifications[idx].isRead = true
         Task { try? await SupabaseService.shared.markNotificationRead(id: id) }
     }
     
@@ -167,22 +169,22 @@ struct NotificationsView: View {
             } else {
                 ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
-                    ForEach(notifications.indices, id: \.self) { index in
-                        if notifications[index].type == .system {
+                    ForEach(Array(notifications.enumerated()), id: \.element.id) { index, notification in
+                        if notification.type == .system {
                             Button {
-                                markRead(at: index)
+                                markRead(id: notification.id)
                                 showReportSheet = true
                             } label: {
-                                NotificationRow(notification: notifications[index])
+                                NotificationRow(notification: notification)
                             }
                             .buttonStyle(PlainButtonStyle())
                         } else {
-                            NavigationLink(destination: NotificationDetailView(notification: notifications[index])) {
-                                NotificationRow(notification: notifications[index])
+                            NavigationLink(destination: NotificationDetailView(notification: notification)) {
+                                NotificationRow(notification: notification)
                             }
                             .buttonStyle(PlainButtonStyle())
                             .simultaneousGesture(TapGesture().onEnded {
-                                markRead(at: index)
+                                markRead(id: notification.id)
                             })
                         }
                         

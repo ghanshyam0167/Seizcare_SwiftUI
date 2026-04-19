@@ -50,6 +50,7 @@ class UserDataModel {
     private(set) var currentUser: User?
 
     private let currentUserKey = "currentUserId"
+    private func cachedAvatarUrlKey(for userId: UUID) -> String { "cachedAvatarUrl_\(userId.uuidString.lowercased())" }
 
     private init() {}
 
@@ -116,6 +117,7 @@ class UserDataModel {
         currentUser?.avatarUrl = url.isEmpty ? nil : url
         // Broadcast immediately so UI updates without waiting for the network call
         NotificationCenter.default.post(name: UserDataModel.avatarDidChangeNotification, object: nil)
+        setCachedAvatarUrl(url.isEmpty ? nil : url)
         guard let userId = currentUser?.id else { return }
         Task {
             do {
@@ -129,6 +131,25 @@ class UserDataModel {
                 print("⚠️ [UserDataModel] updateAvatarURL failed: \(error.localizedDescription)")
             }
         }
+    }
+
+    func getCachedAvatarUrl() -> String? {
+        guard let userId = currentUser?.id else { return nil }
+        return UserDefaults.standard.string(forKey: cachedAvatarUrlKey(for: userId))
+    }
+
+    func setCachedAvatarUrl(_ url: String?) {
+        guard let userId = currentUser?.id else { return }
+        if let url, !url.isEmpty {
+            UserDefaults.standard.set(url, forKey: cachedAvatarUrlKey(for: userId))
+        } else {
+            UserDefaults.standard.removeObject(forKey: cachedAvatarUrlKey(for: userId))
+        }
+    }
+
+    func clearCachedAvatarUrl() {
+        guard let userId = currentUser?.id else { return }
+        UserDefaults.standard.removeObject(forKey: cachedAvatarUrlKey(for: userId))
     }
     
     // MARK: - Local Image Storage
