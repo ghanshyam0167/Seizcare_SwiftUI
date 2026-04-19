@@ -229,6 +229,7 @@ struct SleepVsSeizuresChartView: View {
                                     .symbolSize(innerCircleSize(for: pt))
                                 }
                             }
+                            }
 
                             if let pt = selectedPoint {
                                 RuleMark(x: .value("Selected", pt.date))
@@ -279,6 +280,7 @@ struct SleepVsSeizuresChartView: View {
                             }
                         }
                         .frame(height: 320)
+                        .emptyChartOverlay(isEmpty: records.isEmpty)
                         .padding(.top, 24)
                         .padding(.horizontal, 16)
 
@@ -293,13 +295,10 @@ struct SleepVsSeizuresChartView: View {
             }
             .navigationTitle("Sleep vs Seizures")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(Color.dashLabel)
-                    }
+                    CustomBackButton { dismiss() }
                 }
             }
         }
@@ -446,65 +445,107 @@ struct SleepVsSeizuresMiniChart: View {
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(Color.dashSecondary)
 
-            // Stats row
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(String(format: "%.1f", avgSleep))
-                    .font(.system(size: 28, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
-                
-                Text("vs")
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                    .foregroundStyle(Color.dashSecondary)
-                
-                Text("\(totalSeizures)")
-                    .font(.system(size: 28, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38))
-                
-                Spacer()
-            }
-            .padding(.bottom, 4)
+if records.isEmpty {
+    VStack(spacing: 8) {
+        Image(systemName: "chart.line.uptrend.xyaxis")
+            .font(.system(size: 20))
+            .foregroundStyle(Color.dashSecondary.opacity(0.6))
+        Text("No data available yet...")
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(Color.dashSecondary)
+            .lineLimit(1)
+        Text("Start tracking to see summary.")
+            .font(.system(size: 11))
+            .foregroundStyle(Color.dashSecondary.opacity(0.8))
+            .lineLimit(1)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .frame(height: 110)
+} else {
 
-            // Mini chart
-            Chart {
-                ForEach(weekData) { pt in
-                    BarMark(
-                        x: .value("Day", pt.date),
-                        y: .value("Seizures", pt.seizureCount),
-                        width: .fixed(8)
-                    )
-                    .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38).opacity(0.8))
-                    .cornerRadius(4)
-                }
-                // Sleep circles — only on seizure days
-                ForEach(weekData.filter { $0.seizureCount > 0 }) { pt in
-                    if let h = pt.sleepHours {
-                        LineMark(x: .value("Day", pt.date), y: .value("SleepTrend", normalizedSleep(h)))
-                            .interpolationMethod(.catmullRom)
-                            .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
-                            .lineStyle(StrokeStyle(lineWidth: 3))
-                        PointMark(x: .value("Day", pt.date), y: .value("SleepTrend", normalizedSleep(h)))
-                            .foregroundStyle(Color.dashCard)
-                            .symbolSize(36)
-                        PointMark(x: .value("Day", pt.date), y: .value("SleepTrend", normalizedSleep(h)))
-                            .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
-                            .symbolSize(14)
-                    }
+    // Stats row (IMPROVED VERSION)
+    HStack(spacing: 12) {
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Text(String(format: "%.1f", avgSleep))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
+            Text("HRS AVG")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0).opacity(0.8))
+        }
+
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Text("\(totalSeizures)")
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38))
+            Text("EVENTS")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38).opacity(0.8))
+        }
+
+        Spacer()
+    }
+
+    // Mini chart (CORRECT VERSION)
+    Chart {
+        ForEach(weekData) { pt in
+            BarMark(
+                x: .value("Day", pt.date),
+                y: .value("Seizures", pt.seizureCount),
+                width: .fixed(8)
+            )
+            .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38).opacity(0.85))
+            .cornerRadius(4)
+        }
+
+        // Sleep trend (normalized — IMPORTANT)
+        ForEach(weekData.filter { $0.seizureCount > 0 }) { pt in
+            if let h = pt.sleepHours {
+                LineMark(
+                    x: .value("Day", pt.date),
+                    y: .value("SleepTrend", normalizedSleep(h))
+                )
+                .interpolationMethod(.catmullRom)
+                .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
+                .lineStyle(StrokeStyle(lineWidth: 3))
+
+                PointMark(
+                    x: .value("Day", pt.date),
+                    y: .value("SleepTrend", normalizedSleep(h))
+                )
+                .foregroundStyle(Color.dashCard)
+                .symbolSize(36)
+
+                PointMark(
+                    x: .value("Day", pt.date),
+                    y: .value("SleepTrend", normalizedSleep(h))
+                )
+                .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
+                .symbolSize(14)
+            }
+        }
+    }
+    .chartYScale(domain: 0...chartMaxY)
+    .chartXAxis {
+        AxisMarks(values: .automatic) { value in
+            AxisValueLabel(centered: false) {
+                if let date = value.as(Date.self) {
+                    Text(miniXLabel(date))
+                        .font(.system(size: 8))
+                        .foregroundStyle(Color.dashSecondary)
                 }
             }
-            .chartYScale(domain: 0...chartMaxY)
-            .chartXAxis {
-                AxisMarks(values: .automatic) { value in
-                    AxisValueLabel(centered: false) {
-                        if let date = value.as(Date.self) {
-                            Text(miniXLabel(date))
-                                .font(.system(size: 8))
-                                .foregroundStyle(Color.dashSecondary)
+        }
+    }
+    .chartYAxis(.hidden)
+    .frame(height: 88)
+}
                         }
                     }
                 }
+                .chartYAxis(.hidden)
+                .frame(height: 88)
             }
-            .chartYAxis(.hidden)
-            .frame(height: 88)
         }
     }
 
