@@ -83,6 +83,9 @@ struct MainTabView: View {
             .toolbarBackground(.ultraThinMaterial, for: .bottomBar)
         }
         .tint(Color.dashSeizure)
+        .task {
+            await avatarVM.refresh()
+        }
         .sheet(isPresented: $recordsVM.showAddRecord) {
             AddEditRecordView(mode: .add)
                 .environmentObject(recordsVM)

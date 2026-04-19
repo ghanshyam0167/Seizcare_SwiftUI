@@ -71,6 +71,8 @@ class UserDataModel {
             if let id = currentUser?.id {
                 UserDefaults.standard.set(id.uuidString, forKey: currentUserKey)
             }
+            // Ensure avatar refresh on a new device/session where no local image exists yet.
+            NotificationCenter.default.post(name: UserDataModel.avatarDidChangeNotification, object: nil)
         } catch {
             print("⚠️ [UserDataModel] restoreSession failed:", error.localizedDescription)
             currentUser = nil
@@ -214,6 +216,8 @@ extension UserDataModel {
             currentUser = minimal
         }
         UserDefaults.standard.set(uid.uuidString, forKey: currentUserKey)
+        // Triggers AvatarViewModel to fetch remote avatarUrl on new devices.
+        NotificationCenter.default.post(name: UserDataModel.avatarDidChangeNotification, object: nil)
     }
 
     /// Legacy synchronous wrapper — kept for backward compatibility.
