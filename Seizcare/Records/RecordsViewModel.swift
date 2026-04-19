@@ -146,8 +146,8 @@ final class RecordsViewModel: ObservableObject {
         defer { isLoading = false }
 
         guard let userId = await SupabaseService.shared.currentUserId() else {
-            // Not logged in yet — fall back to mock data for previews / onboarding
-            records = MockDashboardData.seizureRecords
+            // Not logged in yet
+            records = []
             return
         }
 
@@ -155,8 +155,7 @@ final class RecordsViewModel: ObservableObject {
             records = try await SupabaseService.shared.fetchSeizureRecords(userId: userId)
         } catch {
             errorMessage = error.localizedDescription
-            // Keep mock data so UI isn't empty on network failure
-            if records.isEmpty { records = MockDashboardData.seizureRecords }
+            if records.isEmpty { records = [] }
         }
     }
 

@@ -12,14 +12,7 @@ struct PhoneSetupView: View {
         VStack(spacing: 0) {
             // Navigation Bar
             HStack {
-                Button(action: { vm.goBack() }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.authPrimaryText)
-                        .padding(12)
-                        .background(Color.authCardBackground)
-                        .clipShape(Circle())
-                }
+                CustomBackButton { vm.goBack() }
                 Spacer()
             }
             .padding(.horizontal, 20)
