@@ -60,7 +60,10 @@ final class AuthViewModel: ObservableObject {
     @Published var changeCurrentPassword:  String = ""
     @Published var changeNewPassword:      String = ""
     @Published var changeConfirmPassword:  String = ""
+    
+    // Presentation States
     @Published var isChangePasswordPresented: Bool = false
+    @Published var isSettingsForgotPasswordPresented: Bool = false
 
     // ─── Validation errors ───────────────────────────────────────────────────
     @Published var loginEmailError:           String? = nil
@@ -513,12 +516,22 @@ final class AuthViewModel: ObservableObject {
             defer { isLoading = false }
             do {
                 try await service.updateUserPassword(newPassword: resetPassword)
-                loginPassword = resetPassword
+                
                 triggerSuccessToast(message: "Password successfully reset.")
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
                 withAnimation(.spring()) {
-                    activeScreen = .login
+                    if self.isAuthenticated {
+                        self.isSettingsForgotPasswordPresented = false
+                        self.activeScreen = .login
+                    } else {
+                        self.activeScreen = .login
+                    }
                 }
+                
+                // Clear the reset variables after navigating away
+                resetPassword = ""
+                resetConfirmPassword = ""
+                loginPassword = "" // Ensure password field is explicitly blank on login screen
             } catch {
                 alertMessage = error.localizedDescription
                 showAlert = true
@@ -640,14 +653,13 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    func logoutAndGoToForgotPassword() {
-        print("🔄 [AuthViewModel] Logout and redirect to Forgot Password...")
+    func startInAppForgotPassword() {
+        print("🔄 [AuthViewModel] In-app redirect to Forgot Password...")
         
         let currentEmail = UserDataModel.shared.getCurrentUser()?.email ?? loginEmail
         
         withAnimation(.easeInOut(duration: 0.35)) {
             self.objectWillChange.send()
-            self.isAuthenticated = false
             self.activeScreen = .forgotPasswordEmail
             self.forgotPasswordEmail = currentEmail
             self.forgotPasswordOTP = ""
@@ -655,18 +667,18 @@ final class AuthViewModel: ObservableObject {
             self.resetConfirmPassword = ""
             self.resetPasswordError = nil
             self.resetConfirmPasswordError = nil
+            self.isSettingsForgotPasswordPresented = true
         }
-        
-        Task {
-            try? await service.signOut()
-            EmergencyContactDataModel.shared.clearCache()
-            SensitivityDataModel.shared.resetToDefault()
-            
-            loginEmail = ""
-            loginPassword = ""
-            signupEmail = ""
-            signupPassword = ""
-            signupConfirmPassword = ""
+    }
+
+    func cancelForgotPasswordAndReturn() {
+        withAnimation(.easeInOut) {
+            if self.isAuthenticated {
+                self.isSettingsForgotPasswordPresented = false
+                self.activeScreen = .login
+            } else {
+                self.switchToLogin()
+            }
         }
     }
 

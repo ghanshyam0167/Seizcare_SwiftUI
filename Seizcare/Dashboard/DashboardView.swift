@@ -172,9 +172,7 @@ struct DashboardView: View {
             // Toast Overlay
             emergencyToast
 
-            // Countdown Overlay
-            emergencyCountdown
-            
+
             if viewModel.isLoading {
                 Color.black.opacity(0.1).ignoresSafeArea()
                 LoadingView()
@@ -211,8 +209,8 @@ struct DashboardView: View {
     Text(viewModel.errorMessage ?? "")
 }
 
-// Hide bottom bar during emergency countdown
-.toolbar(emergencyVM.status == .countingDown ? .hidden : .visible, for: .bottomBar)
+// Hide bottom bar during emergency popup
+.toolbar((emergencyVM.alertSuccessPopupVisible || emergencyVM.alertSending) ? .hidden : .visible, for: .bottomBar)
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WatchTriggeredAlert"))) { _ in
             print("[Dashboard] Received Watch SOS notification for UI feedback.")
         }

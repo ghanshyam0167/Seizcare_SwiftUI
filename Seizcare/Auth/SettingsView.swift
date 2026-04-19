@@ -166,6 +166,9 @@ struct SettingsView: View {
                             .fullScreenCover(isPresented: $vm.isChangePasswordPresented) {
                                 ChangePasswordView(vm: vm)
                             }
+                            .fullScreenCover(isPresented: $vm.isSettingsForgotPasswordPresented) {
+                                InAppForgotPasswordFlow(vm: vm)
+                            }
                             
                             SettingsRowCard(
                                 icon: "trash.fill",
@@ -392,4 +395,41 @@ struct SettingsRowCard: View {
 
 #Preview {
     SettingsView(vm: AuthViewModel())
+}
+
+// MARK: - In-App Forgot Password Modal Component
+
+struct InAppForgotPasswordFlow: View {
+    @ObservedObject var vm: AuthViewModel
+    
+    var body: some View {
+        ZStack {
+            Color.authBackground.ignoresSafeArea()
+            
+            // Re-use standard Auth views silently in the background
+            switch vm.activeScreen {
+            case .forgotPasswordEmail:
+                ForgotPasswordEmailView(vm: vm)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
+            case .forgotPasswordOTP:
+                ForgotPasswordOTPView(vm: vm)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
+            case .forgotPasswordReset:
+                ForgotPasswordResetView(vm: vm)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
+            default:
+                Color.authBackground
+            }
+        }
+        .animation(.spring(response: 0.45, dampingFraction: 0.82), value: vm.activeScreen)
+    }
 }

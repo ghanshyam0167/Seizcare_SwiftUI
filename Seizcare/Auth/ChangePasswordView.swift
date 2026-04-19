@@ -179,7 +179,7 @@ struct ChangePasswordView: View {
                         Spacer()
                         Button(action: {
                             vm.isChangePasswordPresented = false
-                            vm.logoutAndGoToForgotPassword()
+                            vm.startInAppForgotPassword()
                         }) {
                             Text("Forgot password?")
                                 .font(.system(size: 14, weight: .medium))

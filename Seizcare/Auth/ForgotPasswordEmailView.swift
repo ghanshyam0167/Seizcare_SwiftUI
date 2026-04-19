@@ -10,7 +10,23 @@ struct ForgotPasswordEmailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Spacer().frame(height: 60)
+            if vm.isAuthenticated {
+                HStack {
+                    Button(action: { vm.cancelForgotPasswordAndReturn() }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.authPrimaryText)
+                            .padding(12)
+                            .background(Color.authCardBackground)
+                            .clipShape(Circle())
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+            } else {
+                Spacer().frame(height: 60)
+            }
 
             // Header
             VStack(spacing: 8) {
@@ -84,8 +100,8 @@ struct ForgotPasswordEmailView: View {
 
             Spacer().frame(height: 24)
 
-            Button(action: { vm.switchToLogin() }) {
-                Text("Back to Login")
+            Button(action: { vm.cancelForgotPasswordAndReturn() }) {
+                Text(vm.isAuthenticated ? "Cancel" : "Back to Login")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(Color.authPrimaryButton)
             }

@@ -93,28 +93,22 @@ struct AuthRootView: View {
                         ))
                 case .forgotPasswordEmail:
                     ForgotPasswordEmailView(vm: vm)
-                        .transition(
-                            .asymmetric(
-                                insertion:  .move(edge: .trailing).combined(with: .opacity),
-                                removal:    .move(edge: .trailing).combined(with: .opacity)
-                            )
-                        )
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
                 case .forgotPasswordOTP:
                     ForgotPasswordOTPView(vm: vm)
-                        .transition(
-                            .asymmetric(
-                                insertion:  .move(edge: .trailing).combined(with: .opacity),
-                                removal:    .move(edge: .trailing).combined(with: .opacity)
-                            )
-                        )
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
                 case .forgotPasswordReset:
                     ForgotPasswordResetView(vm: vm)
-                        .transition(
-                            .asymmetric(
-                                insertion:  .move(edge: .trailing).combined(with: .opacity),
-                                removal:    .move(edge: .trailing).combined(with: .opacity)
-                            )
-                        )
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
                 }
             }
             .animation(.spring(response: 0.45, dampingFraction: 0.82), value: vm.activeScreen)
