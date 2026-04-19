@@ -18,31 +18,37 @@ struct MainTabView: View {
     @StateObject private var avatarVM = AvatarViewModel.shared
     
     @State private var selectedTab: Tab = .dashboard
+    @State private var tabDirection: ScreenNavDirection = .forward
 
     var body: some View {
         NavigationStack {
-            Group {
+            ZStack {
                 switch selectedTab {
                 case .dashboard:
-DashboardView(
-    selectedTab: $selectedTab,
-    recordsVM: recordsVM,
-    healthVM: healthVM
-)
-.environmentObject(authVM)
-.environmentObject(avatarVM)
+                    DashboardView(
+                        selectedTab: $selectedTab,
+                        recordsVM: recordsVM,
+                        healthVM: healthVM
+                    )
+                    .environmentObject(authVM)
+                    .environmentObject(avatarVM)
+                    .transition(.screenSlide(tabDirection))
                 case .records:
                     RecordsListView()
                         .environmentObject(recordsVM)
                         .environmentObject(avatarVM)
+                        .transition(.screenSlide(tabDirection))
                 }
             }
+            .id(selectedTab)
+            .animation(.easeInOut(duration: 0.30), value: selectedTab)
             // By attaching toolbar here, it correctly surfaces in the NavigationStack
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar) {
                     
                     Button {
                         withAnimation {
+                            tabDirection = .back
                             selectedTab = .dashboard
                         }
                     } label: {
@@ -53,6 +59,7 @@ DashboardView(
 
                     Button {
                         withAnimation {
+                            tabDirection = .forward
                             selectedTab = .records
                         }
                     } label: {

@@ -304,6 +304,7 @@ struct EditProfileView: View {
             .padding(.bottom, 40)
         }
         .background(Color.authBackground.ignoresSafeArea())
+        .navigationBarBackButtonHidden(true)
         .onAppear(perform: loadCurrentUserData)
     }
     

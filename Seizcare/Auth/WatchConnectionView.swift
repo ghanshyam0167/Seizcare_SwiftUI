@@ -159,6 +159,7 @@ struct WatchConnectionView: View {
             .padding(.bottom, 40)
         }
         .background(Color.authBackground.ignoresSafeArea())
+        .navigationBarBackButtonHidden(true)
     }
     
     private func instructionRow(number: Int, text: String) -> some View {

@@ -315,6 +315,7 @@ struct SleepVsSeizuresChartView: View {
                 }
             }
         }
+        .navigationBarBackButtonHidden(true)
     }
 
     // MARK: - Helpers

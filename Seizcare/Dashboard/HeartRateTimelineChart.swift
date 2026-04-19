@@ -221,6 +221,7 @@ struct HeartRateTimelineChartView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .navigationBarBackButtonHidden(true)
     }
 }
 

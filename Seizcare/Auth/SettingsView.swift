@@ -58,10 +58,6 @@ struct SettingsView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .fullScreenCover(isPresented: $showingEditProfile) {
-                        EditProfileView()
-                            .environmentObject(avatarVM)
-                    }
                     
                     // Safety Section
                     VStack(alignment: .leading, spacing: 8) {
@@ -79,9 +75,6 @@ struct SettingsView: View {
                             ) {
                                 showingEmergencyContacts = true
                             }
-                            .fullScreenCover(isPresented: $showingEmergencyContacts) {
-                                AddEmergencyContactsView(vm: vm)
-                            }
                             
                             SettingsRowCard(
                                 icon: "slider.horizontal.3",
@@ -90,9 +83,6 @@ struct SettingsView: View {
                                 showDivider: false
                             ) {
                                 showingSensitivity = true
-                            }
-                            .fullScreenCover(isPresented: $showingSensitivity) {
-                                SensitivitySetupView(vm: vm)
                             }
                         }
                         .background(
@@ -117,9 +107,6 @@ struct SettingsView: View {
                             ) {
                                 showingLanguage = true
                             }
-                            .fullScreenCover(isPresented: $showingLanguage) {
-                                LanguageSetupView(vm: vm)
-                            }
                             
                             SettingsRowCard(
                                 icon: "applewatch",
@@ -128,9 +115,6 @@ struct SettingsView: View {
                                 showDivider: false
                             ) {
                                 showingWatchConnection = true
-                            }
-                            .fullScreenCover(isPresented: $showingWatchConnection) {
-                                WatchConnectionView(vm: vm)
                             }
                         }
                         .background(
@@ -154,12 +138,6 @@ struct SettingsView: View {
                                 showDivider: true
                             ) {
                                 vm.isChangePasswordPresented = true
-                            }
-                            .fullScreenCover(isPresented: $vm.isChangePasswordPresented) {
-                                ChangePasswordView(vm: vm)
-                            }
-                            .fullScreenCover(isPresented: $vm.isSettingsForgotPasswordPresented) {
-                                InAppForgotPasswordFlow(vm: vm)
                             }
                             
                             SettingsRowCard(
@@ -201,6 +179,28 @@ struct SettingsView: View {
         }
         .background(Color.authBackground.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
+        .navigationDestination(isPresented: $showingEditProfile) {
+            EditProfileView()
+                .environmentObject(avatarVM)
+        }
+        .navigationDestination(isPresented: $showingEmergencyContacts) {
+            AddEmergencyContactsView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showingSensitivity) {
+            SensitivitySetupView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showingLanguage) {
+            LanguageSetupView(vm: vm)
+        }
+        .navigationDestination(isPresented: $showingWatchConnection) {
+            WatchConnectionView(vm: vm)
+        }
+        .navigationDestination(isPresented: $vm.isChangePasswordPresented) {
+            ChangePasswordView(vm: vm)
+        }
+        .navigationDestination(isPresented: $vm.isSettingsForgotPasswordPresented) {
+            InAppForgotPasswordFlow(vm: vm)
+        }
         // Deletion loading overlay
         .overlay {
             if isDeletingAccount {
@@ -402,26 +402,16 @@ struct InAppForgotPasswordFlow: View {
             switch vm.activeScreen {
             case .forgotPasswordEmail:
                 ForgotPasswordEmailView(vm: vm)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .move(edge: .leading).combined(with: .opacity)
-                    ))
             case .forgotPasswordOTP:
                 ForgotPasswordOTPView(vm: vm)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .move(edge: .leading).combined(with: .opacity)
-                    ))
             case .forgotPasswordReset:
                 ForgotPasswordResetView(vm: vm)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .move(edge: .leading).combined(with: .opacity)
-                    ))
             default:
                 Color.authBackground
             }
         }
+        .transition(.screenSlide(vm.screenNavDirection))
+        .id(vm.activeScreen)
         .animation(.spring(response: 0.45, dampingFraction: 0.82), value: vm.activeScreen)
     }
 }

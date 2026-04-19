@@ -14,31 +14,20 @@ struct ForgotPasswordOTPView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            if vm.isAuthenticated {
-                HStack {
-                    Button(action: { vm.cancelForgotPasswordAndReturn() }) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.authPrimaryText)
-                            .padding(12)
-                            .background(Color.authCardBackground)
-                            .clipShape(Circle())
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 10)
-            } else {
-                Spacer().frame(height: 60)
+            HStack {
+                CustomBackButton { vm.goBack() }
+                Spacer()
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
             
             // Header
             VStack(spacing: 8) {
-                Text("verification_code")
+                Text("verification_code".localized)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
-                Text("verification_code_desc \(vm.forgotPasswordEmail)")
+                Text(String(format: "verification_code_desc".localized, vm.forgotPasswordEmail))
                     .font(.system(size: 15))
                     .foregroundColor(.authSecondaryText)
                     .multilineTextAlignment(.center)
@@ -52,11 +41,11 @@ struct ForgotPasswordOTPView: View {
             VStack(spacing: 16) {
                 // OTP Field
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("otp_code")
+                    Text("otp_code".localized)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.authSecondaryText)
                     
-                    TextField("otp_placeholder", text: $vm.forgotPasswordOTP)
+                    TextField("otp_placeholder".localized, text: $vm.forgotPasswordOTP)
                         .font(.system(size: 24, weight: .bold, design: .monospaced))
                         .multilineTextAlignment(.center)
                         .keyboardType(.numberPad)
@@ -84,7 +73,7 @@ struct ForgotPasswordOTPView: View {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
-                            Text("verify_code")
+                            Text("verify_code".localized)
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.white)
                         }
@@ -103,7 +92,7 @@ struct ForgotPasswordOTPView: View {
             Spacer().frame(height: 24)
             
             HStack(spacing: 4) {
-                Text("didnt_receive_code")
+                Text("didnt_receive_code".localized)
                     .font(.system(size: 14))
                     .foregroundColor(.authSecondaryText)
                 
@@ -111,7 +100,10 @@ struct ForgotPasswordOTPView: View {
                     vm.sendPasswordReset() 
                     timeRemaining = 60
                 }) {
-                    Text(timeRemaining > 0 ? "resend_in \(timeRemaining)" : "resend")
+                    Text(timeRemaining > 0
+                         ? String(format: "resend_in".localized, "\(timeRemaining)")
+                         : "resend".localized
+                    )
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(timeRemaining > 0 ? .authSecondaryText.opacity(0.5) : Color.authPrimaryButton)
                 }
@@ -124,5 +116,11 @@ struct ForgotPasswordOTPView: View {
                 timeRemaining -= 1
             }
         }
+        .alert("error".localized, isPresented: $vm.showAlert) {
+            Button("ok", role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
+        .navigationBarBackButtonHidden(true)
     }
 }

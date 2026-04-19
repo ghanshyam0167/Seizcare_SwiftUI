@@ -109,5 +109,6 @@ struct ForgotPasswordEmailView: View {
 
             Spacer()
         }
+        .navigationBarBackButtonHidden(true)
     }
 }

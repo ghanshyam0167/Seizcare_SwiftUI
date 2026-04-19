@@ -345,3 +345,4 @@
 "clear" = "Clear";
 "save" = "Save";
 "min_unit" = "min";
+"otp_incorrect" = "The OTP you entered is incorrect.";

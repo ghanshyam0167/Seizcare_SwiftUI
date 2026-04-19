@@ -4,7 +4,7 @@ import CoreLocation
 
 // MARK: - Active Chart
 
-enum ActiveChart: Identifiable {
+enum ActiveChart: Identifiable, Hashable {
     case seizureFrequency
     case sleepVsSeizures
     case heartRateTimeline(SeizureRecord)
@@ -199,7 +199,7 @@ if viewModel.isLoading {
 }
          
         }
-        .fullScreenCover(item: $viewModel.activeChart) { chart in
+        .navigationDestination(item: $viewModel.activeChart) { chart in
             switch chart {
             case .seizureFrequency:
                 SeizureFrequencyChartView(records: records, initialRange: viewModel.frequencyRange)

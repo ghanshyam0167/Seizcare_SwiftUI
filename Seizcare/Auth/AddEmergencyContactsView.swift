@@ -204,6 +204,7 @@ struct AddEmergencyContactsView: View {
             // Load existing contacts from Supabase
             await contactModel.refreshContacts()
         }
+        .navigationBarBackButtonHidden(true)
     }
 }
 

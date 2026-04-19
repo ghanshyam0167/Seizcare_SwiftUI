@@ -224,6 +224,7 @@ struct ChangePasswordView: View {
         } message: {
             Text(vm.alertMessage)
         }
+        .navigationBarBackButtonHidden(true)
     }
 }
 

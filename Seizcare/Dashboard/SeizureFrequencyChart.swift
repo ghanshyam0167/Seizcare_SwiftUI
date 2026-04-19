@@ -345,6 +345,7 @@ struct SeizureFrequencyChartView: View {
                 }
             }
         }
+        .navigationBarBackButtonHidden(true)
     }
     
     // MARK: - Helpers
