@@ -103,7 +103,7 @@ struct DashboardView: View {
                             Button { viewModel.activeChart = .seizureFrequency } label: {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
-                                        Text("Event Count")
+                                        Text("Seizure Count")
                                             .font(.system(size: 14, weight: .semibold))
                                             .foregroundStyle(Color.dashLabel)
                                         Spacer()
@@ -130,7 +130,7 @@ struct DashboardView: View {
                             Button { viewModel.activeChart = .sleepVsSeizures } label: {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
-                                        Text("Sleep")
+                                        Text("Sleep vs Seizures")
                                             .font(.system(size: 14, weight: .semibold))
                                             .foregroundStyle(Color.dashLabel)
                                         Spacer()
@@ -171,6 +171,15 @@ struct DashboardView: View {
 
             // Toast Overlay
             emergencyToast
+
+            // Countdown Overlay
+            emergencyCountdown
+            
+            if viewModel.isLoading {
+                Color.black.opacity(0.1).ignoresSafeArea()
+                LoadingView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            }
         }
         .fullScreenCover(item: $viewModel.activeChart) { chart in
             switch chart {
@@ -190,7 +199,20 @@ struct DashboardView: View {
         } message: {
             Text("Enable location to send emergency alerts.")
         }
-        .toolbar(.visible, for: .bottomBar)
+.alert("Error", isPresented: Binding(
+    get: { viewModel.errorMessage != nil },
+    set: { _ in
+        viewModel.recordsVM.errorMessage = nil
+        viewModel.healthVM.errorMessage = nil
+    }
+)) {
+    Button("OK", role: .cancel) {}
+} message: {
+    Text(viewModel.errorMessage ?? "")
+}
+
+// Hide bottom bar during emergency countdown
+.toolbar(emergencyVM.status == .countingDown ? .hidden : .visible, for: .bottomBar)
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WatchTriggeredAlert"))) { _ in
             print("[Dashboard] Received Watch SOS notification for UI feedback.")
         }
@@ -337,6 +359,7 @@ struct DashboardView: View {
 struct GlassHeaderActionsView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @EnvironmentObject var recordsVM: RecordsViewModel
+    @EnvironmentObject var avatarVM: AvatarViewModel
     
     @State private var hasUnread: Bool = false
     
@@ -368,9 +391,9 @@ struct GlassHeaderActionsView: View {
             .buttonStyle(ScaleButtonStyle())
             
             // Profile Icon
-            NavigationLink(destination: SettingsView(vm: authVM)) {
-                if let localImage = UserDataModel.shared.getLocalAvatarImage() {
-                    Image(uiImage: localImage)
+            NavigationLink(destination: SettingsView(vm: authVM).environmentObject(avatarVM)) {
+                if let img = avatarVM.avatarImage {
+                    Image(uiImage: img)
                         .resizable()
                         .scaledToFill()
                         .frame(width: 30, height: 30)
@@ -396,7 +419,10 @@ struct GlassHeaderActionsView: View {
                 .stroke(Color.white.opacity(0.3), lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
-        .task { await refreshUnreadCount() }
+        .task {
+            await refreshUnreadCount()
+            await avatarVM.refresh()
+        }
         .animation(.spring(response: 0.3), value: hasUnread)
     }
     

@@ -13,6 +13,7 @@ class HealthViewModel: ObservableObject {
     @Published var sleepData: [SleepData] = []
     @Published var lastNightSleep: Double = 0
     @Published var isLoading = true
+    @Published var errorMessage: String? = nil
     
     @Published var guidanceText: String = ""
     
@@ -186,6 +187,9 @@ class HealthViewModel: ObservableObject {
     
     /// Fetch 90 days of sleep data from Supabase as a backup/complement to HealthKit.
     func fetchSleepFromSupabase() async {
+        await MainActor.run { isLoading = true }
+        defer { Task { @MainActor in isLoading = false } }
+        
         guard let userId = await SupabaseService.shared.currentUserId() else { return }
         do {
             let supabaseRecords = try await SupabaseService.shared.fetchSleepRecords(userId: userId)
@@ -203,7 +207,9 @@ class HealthViewModel: ObservableObject {
                 }
             }
         } catch {
-            print("[Supabase] Failed to fetch sleep records: \(error.localizedDescription)")
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+            }
         }
     }
     

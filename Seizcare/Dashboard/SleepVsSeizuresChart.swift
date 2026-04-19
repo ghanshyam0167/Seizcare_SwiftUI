@@ -87,6 +87,23 @@ struct SleepVsSeizuresChartView: View {
 
     private var totalSeizures: Int { data.reduce(0) { $0 + $1.seizureCount } }
 
+    private var maxSeizures: Double {
+        Double(max(1, data.map { $0.seizureCount }.max() ?? 1))
+    }
+
+    // Y-Axis is strictly Seizures. 
+    // By dividing maxSeizures by 0.35, the tallest bar will always visually stop at exactly 35% of the chart height.
+    private var chartMaxY: Double {
+        max(5.0, maxSeizures / 0.35)
+    }
+
+    private func normalizedSleep(_ sleepHours: Double) -> Double {
+        // Sleep is evaluated on a 0-10 scale.
+        // We map it to the Y-axis so it stays perfectly stable visually, regardless of seizure counts.
+        let clampedSleep = min(10.0, max(0.0, sleepHours))
+        return (clampedSleep / 10.0) * chartMaxY
+    }
+
     private var selectedPoint: TimePoint? {
         guard let sel = selectedDate else { return nil }
         let closest = data.min(by: {
@@ -108,7 +125,7 @@ struct SleepVsSeizuresChartView: View {
 
     private func barColor(for pt: TimePoint) -> Color {
         let base = Color(red: 1.0, green: 0.38, blue: 0.38)
-        return (selectedPoint == nil || selectedPoint?.id == pt.id) ? base.opacity(0.85) : base.opacity(0.3)
+        return (selectedPoint == nil || selectedPoint?.id == pt.id) ? base.opacity(0.8) : base.opacity(0.3)
     }
 
     private func outerCircleSize(for pt: TimePoint) -> CGFloat {
@@ -155,9 +172,9 @@ struct SleepVsSeizuresChartView: View {
                         // Legend row
                         HStack(spacing: 16) {
                             legendDot(color: Color(red: 0.27, green: 0.57, blue: 1.0),
-                                      label: selectedRange == .yearly ? "Avg Sleep (hrs)" : "Sleep (hrs)")
+                                      label: "Sleep (trend)")
                             legendDot(color: Color(red: 1.0, green: 0.38, blue: 0.38),
-                                      label: selectedRange == .yearly ? "Total Seizures" : "Seizures")
+                                      label: "Seizures (count)")
                             Spacer()
                             if let pt = selectedPoint {
                                 Text(tooltipDateLabel(pt.date))
@@ -177,7 +194,8 @@ struct SleepVsSeizuresChartView: View {
                             ForEach(data) { pt in
                                 BarMark(
                                     x: .value("Date", pt.date),
-                                    y: .value("Seizures", pt.seizureCount)
+                                    y: .value("Seizures", pt.seizureCount),
+                                    width: .fixed(12)
                                 )
                                 .foregroundStyle(barColor(for: pt))
                                 .cornerRadius(4)
@@ -188,16 +206,16 @@ struct SleepVsSeizuresChartView: View {
                                 if let h = pt.sleepHours {
                                     LineMark(
                                         x: .value("Date", pt.date),
-                                        y: .value("Sleep", h)
+                                        y: .value("SleepTrend", normalizedSleep(h))
                                     )
-                                    .interpolationMethod(.linear)
+                                    .interpolationMethod(.catmullRom)
                                     .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
-                                    .lineStyle(StrokeStyle(lineWidth: 2))
+                                    .lineStyle(StrokeStyle(lineWidth: 3))
 
                                     // Open circle outer (background fill)
                                     PointMark(
                                         x: .value("Date", pt.date),
-                                        y: .value("Sleep", h)
+                                        y: .value("SleepTrend", normalizedSleep(h))
                                     )
                                     .foregroundStyle(Color(UIColor.systemGroupedBackground))
                                     .symbolSize(outerCircleSize(for: pt))
@@ -205,7 +223,7 @@ struct SleepVsSeizuresChartView: View {
                                     // Open circle inner (blue ring)
                                     PointMark(
                                         x: .value("Date", pt.date),
-                                        y: .value("Sleep", h)
+                                        y: .value("SleepTrend", normalizedSleep(h))
                                     )
                                     .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
                                     .symbolSize(innerCircleSize(for: pt))
@@ -218,6 +236,7 @@ struct SleepVsSeizuresChartView: View {
                                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                             }
                         }
+                        .chartYScale(domain: 0...chartMaxY)
                         .chartYAxis {
                             AxisMarks(position: .leading) { v in
                                 AxisGridLine()
@@ -407,60 +426,72 @@ struct SleepVsSeizuresMiniChart: View {
 
     private var totalSeizures: Int { weekData.reduce(0) { $0 + $1.seizureCount } }
 
+    private var maxSeizures: Double {
+        Double(max(1, weekData.map { $0.seizureCount }.max() ?? 1))
+    }
+
+    private var chartMaxY: Double {
+        max(5.0, maxSeizures / 0.35)
+    }
+
+    private func normalizedSleep(_ sleepHours: Double) -> Double {
+        let clampedSleep = min(10.0, max(0.0, sleepHours))
+        return (clampedSleep / 10.0) * chartMaxY
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 2) {
             // Period label
             Text("Last 7 Days")
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(Color.dashSecondary)
 
             // Stats row
-            HStack(spacing: 12) {
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(String(format: "%.1f", avgSleep))
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
-                    Text("HRS AVG")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0).opacity(0.8))
-                }
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text("\(totalSeizures)")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38))
-                    Text("EVENTS")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38).opacity(0.8))
-                }
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(String(format: "%.1f", avgSleep))
+                    .font(.system(size: 28, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
+                
+                Text("vs")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.dashSecondary)
+                
+                Text("\(totalSeizures)")
+                    .font(.system(size: 28, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38))
+                
                 Spacer()
             }
+            .padding(.bottom, 4)
 
             // Mini chart
             Chart {
                 ForEach(weekData) { pt in
                     BarMark(
                         x: .value("Day", pt.date),
-                        y: .value("Seizures", pt.seizureCount)
+                        y: .value("Seizures", pt.seizureCount),
+                        width: .fixed(8)
                     )
-                    .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38).opacity(0.85))
+                    .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38).opacity(0.8))
                     .cornerRadius(4)
                 }
                 // Sleep circles — only on seizure days
                 ForEach(weekData.filter { $0.seizureCount > 0 }) { pt in
                     if let h = pt.sleepHours {
-                        LineMark(x: .value("Day", pt.date), y: .value("Sleep", h))
-                            .interpolationMethod(.linear)
+                        LineMark(x: .value("Day", pt.date), y: .value("SleepTrend", normalizedSleep(h)))
+                            .interpolationMethod(.catmullRom)
                             .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
-                            .lineStyle(StrokeStyle(lineWidth: 2))
-                        PointMark(x: .value("Day", pt.date), y: .value("Sleep", h))
+                            .lineStyle(StrokeStyle(lineWidth: 3))
+                        PointMark(x: .value("Day", pt.date), y: .value("SleepTrend", normalizedSleep(h)))
                             .foregroundStyle(Color.dashCard)
                             .symbolSize(36)
-                        PointMark(x: .value("Day", pt.date), y: .value("Sleep", h))
+                        PointMark(x: .value("Day", pt.date), y: .value("SleepTrend", normalizedSleep(h)))
                             .foregroundStyle(Color(red: 0.27, green: 0.57, blue: 1.0))
                             .symbolSize(14)
                     }
                 }
             }
+            .chartYScale(domain: 0...chartMaxY)
             .chartXAxis {
                 AxisMarks(values: .automatic) { value in
                     AxisValueLabel(centered: false) {

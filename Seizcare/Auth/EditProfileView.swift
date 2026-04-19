@@ -329,34 +329,37 @@ struct EditProfileView: View {
         updated.fullName = name.trimmingCharacters(in: .whitespaces)
         updated.contactNumber = contactNumber.trimmingCharacters(in: .whitespaces)
         
-        // Save text details immediately
+        // Save text details — avatar_url is now excluded from this call
         UserDataModel.shared.updateCurrentUser(updated)
         
         // Handle photo changes
         Task {
             if photoRemoved {
                 UserDataModel.shared.clearLocalAvatarImage()
-                // Clear avatar URL in DB
                 do {
                     try await SupabaseService.shared.updateUserAvatar(userId: user.id, url: "")
                     UserDataModel.shared.updateAvatarURL("")
+                    print("✅ [EditProfile] Avatar removed from DB")
                 } catch {
-                    print("Failed to remove avatar: \(error)")
+                    print("❌ [EditProfile] Failed to remove avatar: \(error)")
                 }
             } else if let image = newProfileImage, let data = image.jpegData(compressionQuality: 0.7) {
+                print("📤 [EditProfile] Starting avatar upload for userId: \(user.id)")
                 UserDataModel.shared.saveLocalAvatarImage(image)
-                // Upload new avatar
                 do {
                     let url = try await SupabaseService.shared.uploadAvatar(userId: user.id, imageData: data)
+                    print("✅ [EditProfile] Uploaded. URL: \(url)")
+                    try await SupabaseService.shared.updateUserAvatar(userId: user.id, url: url)
+                    print("✅ [EditProfile] avatar_url saved to DB")
                     UserDataModel.shared.updateAvatarURL(url)
                 } catch {
-                    print("Failed to upload avatar: \(error)")
+                    print("❌ [EditProfile] Avatar upload/save failed: \(error)")
                 }
             }
             
             await MainActor.run {
                 isSaving = false
-                dismiss() // Native iOS dismiss handles everything smoothly!
+                dismiss()
             }
         }
     }

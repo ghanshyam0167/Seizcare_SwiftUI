@@ -201,10 +201,22 @@ final class SupabaseService {
     }
     
     func updateUser(_ dto: UserDTO) async throws {
+        /// Only patch profile fields — avatar_url is managed separately
+        /// to prevent accidental overwrite with nil on profile saves.
+        struct ProfilePatch: Encodable {
+            let full_name: String?
+            let email: String?
+            let contact_number: String?
+        }
+        let patch = ProfilePatch(
+            full_name: dto.fullName,
+            email: dto.email,
+            contact_number: dto.contactNumber
+        )
         try await client
             .from("users")
-            .update(dto)
-            .eq("id", value: dto.id.uuidString)
+            .update(patch)
+            .eq("id", value: dto.id.uuidString.lowercased())
             .execute()
     }
     

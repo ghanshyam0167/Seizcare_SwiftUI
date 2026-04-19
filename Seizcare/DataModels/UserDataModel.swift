@@ -132,15 +132,17 @@ class UserDataModel {
     // MARK: - Local Image Storage
     
     func saveLocalAvatarImage(_ image: UIImage) {
+        guard let userId = currentUser?.id else { return }
         if let data = image.jpegData(compressionQuality: 0.8) {
-            let url = getLocalAvatarURL()
+            let url = getLocalAvatarURL(for: userId)
             try? data.write(to: url)
             NotificationCenter.default.post(name: UserDataModel.avatarDidChangeNotification, object: nil)
         }
     }
     
     func getLocalAvatarImage() -> UIImage? {
-        let url = getLocalAvatarURL()
+        guard let userId = currentUser?.id else { return nil }
+        let url = getLocalAvatarURL(for: userId)
         if let data = try? Data(contentsOf: url) {
             return UIImage(data: data)
         }
@@ -148,13 +150,16 @@ class UserDataModel {
     }
     
     func clearLocalAvatarImage() {
-        let url = getLocalAvatarURL()
+        guard let userId = currentUser?.id else { return }
+        let url = getLocalAvatarURL(for: userId)
         try? FileManager.default.removeItem(at: url)
     }
     
-    private func getLocalAvatarURL() -> URL {
+    private func getLocalAvatarURL(for userId: UUID? = nil) -> URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-        return paths[0].appendingPathComponent("local_avatar.jpg")
+        let uid = userId ?? currentUser?.id
+        let filename = uid.map { "avatar_\($0.uuidString.lowercased()).jpg" } ?? "local_avatar.jpg"
+        return paths[0].appendingPathComponent(filename)
     }
 
 }
@@ -338,6 +343,8 @@ extension UserDataModel {
     }
 
     func logoutUser(completion: @escaping (Bool) -> Void) {
+        // Clear user-scoped local avatar before wiping the session
+        clearLocalAvatarImage()
         currentUser = nil
         UserDefaults.standard.removeObject(forKey: currentUserKey)
         Task { try? await SupabaseService.shared.signOut() }
@@ -352,6 +359,7 @@ extension UserDataModel {
         try await SupabaseService.shared.deleteAccount()
         
         // 2. Wipe Local State
+        clearLocalAvatarImage()
         currentUser = nil
         UserDefaults.standard.removeObject(forKey: currentUserKey)
         

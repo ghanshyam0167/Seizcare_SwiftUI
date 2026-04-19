@@ -99,7 +99,8 @@ struct NotificationsView: View {
     
 
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack {
+            VStack(spacing: 0) {
             // Custom Navigation Bar
             HStack {
                 Button(action: { dismiss() }) {
@@ -130,7 +131,28 @@ struct NotificationsView: View {
             Spacer().frame(height: 20)
             
             // Notifications List
-            ScrollView(showsIndicators: false) {
+            if isLoading {
+                Spacer()
+            } else if notifications.isEmpty {
+                VStack(spacing: 16) {
+                    Spacer()
+                    Image(systemName: "bell.slash")
+                        .font(.system(size: 48))
+                        .foregroundColor(Color.dashSecondary.opacity(0.4))
+                    
+                    Text("No Notifications")
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundColor(Color.dashLabel)
+                    
+                    Text("You're all caught up! New alerts and reports will appear here.")
+                        .font(.system(size: 15))
+                        .foregroundColor(Color.dashSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+                    Spacer()
+                }
+            } else {
+                ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     ForEach(notifications.indices, id: \.self) { index in
                         if notifications[index].type == .system {
@@ -165,6 +187,13 @@ struct NotificationsView: View {
                 )
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)
+                }
+            }
+            } // close VStack
+            
+            if isLoading {
+                Color.black.opacity(0.1).ignoresSafeArea()
+                LoadingView()
             }
         }
         .background(Color.dashBg.ignoresSafeArea())
