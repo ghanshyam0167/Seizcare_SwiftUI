@@ -301,12 +301,9 @@ struct GlassHeaderActionsView: View {
                         .overlay(Circle().stroke(Color.white.opacity(0.5), lineWidth: 1))
                         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                 } else {
-                    Image(systemName: "person.crop.circle.fill")
-                        .resizable()
-                        .frame(width: 30, height: 30)
+                    Image(systemName: "person.crop.circle")
+                        .font(.system(size: 22, weight: .light))
                         .foregroundStyle(Color.dashLabel)
-                        .overlay(Circle().stroke(Color.white.opacity(0.5), lineWidth: 1))
-                        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                 }
             }
             .buttonStyle(ScaleButtonStyle())

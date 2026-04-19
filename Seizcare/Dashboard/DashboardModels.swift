@@ -274,14 +274,7 @@ extension Array where Element == SeizureRecord {
     }
 
     func thisDayHourlyCounts() -> [(date: Date, count: Int)] {
-        let calendar = Calendar.current
-        let startOfToday = calendar.startOfDay(for: Date())
-        return (0..<24).compactMap { hourOffset -> (Date, Int)? in
-            guard let start = calendar.date(byAdding: .hour, value: hourOffset, to: startOfToday),
-                  let end = calendar.date(byAdding: .hour, value: 1, to: start) else { return nil }
-            let count = filter { $0.startTime >= start && $0.startTime < end }.count
-            return (start, count)
-        }
+        return hourlyCounts(over: 24)
     }
 
     func dailyCounts(over days: Int) -> [(date: Date, count: Int)] {
@@ -297,39 +290,11 @@ extension Array where Element == SeizureRecord {
     }
 
     func thisWeekDailyCounts() -> [(date: Date, count: Int)] {
-        let calendar = Calendar.current
-        let now = Date()
-        // Find Monday of the current week
-        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-        components.weekday = 2 // Monday
-        guard let startOfMonday = calendar.date(from: components) else {
-            // Fallback if weekday calculation fails
-            return dailyCounts(over: 7)
-        }
-        
-        return (0..<7).compactMap { dayOffset -> (Date, Int)? in
-            guard let start = calendar.date(byAdding: .day, value: dayOffset, to: startOfMonday),
-                  let end = calendar.date(byAdding: .day, value: 1, to: start) else { return nil }
-            let count = filter { $0.startTime >= start && $0.startTime < end }.count
-            return (start, count)
-        }
+        return dailyCounts(over: 7)
     }
 
     func thisMonthDailyCounts() -> [(date: Date, count: Int)] {
-        let calendar = Calendar.current
-        let now = Date()
-        let components = calendar.dateComponents([.year, .month], from: now)
-        guard let startOfMonth = calendar.date(from: components),
-              let range = calendar.range(of: .day, in: .month, for: startOfMonth) else {
-            return dailyCounts(over: 30)
-        }
-        
-        return (0..<range.count).compactMap { dayOffset -> (Date, Int)? in
-            guard let start = calendar.date(byAdding: .day, value: dayOffset, to: startOfMonth),
-                  let end = calendar.date(byAdding: .day, value: 1, to: start) else { return nil }
-            let count = filter { $0.startTime >= start && $0.startTime < end }.count
-            return (start, count)
-        }
+        return dailyCounts(over: 30)
     }
     
     func monthlyCounts(over months: Int) -> [(date: Date, count: Int)] {
@@ -346,19 +311,7 @@ extension Array where Element == SeizureRecord {
     }
     
     func thisYearMonthlyCounts() -> [(date: Date, count: Int)] {
-        let calendar = Calendar.current
-        let now = Date()
-        let year = calendar.component(.year, from: now)
-        guard let startOfYear = calendar.date(from: DateComponents(year: year, month: 1, day: 1)) else {
-            return monthlyCounts(over: 12)
-        }
-        
-        return (0..<12).compactMap { monthOffset -> (Date, Int)? in
-            guard let start = calendar.date(byAdding: .month, value: monthOffset, to: startOfYear),
-                  let end = calendar.date(byAdding: .month, value: 1, to: start) else { return nil }
-            let count = filter { $0.startTime >= start && $0.startTime < end }.count
-            return (start, count)
-        }
+        return monthlyCounts(over: 12)
     }
 
     var averageDurationSeconds: TimeInterval {
