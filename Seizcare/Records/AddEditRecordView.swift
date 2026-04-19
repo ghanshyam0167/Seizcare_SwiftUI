@@ -38,10 +38,31 @@ struct AddEditRecordView: View {
     @State private var selectedTriggers: Set<SeizureTrigger>
     @State private var notes: String
     @State private var location: String
+    @State private var showingDeleteConfirmation = false
 
     // Validation
     private var isFormValid: Bool {
-        !selectedTriggers.isEmpty && !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        hasRequiredFields
+        && !isStartTimeInFuture
+        && (!mode.isEdit || hasChanges)
+    }
+
+    private var hasRequiredFields: Bool {
+        !selectedTriggers.isEmpty
+    }
+
+    private var isStartTimeInFuture: Bool {
+        startTime > Date()
+    }
+
+    private var hasChanges: Bool {
+        guard case .edit(let record) = mode else { return true }
+        return startTime != record.startTime ||
+            durationMinutes != normalizedDurationMinutes(for: record) ||
+            seizureType != record.type ||
+            selectedTriggers != Set(record.triggers) ||
+            normalizedOptionalText(notes) != normalizedOptionalText(record.notes ?? "") ||
+            normalizedOptionalText(location) != normalizedOptionalText(record.location ?? "")
     }
 
     private var isAutomatic: Bool {
@@ -147,6 +168,14 @@ struct AddEditRecordView: View {
                 }
             }
         }
+        .alert("delete_record".localized, isPresented: $showingDeleteConfirmation) {
+            Button("cancel".localized, role: .cancel) {}
+            Button("delete_record".localized, role: .destructive) {
+                deleteRecord()
+            }
+        } message: {
+            Text("delete_record_confirmation".localized)
+        }
     }
 
     // MARK: - Sub-views
@@ -158,7 +187,7 @@ struct AddEditRecordView: View {
             FormSectionHeader(title: "timing".localized)
 
             VStack(spacing: 1) {
-                DatePickerRow(label: "date_time".localized, icon: "calendar.badge.clock", color: .dashSleep, date: $startTime)
+                DatePickerRow(label: "date_time".localized, icon: "calendar.badge.clock", color: .dashSleep, maximumDate: Date(), date: $startTime)
                     .disabled(isAutomatic)
                     .opacity(isAutomatic ? 0.6 : 1.0)
                 Divider().background(Color.dashTertiary.opacity(0.2)).padding(.leading, 50)
@@ -189,6 +218,15 @@ struct AddEditRecordView: View {
             }
             .background(Color.dashCard)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            if isStartTimeInFuture {
+                Text("future_date_time_not_allowed".localized)
+                    .font(.caption)
+                    .foregroundStyle(Color.dashSeizure)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
+                    .padding(.top, 6)
+            }
         }
     }
 
@@ -309,10 +347,7 @@ struct AddEditRecordView: View {
 
     private var deleteButton: some View {
         Button(role: .destructive) {
-            if case .edit(let record) = mode {
-                vm.deleteRecord(record)
-                dismiss()
-            }
+            showingDeleteConfirmation = true
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "trash")
@@ -330,11 +365,22 @@ struct AddEditRecordView: View {
 
     // MARK: - Actions
 
+    private func deleteRecord() {
+        if case .edit(let record) = mode {
+            vm.deleteRecord(record)
+            dismiss()
+        }
+    }
+
     private func saveRecord() async {
+        guard isFormValid else { return }
+
         // Get the real authenticated user ID; fall back to mock only in previews
         let userId = await SupabaseService.shared.currentUserId() ?? MockDashboardData.userId
         
         let finalEndTime = startTime.addingTimeInterval(TimeInterval(durationMinutes * 60))
+        let trimmedLocation = location.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let record = SeizureRecord(
             id: existingId,
@@ -344,8 +390,8 @@ struct AddEditRecordView: View {
             endTime: finalEndTime,
             type: seizureType,
             triggers: Array(selectedTriggers),
-            location: location.isEmpty ? nil : location,
-            notes: notes.isEmpty ? nil : notes
+            location: trimmedLocation.isEmpty ? nil : trimmedLocation,
+            notes: trimmedNotes.isEmpty ? nil : trimmedNotes
         )
 
         switch mode {
@@ -360,6 +406,15 @@ struct AddEditRecordView: View {
     private var existingId: UUID {
         if case .edit(let record) = mode { return record.id }
         return UUID()
+    }
+
+    private func normalizedDurationMinutes(for record: SeizureRecord) -> Int {
+        let mins = Int(record.duration / 60)
+        return mins == 0 ? 1 : mins
+    }
+
+    private func normalizedOptionalText(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
 
@@ -383,6 +438,7 @@ private struct DatePickerRow: View {
     let label: String
     let icon: String
     let color: Color
+    let maximumDate: Date
     @Binding var date: Date
 
     var body: some View {
@@ -398,7 +454,7 @@ private struct DatePickerRow: View {
 
             Spacer()
 
-            DatePicker("", selection: $date, displayedComponents: [.date, .hourAndMinute])
+            DatePicker("", selection: $date, in: ...maximumDate, displayedComponents: [.date, .hourAndMinute])
                 .labelsHidden()
                 .datePickerStyle(.compact)
                 .tint(color)

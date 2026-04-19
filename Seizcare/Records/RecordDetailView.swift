@@ -136,10 +136,17 @@ struct RecordDetailView: View {
             // Refresh current record if it was updated in VM
             if let updated = vm.records.first(where: { $0.id == currentRecord.id }) {
                 currentRecord = updated
+            } else {
+                dismiss()
             }
         }) {
             AddEditRecordView(mode: .edit(currentRecord))
                 .environmentObject(vm)
+        }
+        .onChange(of: vm.records.map(\.id)) { _, ids in
+            if !ids.contains(currentRecord.id) {
+                dismiss()
+            }
         }
     }
 

@@ -95,6 +95,7 @@ final class AuthViewModel: ObservableObject {
 
     // ─── Navigation ─────────────────────────────────────────────────────────
     @Published var isAuthenticated:  Bool   = false
+    @Published var screenNavDirection: ScreenNavDirection = .forward
 
     // ─── Shake triggers ─────────────────────────────────────────────────────
     @Published var loginShakeTrigger:  CGFloat = 0
@@ -360,6 +361,7 @@ final class AuthViewModel: ObservableObject {
                 )
                 isResendSignupOTP = isResend
                 triggerSuccessToast(message: "Verification code sent to \(signupEmail.trimmingCharacters(in: .whitespaces))")
+                self.screenNavDirection = .forward
                 withAnimation(.spring()) { activeScreen = .signupVerification }
             } catch let e as AuthServiceError {
                 if case .emailAlreadyInUse = e {
@@ -389,9 +391,10 @@ final class AuthViewModel: ObservableObject {
                 )
                 
                 triggerSuccessToast(message: "Email verified! Let's set up your profile.")
+                self.screenNavDirection = .forward
                 withAnimation(.spring()) { activeScreen = .setupProfile }
             } catch {
-                alertMessage = "Invalid or expired verification code."
+                alertMessage = "otp_incorrect".localized
                 showAlert = true
             }
         }
@@ -432,6 +435,7 @@ final class AuthViewModel: ObservableObject {
         loginPasswordError = nil
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             withAnimation(.spring(response: 0.45, dampingFraction: 0.78)) {
+                self.screenNavDirection = .forward
                 self.activeScreen = .signup
             }
         }
@@ -457,6 +461,7 @@ final class AuthViewModel: ObservableObject {
         resetConfirmPasswordError = nil
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             withAnimation(.spring(response: 0.45, dampingFraction: 0.78)) {
+                self.screenNavDirection = .back
                 self.activeScreen = .login
             }
         }
@@ -476,6 +481,7 @@ final class AuthViewModel: ObservableObject {
         dismissKeyboard()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             withAnimation(.spring(response: 0.45, dampingFraction: 0.78)) {
+                self.screenNavDirection = .forward
                 self.activeScreen = .forgotPasswordEmail
             }
         }
@@ -491,6 +497,7 @@ final class AuthViewModel: ObservableObject {
             do {
                 try await service.sendPasswordResetOTP(email: forgotPasswordEmail.trimmingCharacters(in: .whitespaces))
                 withAnimation(.spring()) {
+                    self.screenNavDirection = .forward
                     activeScreen = .forgotPasswordOTP
                 }
             } catch {
@@ -511,10 +518,11 @@ final class AuthViewModel: ObservableObject {
                     otp: forgotPasswordOTP
                 )
                 withAnimation(.spring()) {
+                    self.screenNavDirection = .forward
                     activeScreen = .forgotPasswordReset
                 }
             } catch {
-                alertMessage = "Invalid or expired OTP."
+                alertMessage = "otp_incorrect".localized
                 showAlert = true
             }
         }
@@ -533,8 +541,10 @@ final class AuthViewModel: ObservableObject {
                 withAnimation(.spring()) {
                     if self.isAuthenticated {
                         self.isSettingsForgotPasswordPresented = false
+                        self.screenNavDirection = .back
                         self.activeScreen = .login
                     } else {
+                        self.screenNavDirection = .back
                         self.activeScreen = .login
                     }
                 }
@@ -733,17 +743,31 @@ final class AuthViewModel: ObservableObject {
                 // Clear OTP field and go back to signup form
                 signupOTP = ""
                 isResendSignupOTP = false
+                screenNavDirection = .back
                 activeScreen = .signup
+            case .forgotPasswordOTP:
+                // Back to edit the email address
+                forgotPasswordOTP = ""
+                screenNavDirection = .back
+                activeScreen = .forgotPasswordEmail
+            case .forgotPasswordReset:
+                screenNavDirection = .back
+                activeScreen = .forgotPasswordOTP
             case .setupProfile:
                 // Back from profile setup goes to OTP screen
+                screenNavDirection = .back
                 activeScreen = .signupVerification
             case .setupPhone:
+                screenNavDirection = .back
                 activeScreen = .setupProfile
             case .addEmergencyContacts:
+                screenNavDirection = .back
                 activeScreen = .setupPhone
             case .sensitivitySetup:
+                screenNavDirection = .back
                 activeScreen = .addEmergencyContacts
             case .healthOnboarding:
+                screenNavDirection = .back
                 activeScreen = .sensitivitySetup
             default:
                 break

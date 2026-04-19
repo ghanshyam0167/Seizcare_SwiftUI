@@ -173,6 +173,7 @@ struct SensitivitySetupView: View {
                 localSelection = newValue
             }
         }
+        .navigationBarBackButtonHidden(true)
     }
 }
 

@@ -10,6 +10,7 @@ struct SplashScreenView: View {
     @State private var isActive = false
     @State private var size: CGFloat = 0.8
     @State private var opacity: Double = 0.5
+    @State private var didBootstrap = false
     
     var body: some View {
         ZStack {
@@ -26,23 +27,26 @@ struct SplashScreenView: View {
                 }
                 .scaleEffect(size)
                 .opacity(opacity)
-                .onAppear {
-                    withAnimation(.easeIn(duration: 0.8)) {
-                        self.size = 0.9
-                        self.opacity = 1.0
-                    }
-                }
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { // 1.0s duration
-                        withAnimation(.easeIn(duration: 0.3)) {
-                            self.isActive = true
-                        }
-                    }
-                }
-                .task {
-                    // Try to restore session silently while splash animation plays
-                    await vm.tryRestoreSession()
-                }
+            }
+        }
+        .onAppear {
+            withAnimation(.easeIn(duration: 0.8)) {
+                self.size = 0.9
+                self.opacity = 1.0
+            }
+        }
+        .task {
+            guard !didBootstrap else { return }
+            didBootstrap = true
+            
+            // Keep the splash up for at least 1s for a smooth animation,
+            // but don't cancel session restore when the view switches.
+            async let restore: Void = vm.tryRestoreSession()
+            try? await Task.sleep(for: .seconds(1))
+            await restore
+            
+            withAnimation(.easeIn(duration: 0.3)) {
+                self.isActive = true
             }
         }
     }

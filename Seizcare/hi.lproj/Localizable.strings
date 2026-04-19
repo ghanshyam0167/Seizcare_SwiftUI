@@ -90,6 +90,8 @@
 "sensitivity" = "संवेदनशीलता";
 "language" = "भाषा";
 "connect_watch" = "अपनी घड़ी कनेक्ट करें";
+"connect_apple_watch_start_monitoring" = "निगरानी शुरू करने के लिए अपनी Apple Watch कनेक्ट करें।";
+"waiting_for_watch_data" = "डेटा की प्रतीक्षा है। बेहतर परिणामों के लिए अपनी घड़ी पर वर्कआउट शुरू करें।";
 "change_password" = "पासवर्ड बदलें";
 "delete_account" = "खाता हटाएं";
 "logout" = "लॉग आउट";
@@ -314,11 +316,13 @@
 "edit_record" = "रिकॉर्ड संपादित करें";
 "timing" = "समय";
 "date_time" = "दिनांक और समय";
+"future_date_time_not_allowed" = "दिनांक और समय भविष्य में नहीं हो सकते।";
 "duration" = "अवधि";
 "severity" = "गंभीरता";
 "triggers" = "ट्रिगर";
 "location_optional" = "स्थान (वैकल्पिक)";
 "delete_record" = "रिकॉर्ड हटाएं";
+"delete_record_confirmation" = "क्या आप वाकई इस रिकॉर्ड को हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती।";
 "auto_detected_banner" = "दिनांक, समय और अवधि लॉक हैं क्योंकि यह घटना स्वचालित रूप से पता चली थी।";
 "add_observations" = "कोई भी अवलोकन, लक्षण या संदर्भ जोड़ें…";
 "location_placeholder" = "जैसे घर, कार्यालय, जिम…";
@@ -326,3 +330,4 @@
 "clear" = "साफ़ करें";
 "save" = "सहेजें";
 "min_unit" = "मिनट";
+"otp_incorrect" = "आपने जो OTP दर्ज किया है वह गलत है।";

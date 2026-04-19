@@ -262,6 +262,15 @@ final class SupabaseService {
             .eq("id", value: userId.uuidString.lowercased())
             .execute()
     }
+
+    /// Downloads the user's avatar image bytes from the `avatars` bucket.
+    /// This works for private buckets because it uses the authenticated Supabase client.
+    func downloadAvatar(userId: UUID) async throws -> Data {
+        let path = "\(userId.uuidString.lowercased()).jpg"
+        return try await client.storage
+            .from("avatars")
+            .download(path: path)
+    }
     
     // MARK: - Emergency Contacts
     

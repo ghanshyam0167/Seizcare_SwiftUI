@@ -26,10 +26,10 @@ struct AuthRootView: View {
                 // ── Authenticated ─────────────────────────────────────────
                 // Use the new MainTabView
                 MainTabView(authVM: vm)
-                    .transition(.opacity)
+                    .transition(.screenSlide(.forward))
             } else {
                 authFlow
-                    .transition(.opacity)
+                    .transition(.screenSlide(vm.screenNavDirection))
             }
         }
         .id(vm.isAuthenticated) // Force a full reset of the view hierarchy
@@ -47,77 +47,32 @@ struct AuthRootView: View {
                 switch vm.activeScreen {
                 case .onboarding:
                     OnboardingView(vm: vm)
-                        .transition(.opacity)
                 case .login:
                     LoginView(vm: vm)
-                        .transition(
-                            .asymmetric(
-                                insertion:  .move(edge: .leading).combined(with: .opacity),
-                                removal:    .move(edge: .leading).combined(with: .opacity)
-                            )
-                        )
                 case .signup:
                     SignupView(vm: vm)
-                        .transition(
-                            .asymmetric(
-                                insertion:  .move(edge: .trailing).combined(with: .opacity),
-                                removal:    .move(edge: .trailing).combined(with: .opacity)
-                            )
-                        )
                 case .signupVerification:
                     SignupOTPView(vm: vm)
-                        .transition(.opacity)
                 case .setupProfile:
                     ProfileSetupView(vm: vm)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .trailing).combined(with: .opacity),
-                            removal: .move(edge: .leading).combined(with: .opacity)
-                        ))
                 case .setupPhone:
                     PhoneSetupView(vm: vm)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .trailing).combined(with: .opacity),
-                            removal: .move(edge: .leading).combined(with: .opacity)
-                        ))
                 case .addEmergencyContacts:
                     AddEmergencyContactsView(vm: vm)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .trailing).combined(with: .opacity),
-                            removal: .move(edge: .leading).combined(with: .opacity)
-                        ))
                 case .sensitivitySetup:
                     SensitivitySetupView(vm: vm)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .trailing).combined(with: .opacity),
-                            removal: .move(edge: .leading).combined(with: .opacity)
-                        ))
                 case .forgotPasswordEmail:
                     ForgotPasswordEmailView(vm: vm)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .trailing).combined(with: .opacity),
-                            removal: .move(edge: .leading).combined(with: .opacity)
-                        ))
                 case .forgotPasswordOTP:
                     ForgotPasswordOTPView(vm: vm)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .trailing).combined(with: .opacity),
-                            removal: .move(edge: .leading).combined(with: .opacity)
-                        ))
                 case .forgotPasswordReset:
-    ForgotPasswordResetView(vm: vm)
-        .transition(.asymmetric(
-            insertion: .move(edge: .trailing).combined(with: .opacity),
-            removal: .move(edge: .leading).combined(with: .opacity)
-        ))
-
-case .healthOnboarding:
-    HealthOnboardingView(vm: vm)
-        .transition(.asymmetric(
-            insertion: .move(edge: .trailing).combined(with: .opacity),
-            removal: .move(edge: .leading).combined(with: .opacity)
-        ))
+                    ForgotPasswordResetView(vm: vm)
+                case .healthOnboarding:
+                    HealthOnboardingView(vm: vm)
                 }
             }
+            .transition(.screenSlide(vm.screenNavDirection))
+            .id(vm.activeScreen)
             .animation(.spring(response: 0.45, dampingFraction: 0.82), value: vm.activeScreen)
 
             // ── Success Toast ──────────────────────────────────────────

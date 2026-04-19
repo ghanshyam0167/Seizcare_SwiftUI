@@ -77,6 +77,9 @@ struct SignupView: View {
                                 }
                             }
                             .font(.system(size: 15))
+                            .textContentType(.newPassword)
+                            .autocapitalization(.none)
+                            .autocorrectionDisabled()
 
                             Button(action: { isPasswordRevealed.toggle() }) {
                                 Image(systemName: isPasswordRevealed ? "eye.slash" : "eye")
@@ -105,6 +108,9 @@ struct SignupView: View {
 
                         SecureField("........", text: $vm.signupConfirmPassword)
                             .font(.system(size: 15))
+                            .textContentType(.newPassword)
+                            .autocapitalization(.none)
+                            .autocorrectionDisabled()
                             .padding(.horizontal, 16)
                             .frame(height: 52)
                             .background(Color.authFieldBackground)

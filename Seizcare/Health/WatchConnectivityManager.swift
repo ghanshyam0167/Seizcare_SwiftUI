@@ -32,7 +32,7 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         
         // Setup Location for emergency triggers from Watch
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.requestWhenInUseAuthorization() // Ensure we have permission
+        locationManager.requestAlwaysAuthorization() // Ensure we have permission
         
         if WCSession.isSupported() {
             WCSession.default.delegate = self

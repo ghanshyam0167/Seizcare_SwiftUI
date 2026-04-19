@@ -117,6 +117,7 @@ struct LanguageSetupView: View {
             .padding(.top, 10)
         }
         .background(Color.authBackground.ignoresSafeArea())
+        .navigationBarBackButtonHidden(true)
     }
 }
 

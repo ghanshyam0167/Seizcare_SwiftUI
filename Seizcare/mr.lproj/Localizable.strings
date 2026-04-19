@@ -32,6 +32,8 @@
 "account" = "खाते";
 "language" = "भाषा";
 "connect_watch" = "तुमचे घड्याळ कनेक्ट करा";
+"connect_apple_watch_start_monitoring" = "मॉनिटरिंग सुरू करण्यासाठी तुमचे Apple Watch कनेक्ट करा.";
+"waiting_for_watch_data" = "डेटाची प्रतीक्षा आहे. चांगल्या परिणामांसाठी तुमच्या घड्याळावर वर्कआउट सुरू करा.";
 "change_password" = "पासवर्ड बदला";
 "delete_account" = "खाते हटवा";
 "logout" = "लॉग आउट";
@@ -249,10 +251,12 @@
 "edit_record" = "नोंद संपादित करा";
 "timing" = "वेळ";
 "date_time" = "तारीख आणि वेळ";
+"future_date_time_not_allowed" = "तारीख आणि वेळ भविष्यातील असू शकत नाही.";
 "duration" = "कालावधी";
 "severity" = "तीव्रता";
 "location_optional" = "स्थान (पर्यायी)";
 "delete_record" = "नोंद हटवा";
+"delete_record_confirmation" = "तुम्हाला हा रेकॉर्ड नक्की हटवायचा आहे का? ही कृती पूर्ववत करता येणार नाही.";
 "auto_detected_banner" = "तारीख, वेळ आणि कालावधी लॉक आहेत कारण ही घटना स्वयंचलितपणे आढळली होती.";
 "add_observations" = "कोणतेही निरीक्षण, लक्षणे किंवा संदर्भ जोडा…";
 "location_placeholder" = "उदा. घर, कार्यालय, जिम…";
@@ -260,3 +264,4 @@
 "clear" = "साफ करा";
 "save" = "जतन करा";
 "min_unit" = "मिनिट";
+"otp_incorrect" = "तुम्ही टाकलेला OTP चुकीचा आहे.";

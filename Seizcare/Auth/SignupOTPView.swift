@@ -27,11 +27,11 @@ struct SignupOTPView: View {
             
             // Header
             VStack(spacing: 8) {
-                Text("verify_email")
+                Text("verify_email".localized)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
-                Text("verification_code_sent \(vm.signupEmail)")
+                Text(String(format: "verification_code_sent".localized, vm.signupEmail))
                     .font(.system(size: 15))
                     .foregroundColor(.authSecondaryText)
                     .multilineTextAlignment(.center)
@@ -49,7 +49,7 @@ struct SignupOTPView: View {
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.authSecondaryText)
                     
-                    TextField("12345678", text: $vm.signupOTP)
+                    TextField("otp_placeholder".localized, text: $vm.signupOTP)
                         .font(.system(size: 24, weight: .bold, design: .monospaced))
                         .multilineTextAlignment(.center)
                         .keyboardType(.numberPad)
@@ -104,7 +104,10 @@ struct SignupOTPView: View {
                     vm.signUp()
                     timeRemaining = 60
                 }) {
-                    Text(timeRemaining > 0 ? String(format: "resend_in".localized, "\(timeRemaining)") : "resend".localized)
+                    Text(timeRemaining > 0
+                         ? String(format: "resend_in".localized, "\(timeRemaining)")
+                         : "resend".localized
+                    )
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(timeRemaining > 0 ? .authSecondaryText.opacity(0.5) : Color.authPrimaryButton)
                 }
@@ -117,6 +120,11 @@ struct SignupOTPView: View {
             if timeRemaining > 0 {
                 timeRemaining -= 1
             }
+        }
+        .alert("error".localized, isPresented: $vm.showAlert) {
+            Button("ok", role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
         }
     }
 }

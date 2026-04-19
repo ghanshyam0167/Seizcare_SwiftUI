@@ -50,6 +50,7 @@ class UserDataModel {
     private(set) var currentUser: User?
 
     private let currentUserKey = "currentUserId"
+    private func cachedAvatarUrlKey(for userId: UUID) -> String { "cachedAvatarUrl_\(userId.uuidString.lowercased())" }
 
     private init() {}
 
@@ -71,6 +72,8 @@ class UserDataModel {
             if let id = currentUser?.id {
                 UserDefaults.standard.set(id.uuidString, forKey: currentUserKey)
             }
+            // Ensure avatar refresh on a new device/session where no local image exists yet.
+            NotificationCenter.default.post(name: UserDataModel.avatarDidChangeNotification, object: nil)
         } catch {
             print("⚠️ [UserDataModel] restoreSession failed:", error.localizedDescription)
             currentUser = nil
@@ -114,6 +117,7 @@ class UserDataModel {
         currentUser?.avatarUrl = url.isEmpty ? nil : url
         // Broadcast immediately so UI updates without waiting for the network call
         NotificationCenter.default.post(name: UserDataModel.avatarDidChangeNotification, object: nil)
+        setCachedAvatarUrl(url.isEmpty ? nil : url)
         guard let userId = currentUser?.id else { return }
         Task {
             do {
@@ -127,6 +131,25 @@ class UserDataModel {
                 print("⚠️ [UserDataModel] updateAvatarURL failed: \(error.localizedDescription)")
             }
         }
+    }
+
+    func getCachedAvatarUrl() -> String? {
+        guard let userId = currentUser?.id else { return nil }
+        return UserDefaults.standard.string(forKey: cachedAvatarUrlKey(for: userId))
+    }
+
+    func setCachedAvatarUrl(_ url: String?) {
+        guard let userId = currentUser?.id else { return }
+        if let url, !url.isEmpty {
+            UserDefaults.standard.set(url, forKey: cachedAvatarUrlKey(for: userId))
+        } else {
+            UserDefaults.standard.removeObject(forKey: cachedAvatarUrlKey(for: userId))
+        }
+    }
+
+    func clearCachedAvatarUrl() {
+        guard let userId = currentUser?.id else { return }
+        UserDefaults.standard.removeObject(forKey: cachedAvatarUrlKey(for: userId))
     }
     
     // MARK: - Local Image Storage
@@ -214,6 +237,8 @@ extension UserDataModel {
             currentUser = minimal
         }
         UserDefaults.standard.set(uid.uuidString, forKey: currentUserKey)
+        // Triggers AvatarViewModel to fetch remote avatarUrl on new devices.
+        NotificationCenter.default.post(name: UserDataModel.avatarDidChangeNotification, object: nil)
     }
 
     /// Legacy synchronous wrapper — kept for backward compatibility.
@@ -239,24 +264,20 @@ extension UserDataModel {
             
             // Check if the user is already confirmed/verified
             if authUser.confirmedAt != nil {
-                throw SupabaseServiceError.authFailed("This email is already registered and verified. Please log in.")
+                throw SupabaseServiceError.authFailed("This email is already registered. Please log in.")
             }
             
-            // If the user already existed but was NOT confirmed, Supabase might not send an email
-            // (especially in the 'user_repeated_signup' scenario seen in logs).
-            // If identities is empty or count is same but unconfirmed, we force a resend.
+            // If the user already existed but was NOT confirmed, Supabase returns empty identities.
+            // Throw an error here instead of resending OTP to block them.
             if authUser.identities?.isEmpty ?? true {
-                try await SupabaseService.shared.resendSignUpOTP(email: user.email)
-                return true
+                throw SupabaseServiceError.authFailed("This email is already registered. Please log in.")
             }
             
             return false
         } catch {
             let errorDesc = error.localizedDescription.lowercased()
             if errorDesc.contains("user already registered") {
-                // If the error explicitly says registered, force resend
-                try await SupabaseService.shared.resendSignUpOTP(email: user.email)
-                return true
+                throw SupabaseServiceError.authFailed("This email is already registered. Please log in.")
             }
             throw error
         }

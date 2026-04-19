@@ -44,6 +44,8 @@
 "sensitivity" = "Sensitivity";
 "language" = "Language";
 "connect_watch" = "Connect your watch";
+"connect_apple_watch_start_monitoring" = "Connect your Apple Watch to start monitoring.";
+"waiting_for_watch_data" = "Waiting for data. Start a workout on your watch for better results.";
 "change_password" = "Change Password";
 "delete_account" = "Delete Account";
 "logout" = "Log Out";
@@ -329,11 +331,13 @@
 "edit_record" = "Edit Record";
 "timing" = "Timing";
 "date_time" = "Date & Time";
+"future_date_time_not_allowed" = "Date and time cannot be in the future.";
 "duration" = "Duration";
 "severity" = "Severity";
 "triggers" = "Triggers";
 "location_optional" = "Location (Optional)";
 "delete_record" = "Delete Record";
+"delete_record_confirmation" = "Are you sure you want to delete this record? This action cannot be undone.";
 "auto_detected_banner" = "Date, time & duration are locked because this event was automatically detected.";
 "add_observations" = "Add any observations, symptoms, or context…";
 "location_placeholder" = "e.g. Home, Office, Gym…";
@@ -341,3 +345,4 @@
 "clear" = "Clear";
 "save" = "Save";
 "min_unit" = "min";
+"otp_incorrect" = "The OTP you entered is incorrect.";
