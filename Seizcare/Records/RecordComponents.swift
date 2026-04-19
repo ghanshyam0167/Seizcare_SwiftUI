@@ -13,13 +13,13 @@ struct RecordCard: View {
 
     private var durationText: String {
         let m = Int(record.duration / 60)
-        return m > 0 ? "\(m) min" : "<1 min"
+        return m > 0 ? "\(m) min" : "less_than_1_min"
     }
 
     private var dateText: String {
         let cal = Calendar.current
-        if cal.isDateInToday(record.startTime)     { return "Today" }
-        if cal.isDateInYesterday(record.startTime) { return "Yesterday" }
+        if cal.isDateInToday(record.startTime)     { return "today" }
+        if cal.isDateInYesterday(record.startTime) { return "yesterday" }
         let f = DateFormatter()
         f.dateFormat = "MMM d"
         return f.string(from: record.startTime)
@@ -35,7 +35,7 @@ struct RecordCard: View {
         HStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(dateText)
+                    Text(LocalizedStringKey(dateText))
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.dashLabel)
                     Text("·")
@@ -52,7 +52,7 @@ struct RecordCard: View {
                 HStack(spacing: 8) {
                     SeverityBadge(type: record.type)
                     if let trigger = record.triggers.first {
-                        Text(trigger.rawValue)
+                        Text(LocalizedStringKey(trigger.localizationKey))
                             .font(.caption)
                             .foregroundStyle(Color.dashSecondary)
                     }
@@ -62,7 +62,7 @@ struct RecordCard: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 4) {
-                Text(durationText)
+                Text(LocalizedStringKey(durationText))
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundStyle(Color.dashLabel)
                 Text("duration")
@@ -113,10 +113,10 @@ struct RecordsEmptyState: View {
                     .foregroundStyle(Color.dashTertiary)
             }
             VStack(spacing: 8) {
-                Text("No Records Yet")
+                Text("no_records_yet")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(Color.dashLabel)
-                Text("Tap  +  to log your first seizure event.\nYour records will appear here.")
+                Text("no_records_desc")
                     .font(.subheadline)
                     .foregroundStyle(Color.dashSecondary)
                     .multilineTextAlignment(.center)
@@ -137,7 +137,7 @@ struct TriggerChip: View {
 
     var body: some View {
         Button(action: onTap) {
-            Text(trigger.rawValue)
+            Text(LocalizedStringKey(trigger.localizationKey))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(isSelected ? Color.white : Color.dashSecondary)
                 .padding(.horizontal, 12)

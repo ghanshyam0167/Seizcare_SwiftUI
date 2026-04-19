@@ -59,7 +59,7 @@ struct DashboardView: View {
                     // Header
                     HStack(alignment: .center) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Summary")
+                            Text("summary")
                                 .font(.system(size: 28, weight: .bold, design: .rounded))
                                 .foregroundStyle(Color.dashLabel)
                             Text(Date().formatted(.dateTime.weekday(.wide).month().day()))
@@ -101,7 +101,7 @@ struct DashboardView: View {
 
                     // Analysis Section
                     VStack(alignment: .leading, spacing: 12) {
-                        SectionHeader(title: "Analysis", icon: "chart.xyaxis.line")
+                        SectionHeader(title: "analysis", icon: "chart.xyaxis.line")
 
                         LazyVGrid(
                             columns: [
@@ -114,7 +114,7 @@ struct DashboardView: View {
                             Button { viewModel.activeChart = .seizureFrequency } label: {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
-                                        Text("Seizure Count")
+                                        Text("seizure_count")
                                             .font(.system(size: 14, weight: .semibold))
                                             .foregroundStyle(Color.dashLabel)
                                         Spacer()
@@ -141,7 +141,7 @@ struct DashboardView: View {
                             Button { viewModel.activeChart = .sleepVsSeizures } label: {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
-                                        Text("Sleep vs Seizures")
+                                        Text("sleep_vs_seizures")
                                             .font(.system(size: 14, weight: .semibold))
                                             .foregroundStyle(Color.dashLabel)
                                         Spacer()
@@ -205,13 +205,13 @@ if viewModel.isLoading {
                 HeartRateTimelineChartView(record: rec)
             }
         }
-        .alert("Location Access Required", isPresented: $showLocationSettingsAlert) {
-            Button("Cancel", role: .cancel) {}
-            Button("Settings") {
+        .alert("location_access_required", isPresented: $showLocationSettingsAlert) {
+            Button("cancel", role: .cancel) {}
+            Button("settings") {
                 UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
             }
         } message: {
-            Text("Enable location to send emergency alerts.")
+            Text("enable_location_desc")
         }
 .alert("Error", isPresented: Binding(
     get: { viewModel.errorMessage != nil },
@@ -220,7 +220,7 @@ if viewModel.isLoading {
         viewModel.healthVM.errorMessage = nil
     }
 )) {
-    Button("OK", role: .cancel) {}
+    Button("ok", role: .cancel) {}
 } message: {
     Text(viewModel.errorMessage ?? "")
 }
@@ -303,7 +303,7 @@ if viewModel.isLoading {
 
                         // Status text
                         VStack(spacing: 6) {
-                            Text(emergencyVM.status.rawValue)
+                            Text(LocalizedStringKey(emergencyVM.status.rawValue))
                                 .font(.system(size: 18, weight: .bold, design: .rounded))
                                 .foregroundStyle(Color.primary)
                                 .multilineTextAlignment(.center)
@@ -315,12 +315,12 @@ if viewModel.isLoading {
                                     .foregroundStyle(Color.secondary)
                                     .multilineTextAlignment(.center)
                             } else if emergencyVM.status == .sending {
-                                Text("Please wait while we notify your contacts...")
+                                Text("notifying_contacts")
                                     .font(.system(size: 13))
                                     .foregroundStyle(Color.secondary)
                                     .multilineTextAlignment(.center)
                             } else if emergencyVM.status == .success {
-                                Text("Emergency contacts have been notified.")
+                                Text("contacts_notified")
                                     .font(.system(size: 13))
                                     .foregroundStyle(Color.secondary)
                                     .multilineTextAlignment(.center)
@@ -339,7 +339,7 @@ if viewModel.isLoading {
                                 HStack(spacing: 8) {
                                     Image(systemName: "speaker.slash.fill")
                                         .font(.system(size: 14, weight: .bold))
-                                    Text("Stop Alarm")
+                                    Text("stop_alarm")
                                         .font(.system(size: 15, weight: .bold))
                                 }
                                 .foregroundStyle(.white)

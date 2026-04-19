@@ -10,10 +10,10 @@ import Combine
 import AudioToolbox
 
 enum EmergencyStatus: String {
-    case idle        = "Ready"
-    case sending     = "Sending Alert..."
-    case success     = "Alert Sent Successfully!"
-    case failed      = "Failed to Send Alert"
+    case idle        = "ready"
+    case sending     = "sending_alert"
+    case success     = "alert_sent_success"
+    case failed      = "alert_sent_failed"
 }
 
 class EmergencyViewModel: ObservableObject {
@@ -49,7 +49,7 @@ class EmergencyViewModel: ObservableObject {
     func sendEmergencyAlertImmediately(location: CLLocation?) {
         guard let location = location else {
             print("[Alert] ❌ Location unavailable, cannot send alert")
-            self.errorMessage = "Location unavailable. Cannot send alert."
+            self.errorMessage = "location_unavailable"
             self.status = .failed
             self.alertSending = false
             return
@@ -108,7 +108,7 @@ class EmergencyViewModel: ObservableObject {
 
     func sendEmergencyAlert(location: CLLocation?) {
         guard let location = location else {
-            self.errorMessage = "Location unavailable. Cannot send alert."
+            self.errorMessage = "location_unavailable"
             self.status = .failed
             self.alertSending = false
             return
@@ -137,7 +137,7 @@ class EmergencyViewModel: ObservableObject {
                     print("[Alert] ❌ Alert failed: \(error.localizedDescription)")
                     if let emergencyError = error as? EmergencyError,
                        case .cooldownActive = emergencyError {
-                        self.errorMessage = "Alert already sent recently. Please wait."
+                        self.errorMessage = "alert_cooldown"
                         self.status = .idle
                     } else {
                         self.errorMessage = error.localizedDescription

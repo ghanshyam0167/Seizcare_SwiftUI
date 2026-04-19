@@ -15,7 +15,7 @@ struct TimeOfDayMiniChart: View {
     var body: some View {
         Chart(data, id: \.label) { item in
             BarMark(
-                x: .value("Period", item.label),
+                x: .value("Period", String(localized: String.LocalizationValue(item.label))),
                 y: .value("Count", item.count)
             )
             .foregroundStyle(item.color.opacity(0.8))
@@ -34,7 +34,7 @@ struct TimeOfDayChartView: View {
 
     private var data: [(label: String, count: Int, color: Color)] { records.timeOfDayCounts() }
     private var total: Int { records.count }
-    private var peak: String { records.peakTimeLabel }
+    private var peak: String { records.peakTimeKey }
 
     var body: some View {
         NavigationStack {
@@ -55,10 +55,10 @@ struct TimeOfDayChartView: View {
 
                         // Center label
                         VStack(spacing: 4) {
-                            Text("Peak")
+                            Text("peak")
                                 .font(.caption)
                                 .foregroundStyle(Color.dashSecondary)
-                            Text(peak)
+                            Text(LocalizedStringKey(peak))
                                 .font(.system(size: 17, weight: .bold, design: .rounded))
                                 .foregroundStyle(Color.dashLabel)
                             Text("\(total) total")
@@ -81,11 +81,11 @@ struct TimeOfDayChartView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16))
 
                     // Insight
-                    if !peak.isEmpty {
+                    if !peak.isEmpty && peak != "—" {
                         HStack(spacing: 12) {
                             Image(systemName: "clock.fill")
                                 .foregroundStyle(Color.dashSleep)
-                            Text("Most seizures occur in the \(peak.lowercased()). Consider additional precautions during this period.")
+                            Text("time_of_day_insight \(String(localized: String.LocalizationValue(peak)))")
                                 .font(.caption)
                                 .foregroundStyle(Color.dashSecondary)
                         }
@@ -97,11 +97,11 @@ struct TimeOfDayChartView: View {
                 .padding(16)
             }
             .background(Color.dashBg.ignoresSafeArea())
-            .navigationTitle("Time of Day")
+            .navigationTitle("time_of_day")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button("close") { dismiss() }
                         .foregroundStyle(Color.dashSeizure)
                 }
             }
@@ -123,7 +123,7 @@ private struct TimeSlotRow: View {
             Circle()
                 .fill(item.color)
                 .frame(width: 10, height: 10)
-            Text(item.label)
+            Text(LocalizedStringKey(item.label))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Color.dashLabel)
                 .frame(width: 80, alignment: .leading)

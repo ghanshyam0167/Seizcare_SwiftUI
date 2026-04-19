@@ -18,7 +18,7 @@ enum AddEditMode {
     }
 
     var title: String {
-        isEdit ? "Edit Record" : "Add Record"
+        isEdit ? "edit_record".localized : "add_record".localized
     }
 }
 
@@ -26,6 +26,7 @@ enum AddEditMode {
 
 struct AddEditRecordView: View {
     @EnvironmentObject var vm: RecordsViewModel
+    @EnvironmentObject var languageManager: LanguageManager
     @Environment(\.dismiss) private var dismiss
 
     let mode: AddEditMode
@@ -89,7 +90,7 @@ struct AddEditRecordView: View {
                                 Image(systemName: "waveform.path.ecg")
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundStyle(Color.dashSleep)
-                                Text("Date, time & duration are locked because this event was automatically detected.")
+                                Text("auto_detected_banner".localized)
                                     .font(.system(size: 12))
                                     .foregroundStyle(Color.dashSecondary)
                                     .lineSpacing(3)
@@ -132,12 +133,12 @@ struct AddEditRecordView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button("cancel".localized) { dismiss() }
                         .foregroundStyle(Color.dashSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { Task { await saveRecord() } }) {
-                        Text("Save")
+                        Text("save".localized)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(Color.dashSeizure)
                             .opacity(isFormValid ? 1.0 : 0.4)
@@ -154,10 +155,10 @@ struct AddEditRecordView: View {
 
     private var timePickers: some View {
         VStack(spacing: 0) {
-            FormSectionHeader(title: "Timing")
+            FormSectionHeader(title: "timing".localized)
 
             VStack(spacing: 1) {
-                DatePickerRow(label: "Date & Time", icon: "calendar.badge.clock", color: .dashSleep, date: $startTime)
+                DatePickerRow(label: "date_time".localized, icon: "calendar.badge.clock", color: .dashSleep, date: $startTime)
                     .disabled(isAutomatic)
                     .opacity(isAutomatic ? 0.6 : 1.0)
                 Divider().background(Color.dashTertiary.opacity(0.2)).padding(.leading, 50)
@@ -168,15 +169,15 @@ struct AddEditRecordView: View {
                         .foregroundStyle(Color.dashGreen)
                         .frame(width: 28)
                     
-                    Text("Duration")
+                    Text("duration".localized)
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Color.dashLabel)
                     
                     Spacer()
                     
-                    Picker("Duration", selection: $durationMinutes) {
+                    Picker("duration".localized, selection: $durationMinutes) {
                         ForEach(1...120, id: \.self) { min in
-                            Text("\(min) min").tag(min)
+                            Text("\(min) \("min_unit".localized)").tag(min)
                         }
                     }
                     .tint(Color.dashGreen)
@@ -193,9 +194,9 @@ struct AddEditRecordView: View {
 
     private var typeSelector: some View {
         VStack(spacing: 8) {
-            FormSectionHeader(title: "Severity")
+            FormSectionHeader(title: "severity".localized)
 
-            Picker("Type", selection: $seizureType) {
+            Picker("severity".localized, selection: $seizureType) {
                 ForEach(SeizureType.allCases, id: \.self) { type in
                     Text(type.displayName).tag(type)
                 }
@@ -211,7 +212,7 @@ struct AddEditRecordView: View {
 
     private var triggersSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            FormSectionHeader(title: "Triggers")
+            FormSectionHeader(title: "triggers".localized)
 
             VStack(alignment: .leading, spacing: 12) {
                 FlowLayout(spacing: 8) {
@@ -230,11 +231,11 @@ struct AddEditRecordView: View {
                 }
                 if !selectedTriggers.isEmpty {
                     HStack(spacing: 4) {
-                        Text("\(selectedTriggers.count) selected")
+                        Text(String(format: "selected_count".localized, selectedTriggers.count))
                             .font(.caption2)
                             .foregroundStyle(Color.dashSecondary)
                         Spacer()
-                        Button("Clear") { selectedTriggers.removeAll() }
+                        Button("clear".localized) { selectedTriggers.removeAll() }
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(Color.dashSeizure.opacity(0.8))
                     }
@@ -248,11 +249,11 @@ struct AddEditRecordView: View {
 
     private var notesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            FormSectionHeader(title: "Notes")
+            FormSectionHeader(title: "notes".localized)
 
             ZStack(alignment: .topLeading) {
                 if notes.isEmpty {
-                    Text("Add any observations, symptoms, or context…")
+                    Text("add_observations".localized)
                         .font(.system(size: 14))
                         .foregroundStyle(Color.dashTertiary)
                         .padding(.horizontal, 4)
@@ -281,13 +282,13 @@ struct AddEditRecordView: View {
 
     private var locationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            FormSectionHeader(title: "Location (Optional)")
+            FormSectionHeader(title: "location_optional".localized)
 
             HStack(spacing: 12) {
                 Image(systemName: "mappin.circle.fill")
                     .font(.system(size: 18))
                     .foregroundStyle(Color(red: 0.4, green: 0.8, blue: 0.6))
-                TextField("e.g. Home, Office, Gym…", text: $location)
+                TextField("location_placeholder".localized, text: $location)
                     .font(.system(size: 15))
                     .foregroundStyle(Color.dashLabel)
                     .focused($locationFieldFocused)
@@ -316,7 +317,7 @@ struct AddEditRecordView: View {
             HStack(spacing: 8) {
                 Image(systemName: "trash")
                     .font(.system(size: 14, weight: .semibold))
-                Text("Delete Record")
+                Text("delete_record".localized)
                     .font(.system(size: 15, weight: .semibold))
             }
             .foregroundStyle(Color.dashSeizure)
@@ -369,7 +370,7 @@ struct AddEditRecordView: View {
 private struct FormSectionHeader: View {
     let title: String
     var body: some View {
-        Text(title.uppercased())
+        Text(title.uppercased(with: Locale.current))
             .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(Color.dashTertiary)
             .tracking(1.2)

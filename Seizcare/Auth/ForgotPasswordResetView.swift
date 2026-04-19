@@ -33,11 +33,11 @@ struct ForgotPasswordResetView: View {
 
             // Header
             VStack(spacing: 8) {
-                Text("New Password")
+                Text("new_password")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
 
-                Text("Your new password must be different from previously used passwords.")
+                Text("new_password_desc")
                     .font(.system(size: 15))
                     .foregroundColor(.authSecondaryText)
                     .multilineTextAlignment(.center)
@@ -52,7 +52,7 @@ struct ForgotPasswordResetView: View {
 
                 // New Password Field
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Password")
+                    Text("password")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.authSecondaryText)
 
@@ -88,7 +88,7 @@ struct ForgotPasswordResetView: View {
 
                 // Confirm Password Field
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Confirm Password")
+                    Text("confirm_password")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.authSecondaryText)
 
@@ -134,7 +134,7 @@ struct ForgotPasswordResetView: View {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
-                            Text("Update Password")
+                            Text("update_password")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.white)
                         }
@@ -153,7 +153,7 @@ struct ForgotPasswordResetView: View {
             Spacer().frame(height: 24)
 
             Button(action: { vm.cancelForgotPasswordAndReturn() }) {
-                Text(vm.isAuthenticated ? "Cancel" : "Back to Login")
+                Text(vm.isAuthenticated ? "cancel" : "back_to_login")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.authSecondaryText)
             }

@@ -9,6 +9,7 @@ import WatchConnectivity
 struct WatchConnectionView: View {
     @ObservedObject var vm: AuthViewModel
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var languageManager: LanguageManager
     
     @ObservedObject private var connectivity = WatchConnectivityManager.shared
     @State private var isRefreshing = false
@@ -117,13 +118,13 @@ struct WatchConnectionView: View {
                     
                     // Instructions Card
                     VStack(alignment: .leading, spacing: 20) {
-                        Text("How to connect")
+                        Text("how_to_connect".localized)
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.authPrimaryText)
                             .padding(.bottom, 4)
                         
-                        instructionRow(number: 1, text: "Make sure your Apple Watch is nearby and unlocked.")
-                        instructionRow(number: 2, text: "Open the Seizcare app on your Apple Watch.")
+                        instructionRow(number: 1, text: "make_sure_watch_nearby".localized)
+                        instructionRow(number: 2, text: "open_seizcare_watch".localized)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(24)
@@ -147,7 +148,7 @@ struct WatchConnectionView: View {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     } else {
-                        Text("Refresh Status")
+                        Text("refresh_status".localized)
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
                     }

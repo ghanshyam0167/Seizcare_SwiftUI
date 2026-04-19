@@ -23,7 +23,7 @@ struct HeroCardView: View {
     }
 
     private var trendDiff: Int { thisMonth.count - lastMonth.count }
-    private var trendValue: String { trendDiff == 0 ? "Same" : (trendDiff > 0 ? "+\(trendDiff)" : "\(trendDiff)") }
+    private var trendValue: String { trendDiff == 0 ? "same" : (trendDiff > 0 ? "+\(trendDiff)" : "\(trendDiff)") }
     private var trendIcon: String { trendDiff == 0 ? "minus" : (trendDiff > 0 ? "arrow.up.right" : "arrow.down.right") }
     private var trendColor: Color { trendDiff == 0 ? .dashSecondary : (trendDiff > 0 ? .dashSeizure : .dashGreen) }
 
@@ -43,13 +43,13 @@ struct HeroCardView: View {
             HStack(alignment: .top) {
                 if records.isEmpty && sleepHours == 0 {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Ready to track")
+                        Text("ready_to_track")
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundStyle(Color.dashLabel)
                     }
                 } else {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("This Month")
+                        Text("this_month")
                             .font(.caption)
                             .foregroundStyle(Color.dashSecondary)
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
@@ -75,7 +75,7 @@ struct HeroCardView: View {
                     Image(systemName: "chart.pie.fill")
                         .font(.system(size: 24))
                         .foregroundStyle(Color.dashSecondary.opacity(0.6))
-                    Text("No data available yet.\nStart tracking to see your summary.")
+                    Text("no_data_available")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(Color.dashSecondary)
                         .multilineTextAlignment(.center)
@@ -86,7 +86,7 @@ struct HeroCardView: View {
                 HStack(spacing: 0) {
                     StatPill(
                         icon: "moon.zzz.fill",
-                        label: "Avg Sleep",
+                        label: "avg_sleep",
                         value: avgSleep > 0 ? String(format: "%.1fh", avgSleep) : "—",
                         color: .dashSleep
                     )
@@ -96,7 +96,7 @@ struct HeroCardView: View {
                         .padding(.horizontal, 12)
                     StatPill(
                         icon: "timer",
-                        label: "Avg Duration",
+                        label: "avg_duration_stat",
                         value: avgDuration,
                         color: .dashSecondary
                     )
@@ -106,8 +106,8 @@ struct HeroCardView: View {
                         .padding(.horizontal, 12)
                     StatPill(
                         icon: trendIcon,
-                        label: "vs Last Month",
-                        value: records.isEmpty ? "--" : trendValue,
+                        label: "vs_last_month",
+                        value: records.isEmpty ? (trendDiff == 0 ? "same" : trendValue) : trendValue,
                         color: trendColor
                     )
                     Divider()
@@ -116,7 +116,7 @@ struct HeroCardView: View {
                         .padding(.horizontal, 12)
                     StatPill(
                         icon: "heart.fill",
-                        label: "Current HR",
+                        label: "current_hr",
                         value: (heartRate ?? 0) > 0 ? "\(Int(heartRate ?? 0))" : "—",
                         color: .dashSeizure
                     )
@@ -141,10 +141,10 @@ private struct StatPill: View {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(color)
-            Text(value)
+            Text(LocalizedStringKey(value))
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundStyle(Color.dashLabel)
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(.system(size: 11))
                 .foregroundStyle(Color.dashSecondary)
         }

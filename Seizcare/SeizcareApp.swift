@@ -6,14 +6,17 @@
 //
 
 import SwiftUI
+import Combine
 
 @main
 struct SeizcareApp: App {
+    @StateObject var languageManager = LanguageManager()
     @Environment(\.scenePhase) private var scenePhase
-
     var body: some Scene {
         WindowGroup {
             SplashScreenView()
+                .environmentObject(languageManager)
+                .environment(\.locale, Locale(identifier: languageManager.currentLanguage))
         }
         .onChange(of: scenePhase) { newPhase in
             switch newPhase {

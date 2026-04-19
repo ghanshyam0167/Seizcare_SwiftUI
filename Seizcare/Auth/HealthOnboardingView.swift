@@ -7,10 +7,26 @@ import SwiftUI
 
 struct HealthOnboardingView: View {
     @ObservedObject var vm: AuthViewModel
+    @EnvironmentObject var languageManager: LanguageManager
 
-    let frequencies = ["Daily", "Weekly", "Monthly", "Rarely"]
-    let sleepOptions = ["< 4 hours", "4-6 hours", "6-8 hours", "> 8 hours"]
-    let durations = ["< 1 min", "1-3 mins", "3-5 mins", "> 5 mins"]
+    let frequencies: [(String, String)] = [
+        ("daily", "daily"),
+        ("weekly", "weekly"),
+        ("monthly", "monthly"),
+        ("rarely", "rarely")
+    ]
+    let sleepOptions: [(String, String)] = [
+        ("less_than_4_hours", "less_than_4_hours"),
+        ("4_to_6_hours", "4_to_6_hours"),
+        ("6_to_8_hours", "6_to_8_hours"),
+        ("more_than_8_hours", "more_than_8_hours")
+    ]
+    let durations: [(String, String)] = [
+        ("less_than_1_min", "less_than_1_min"),
+        ("1_to_3_mins", "1_to_3_mins"),
+        ("3_to_5_mins", "3_to_5_mins"),
+        ("more_than_5_mins", "more_than_5_mins")
+    ]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,11 +41,11 @@ struct HealthOnboardingView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Personalize Your Profile")
+                        Text("complete_profile".localized)
                             .font(.system(size: 28, weight: .bold, design: .rounded))
                             .foregroundColor(.authPrimaryText)
                         
-                        Text("This info helps us tailor insights over time. It won't appear on your charts.")
+                        Text("personalize_profile_footer_desc".localized)
                             .font(.system(size: 15))
                             .foregroundColor(.authSecondaryText)
                             .lineSpacing(4)
@@ -39,18 +55,18 @@ struct HealthOnboardingView: View {
 
                     // Average Sleep
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Average Sleep per Night")
+                        Text("avg_sleep_night".localized)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(.authPrimaryText)
                         
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            ForEach(sleepOptions, id: \.self) { option in
+                            ForEach(sleepOptions, id: \.0) { option in
                                 SelectionPill(
-                                    title: option,
-                                    isSelected: vm.onboardingAvgSleep == option
+                                    title: option.1,
+                                    isSelected: vm.onboardingAvgSleep == option.0
                                 ) {
                                     withAnimation(.spring()) {
-                                        vm.onboardingAvgSleep = vm.onboardingAvgSleep == option ? "" : option
+                                        vm.onboardingAvgSleep = vm.onboardingAvgSleep == option.0 ? "" : option.0
                                     }
                                 }
                             }
@@ -60,18 +76,18 @@ struct HealthOnboardingView: View {
 
                     // Seizure Frequency
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Estimated Frequency")
+                        Text("estimated_frequency".localized)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(.authPrimaryText)
                         
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            ForEach(frequencies, id: \.self) { option in
+                            ForEach(frequencies, id: \.0) { option in
                                 SelectionPill(
-                                    title: option,
-                                    isSelected: vm.onboardingFrequency == option
+                                    title: option.1,
+                                    isSelected: vm.onboardingFrequency == option.0
                                 ) {
                                     withAnimation(.spring()) {
-                                        vm.onboardingFrequency = vm.onboardingFrequency == option ? "" : option
+                                        vm.onboardingFrequency = vm.onboardingFrequency == option.0 ? "" : option.0
                                     }
                                 }
                             }
@@ -81,18 +97,18 @@ struct HealthOnboardingView: View {
 
                     // Average Duration
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Average Duration")
+                        Text("avg_duration".localized)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(.authPrimaryText)
                         
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            ForEach(durations, id: \.self) { option in
+                            ForEach(durations, id: \.0) { option in
                                 SelectionPill(
-                                    title: option,
-                                    isSelected: vm.onboardingAvgDuration == option
+                                    title: option.1,
+                                    isSelected: vm.onboardingAvgDuration == option.0
                                 ) {
                                     withAnimation(.spring()) {
-                                        vm.onboardingAvgDuration = vm.onboardingAvgDuration == option ? "" : option
+                                        vm.onboardingAvgDuration = vm.onboardingAvgDuration == option.0 ? "" : option.0
                                     }
                                 }
                             }
@@ -107,7 +123,7 @@ struct HealthOnboardingView: View {
             // Footer
             VStack(spacing: 16) {
                 let isComplete = !vm.onboardingAvgSleep.isEmpty && !vm.onboardingFrequency.isEmpty && !vm.onboardingAvgDuration.isEmpty
-                AuthPrimaryButton(title: "Finish Setup", isLoading: vm.isLoading, isEnabled: isComplete) {
+                AuthPrimaryButton(title: "finish_setup", isLoading: vm.isLoading, isEnabled: isComplete) {
                     vm.completeHealthOnboarding()
                 }
             }
@@ -125,7 +141,7 @@ private struct SelectionPill: View {
 
     var body: some View {
         Button(action: action) {
-            Text(title)
+            Text(title.localized)
                 .font(.system(size: 15, weight: .medium, design: .rounded))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)

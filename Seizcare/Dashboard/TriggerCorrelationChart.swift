@@ -19,23 +19,23 @@ struct TriggerCorrelationMiniChart: View {
         VStack(spacing: 5) {
             if let top = data.first {
                 HStack(spacing: 4) {
-                    Text("\(top.trigger.rawValue)")
+                    Text(LocalizedStringKey(top.trigger.localizationKey))
                         .font(.system(size: 10, weight: .bold, design: .rounded))
                         .foregroundStyle(Color(red: 1.0, green: 0.6, blue: 0.2))
-                    Text("is top trigger")
+                    Text("is_top_trigger")
                         .font(.system(size: 10))
                         .foregroundStyle(Color.dashSecondary)
                     Spacer()
                 }
                 .padding(.bottom, 2)
             } else {
-                Text("No data").font(.caption).foregroundStyle(Color.dashSecondary)
+                Text("no_records_yet").font(.caption).foregroundStyle(Color.dashSecondary)
             }
             
             ForEach(data, id: \.trigger) { item in
                 VStack(spacing: 2) {
                     HStack {
-                        Text(item.trigger.rawValue)
+                        Text(LocalizedStringKey(item.trigger.localizationKey))
                             .font(.system(size: 9))
                             .foregroundStyle(Color.dashSecondary)
                             .lineLimit(1)
@@ -74,18 +74,18 @@ struct TriggerCorrelationChartView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     if data.isEmpty {
-                        EmptyStateCard(message: "No trigger data recorded yet")
+                        EmptyStateCard(message: "no_records_yet")
                     } else {
                         // Horizontal bar chart
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Trigger Correlation — % of seizures")
+                            Text("trigger_correlation_desc")
                                 .font(.caption)
                                 .foregroundStyle(Color.dashSecondary)
 
                             Chart(data, id: \.trigger) { item in
                                 BarMark(
                                     x: .value("Percentage", item.percentage),
-                                    y: .value("Trigger",    item.trigger.rawValue)
+                                    y: .value("Trigger",    String(localized: String.LocalizationValue(item.trigger.localizationKey)))
                                 )
                                 .foregroundStyle(
                                     LinearGradient(
@@ -141,7 +141,7 @@ struct TriggerCorrelationChartView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundStyle(Color.dashSeizure)
-                                Text("\"\(top.trigger.rawValue)\" is your most common trigger, present in \(Int(top.percentage))% of events.")
+                                Text("trigger_insight \(String(localized: String.LocalizationValue(top.trigger.localizationKey))) \(Int(top.percentage))")
                                     .font(.caption)
                                     .foregroundStyle(Color.dashSecondary)
                             }
@@ -154,11 +154,11 @@ struct TriggerCorrelationChartView: View {
                 .padding(16)
             }
             .background(Color.dashBg.ignoresSafeArea())
-            .navigationTitle("Trigger Analysis")
+            .navigationTitle("trigger_analysis")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button("close") { dismiss() }
                         .foregroundStyle(Color.dashSeizure)
                 }
             }
@@ -173,7 +173,7 @@ private struct TriggerDetailRow: View {
 
     var body: some View {
         HStack {
-            Text(item.trigger.rawValue)
+            Text(LocalizedStringKey(item.trigger.localizationKey))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Color.dashLabel)
             Spacer()

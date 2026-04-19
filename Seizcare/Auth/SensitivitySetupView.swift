@@ -10,15 +10,18 @@ struct SensitivitySetupView: View {
     @ObservedObject var vm: AuthViewModel
     @ObservedObject private var sensitivityModel = SensitivityDataModel.shared
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var languageManager: LanguageManager
     
     // We use a local state to track current selection for smooth UI interactions
     @State private var localSelection: SensitivityLevel = .medium
     
-    private let options: [(level: SensitivityLevel, title: String, description: String, icon: String)] = [
-        (.low, "Low Sensitivity", "Minimized false alerts. Use if you are highly active.", "figure.run"),
-        (.medium, "Medium (Default)", "Balanced detection. Recommended for most daily routines.", "figure.walk"),
-        (.high, "High Sensitivity", "Maximum vigilance. Best for periods of rest or high risk.", "figure.skating")
-    ]
+    private var options: [(level: SensitivityLevel, title: String, description: String, icon: String)] {
+        [
+            (.low, "low_sensitivity", "low_sensitivity_desc", "figure.run"),
+            (.medium, "medium_default", "medium_default_desc", "figure.walk"),
+            (.high, "high_sensitivity", "high_sensitivity_desc", "figure.skating")
+        ]
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -45,11 +48,11 @@ struct SensitivitySetupView: View {
                     .foregroundColor(.authPrimaryButton)
                     .padding(.bottom, 8)
                 
-                Text("Detection Sensitivity")
+                Text("detection_sensitivity".localized)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
-                Text("Choose how sensitive the movement detection should be for seizure alerts.")
+                Text("detection_sensitivity_desc".localized)
                     .font(.system(size: 15))
                     .foregroundColor(.authSecondaryText)
                     .multilineTextAlignment(.center)
@@ -81,11 +84,11 @@ struct SensitivitySetupView: View {
                             }
                             
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(option.title)
+                                Text(option.title.localized)
                                     .font(.system(size: 17, weight: .bold))
                                     .foregroundColor(localSelection == option.level ? .authPrimaryButton : .authPrimaryText)
                                 
-                                Text(option.description)
+                                Text(option.description.localized)
                                     .font(.system(size: 13))
                                     .foregroundColor(.authSecondaryText)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -129,7 +132,7 @@ struct SensitivitySetupView: View {
             HStack(spacing: 8) {
                 Image(systemName: "info.circle")
                     .foregroundColor(.authSecondaryText)
-                Text("You can change this anytime in settings.")
+                Text("change_anytime_settings".localized)
                     .font(.system(size: 13))
                     .foregroundColor(.authSecondaryText)
             }
@@ -148,7 +151,7 @@ struct SensitivitySetupView: View {
                         .fill(Color.authPrimaryButton)
                         .frame(height: 56)
                     
-                    Text(vm.isAuthenticated ? "Done" : "Next")
+                    Text(vm.isAuthenticated ? "done".localized : "next".localized)
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                 }

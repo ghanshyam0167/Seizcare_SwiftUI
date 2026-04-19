@@ -8,6 +8,7 @@ import Combine
 
 struct SignupOTPView: View {
     @ObservedObject var vm: AuthViewModel
+    @EnvironmentObject var languageManager: LanguageManager
     
     @State private var timeRemaining = 60
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -26,11 +27,11 @@ struct SignupOTPView: View {
             
             // Header
             VStack(spacing: 8) {
-                Text("Verify Your Email")
+                Text("verify_email")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
-                Text("We've sent an 8-digit verification code to\n\(vm.signupEmail)")
+                Text("verification_code_sent \(vm.signupEmail)")
                     .font(.system(size: 15))
                     .foregroundColor(.authSecondaryText)
                     .multilineTextAlignment(.center)
@@ -44,7 +45,7 @@ struct SignupOTPView: View {
             VStack(spacing: 16) {
                 // OTP Field
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Verification Code")
+                    Text("verification_code".localized)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.authSecondaryText)
                     
@@ -76,7 +77,7 @@ struct SignupOTPView: View {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
-                            Text("Next")
+                            Text("next".localized)
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.white)
                         }
@@ -95,7 +96,7 @@ struct SignupOTPView: View {
             Spacer().frame(height: 24)
             
             HStack(spacing: 4) {
-                Text("Didn't receive code?")
+                Text("didnt_receive_code".localized)
                     .font(.system(size: 14))
                     .foregroundColor(.authSecondaryText)
                 
@@ -103,7 +104,7 @@ struct SignupOTPView: View {
                     vm.signUp()
                     timeRemaining = 60
                 }) {
-                    Text(timeRemaining > 0 ? "Resend in \(timeRemaining)s" : "Resend")
+                    Text(timeRemaining > 0 ? String(format: "resend_in".localized, "\(timeRemaining)") : "resend".localized)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(timeRemaining > 0 ? .authSecondaryText.opacity(0.5) : Color.authPrimaryButton)
                 }

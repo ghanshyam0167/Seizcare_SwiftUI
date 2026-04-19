@@ -9,6 +9,7 @@ import Contacts
 struct AddEmergencyContactsView: View {
     @ObservedObject var vm: AuthViewModel
     @ObservedObject private var contactModel = EmergencyContactDataModel.shared
+    @EnvironmentObject var languageManager: LanguageManager
     @State private var showingContactPicker = false
     @Environment(\.dismiss) private var dismiss
     
@@ -43,11 +44,11 @@ struct AddEmergencyContactsView: View {
                     .foregroundColor(.authPrimaryButton)
                     .padding(.bottom, 8)
                 
-                Text("Emergency Contacts")
+                Text("emergency_contacts".localized)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
-                Text("Add at least 1 contact who will be notified in case of a seizure detection.")
+                Text("add_at_least_one_contact".localized)
                     .font(.system(size: 15))
                     .foregroundColor(.authSecondaryText)
                     .multilineTextAlignment(.center)
@@ -64,7 +65,7 @@ struct AddEmergencyContactsView: View {
                         Image(systemName: "person.3.fill")
                             .font(.system(size: 40))
                             .foregroundColor(.authSecondaryText.opacity(0.3))
-                        Text("No contacts added yet")
+                        Text("no_contacts_added".localized)
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.authSecondaryText)
                     }
@@ -122,7 +123,7 @@ struct AddEmergencyContactsView: View {
                     Button(action: { showingContactPicker = true }) {
                         HStack {
                             Image(systemName: "plus.circle.fill")
-                            Text("Add from Contacts")
+                            Text("add_from_contacts".localized)
                                 .fontWeight(.semibold)
                         }
                         .foregroundColor(.authPrimaryButton)
@@ -133,7 +134,7 @@ struct AddEmergencyContactsView: View {
                     }
                     .padding(.top, 8)
                 } else {
-                    Text("Maximum 3 contacts reached")
+                    Text("max_contacts_reached".localized)
                         .font(.system(size: 13))
                         .foregroundColor(.authSecondaryText)
                         .padding(.top, 8)
@@ -157,14 +158,14 @@ struct AddEmergencyContactsView: View {
                             .fill(contacts.count >= 1 ? Color.authPrimaryButton : Color.authButtonDisabled)
                             .frame(height: 56)
                         
-                        Text(vm.isAuthenticated ? "Done" : "Next")
+                        Text(vm.isAuthenticated ? "done".localized : "next".localized)
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
                     }
                 }
                 .disabled(contacts.count < 1)
                 
-                Text("\(contacts.count)/3 Contacts Added")
+                Text(String(format: "contacts_added_count".localized, contacts.count))
                     .font(.system(size: 13))
                     .foregroundColor(contacts.count >= 1 ? .successGreen : .authSecondaryText)
             }

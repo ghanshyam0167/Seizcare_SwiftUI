@@ -58,7 +58,7 @@ struct HoldToAlertView: View {
                             .transition(.opacity.combined(with: .scale(scale: 0.8)))
                             .id("countdown-\(countdown)")
                     } else {
-                        Text(isCompleted ? "Alert Triggered" : "Hold to Send Alert")
+                        Text(isCompleted ? "alert_triggered" : "hold_to_send_alert")
                             .font(.system(size: 16, weight: .bold, design: .rounded))
                             .transition(.opacity)
                             .id("standard-text-\(isCompleted)")

@@ -11,6 +11,7 @@ import SwiftUI
 
 struct LoginView: View {
     @ObservedObject var vm: AuthViewModel
+    @EnvironmentObject var languageManager: LanguageManager
     @State private var isPasswordRevealed = false
 
     var body: some View {
@@ -21,11 +22,11 @@ struct LoginView: View {
                 Spacer()
 
                 // Header
-                Text("Welcome Back")
+                Text("welcome_back".localized)
                     .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
 
-                Text("Login to continue")
+                Text("login_to_continue".localized)
                     .font(.system(size: 16, weight: .regular))
                     .foregroundColor(.authSecondaryText)
                     .padding(.top, 8)
@@ -37,7 +38,7 @@ struct LoginView: View {
 
                     // Email Field
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Email")
+                        Text("email".localized)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.authSecondaryText)
 
@@ -62,7 +63,7 @@ struct LoginView: View {
 
                     // Password Field
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Password")
+                        Text("password".localized)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.authSecondaryText)
 
@@ -99,7 +100,7 @@ struct LoginView: View {
                     HStack {
                         Spacer()
                         Button(action: { vm.switchToForgotPassword() }) {
-                            Text("Forgot password?")
+                            Text("forgot_password_question".localized)
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(Color.authPrimaryButton)
                         }
@@ -117,7 +118,7 @@ struct LoginView: View {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
-                                Text("Login")
+                                Text("login".localized)
                                     .font(.system(size: 16, weight: .semibold))
                                     .foregroundColor(.white)
                             }
@@ -136,12 +137,12 @@ struct LoginView: View {
 
                 // Switch to Sign Up
                 HStack(spacing: 4) {
-                    Text("Don't have an account?")
+                    Text("dont_have_account".localized)
                         .font(.system(size: 14))
                         .foregroundColor(.authSecondaryText)
 
                     Button(action: { vm.switchToSignup() }) {
-                        Text("Sign Up")
+                        Text("sign_up".localized)
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(Color.authPrimaryButton)
                     }
@@ -154,8 +155,8 @@ struct LoginView: View {
             .padding(.horizontal, 24)
         }
         .scrollDismissesKeyboard(.interactively)
-        .alert("Login Failed", isPresented: $vm.showAlert) {
-            Button("OK", role: .cancel) {}
+        .alert("login_failed".localized, isPresented: $vm.showAlert) {
+            Button("ok", role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }

@@ -44,12 +44,32 @@ struct AppNotification: Identifiable, Codable {
             }
         }
     }
+    
+    var localizedTitle: String {
+        switch title.lowercased() {
+        case "weekly report ready": return "weekly_report_ready".localized
+        case "seizure detected": return "seizure_detected".localized
+        case "heart rate spike": return "heart_rate_spike".localized
+        case "abnormal movement": return "abnormal_movement".localized
+        default: return title.localized
+        }
+    }
+    
+    var localizedMessage: String {
+        // Map dynamic backend messages to standard localized generic descriptions
+        if message.lowercased().contains("seizure activity report") { return "weekly_report_ready_desc".localized }
+        if message.lowercased().contains("moderate seizure was detected") { return "seizure_detected_desc".localized }
+        if message.lowercased().contains("heart rate spiked") { return "heart_rate_spike_desc".localized }
+        if message.lowercased().contains("unusual motion patterns") { return "abnormal_movement_desc".localized }
+        return message.localized
+    }
 }
 
 // MARK: - Notifications View
 struct NotificationsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var recordsVM: RecordsViewModel
+    @EnvironmentObject var languageManager: LanguageManager
     
     @State private var showReportSheet: Bool = false
     @State private var notifications: [AppNotification] = []
@@ -75,17 +95,17 @@ struct NotificationsView: View {
     private func loadDemoNotifications() {
         let uid = UUID()
         notifications = [
-            AppNotification(id: UUID(), userId: uid, title: "Weekly Report Ready",
-                message: "Your seizure activity report for the last 7 days is now available.",
+            AppNotification(id: UUID(), userId: uid, title: "weekly_report_ready",
+                message: "weekly_report_ready_desc",
                 type: .system, date: Date().addingTimeInterval(-3600 * 2), isRead: false),
-            AppNotification(id: UUID(), userId: uid, title: "Seizure Detected",
-                message: "A moderate seizure was detected 5 minutes ago.",
+            AppNotification(id: UUID(), userId: uid, title: "seizure_detected",
+                message: "seizure_detected_desc",
                 type: .seizure, date: Date().addingTimeInterval(-300), isRead: false),
-            AppNotification(id: UUID(), userId: uid, title: "Heart Rate Spike",
-                message: "Your heart rate spiked to 140 bpm during sleep.",
+            AppNotification(id: UUID(), userId: uid, title: "heart_rate_spike",
+                message: "heart_rate_spike_desc",
                 type: .heartRate, date: Date().addingTimeInterval(-86400), isRead: true),
-            AppNotification(id: UUID(), userId: uid, title: "Abnormal Movement",
-                message: "Unusual movement detected during the night.",
+            AppNotification(id: UUID(), userId: uid, title: "abnormal_movement",
+                message: "abnormal_movement_desc",
                 type: .abnormalActivity, date: Date().addingTimeInterval(-86400 * 2), isRead: true)
         ]
     }
@@ -107,7 +127,7 @@ struct NotificationsView: View {
                 
                 Spacer()
                 
-                Text("Notifications")
+                Text("notifications".localized)
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
@@ -133,11 +153,11 @@ struct NotificationsView: View {
                         .font(.system(size: 48))
                         .foregroundColor(Color.dashSecondary.opacity(0.4))
                     
-                    Text("No Notifications")
+                    Text("no_notifications".localized)
                         .font(.system(size: 20, weight: .semibold, design: .rounded))
                         .foregroundColor(Color.dashLabel)
                     
-                    Text("You're all caught up! New alerts and reports will appear here.")
+                    Text("no_notifications_desc".localized)
                         .font(.system(size: 15))
                         .foregroundColor(Color.dashSecondary)
                         .multilineTextAlignment(.center)
@@ -204,6 +224,7 @@ struct NotificationsView: View {
 // MARK: - Notification Row
 struct NotificationRow: View {
     let notification: AppNotification
+    @EnvironmentObject var languageManager: LanguageManager
     
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
@@ -221,7 +242,7 @@ struct NotificationRow: View {
             // Content
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(notification.title)
+                    Text(notification.localizedTitle)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.authPrimaryText)
                     
@@ -234,7 +255,7 @@ struct NotificationRow: View {
                     }
                 }
                 
-                Text(notification.message)
+                Text(notification.localizedMessage)
                     .font(.system(size: 14))
                     .foregroundColor(.authSecondaryText)
                     .lineLimit(2)
@@ -260,6 +281,7 @@ struct NotificationRow: View {
     private func timeAgo(from date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
+        formatter.locale = Locale(identifier: UserDefaults.standard.string(forKey: "app_language") ?? "en")
         return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
@@ -268,6 +290,7 @@ struct NotificationRow: View {
 struct NotificationDetailView: View {
     @Environment(\.dismiss) private var dismiss
     let notification: AppNotification
+    @EnvironmentObject var languageManager: LanguageManager
     
     var body: some View {
         VStack(spacing: 0) {
@@ -275,7 +298,7 @@ struct NotificationDetailView: View {
             HStack {
                 CustomBackButton { dismiss() }
                 Spacer()
-                Text("Details")
+                Text("details".localized)
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 Spacer()
@@ -302,22 +325,22 @@ struct NotificationDetailView: View {
                 
                 // Title and Date
                 VStack(spacing: 8) {
-                    Text(notification.title)
+                    Text(notification.localizedTitle)
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(.authPrimaryText)
                     
-                    Text(notification.date.formatted(date: .long, time: .shortened))
+                    Text(notification.date.formatted(.dateTime.locale(Locale(identifier: UserDefaults.standard.string(forKey: "app_language") ?? "en")).month(.wide).day().year().hour().minute()))
                         .font(.system(size: 14))
                         .foregroundColor(.authSecondaryText)
                 }
                 
                 // Message Card
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Description")
+                    Text("description".localized)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.authSecondaryText)
                     
-                    Text(notification.message)
+                    Text(notification.localizedMessage)
                         .font(.system(size: 16))
                         .foregroundColor(.authPrimaryText)
                         .lineSpacing(4)
