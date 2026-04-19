@@ -9,6 +9,11 @@ struct SettingsView: View {
     @State private var showingLanguage = false
     @State private var showingWatchConnection = false
     @State private var showingDeleteConfirmation = false
+    @State private var showingLogoutConfirmation = false
+    @State private var deletePassword = ""
+    @State private var isDeletingAccount = false
+    @State private var deleteErrorMessage: String? = nil
+    @State private var refreshID = UUID()
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -56,6 +61,7 @@ struct SettingsView: View {
                             email: user?.email ?? "No email available",
                             avatarUrl: user?.avatarUrl
                         )
+                        .id(refreshID)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -169,7 +175,7 @@ struct SettingsView: View {
             
             // Footer Action
             Button(action: {
-                vm.logout()
+                showingLogoutConfirmation = true
             }) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -186,24 +192,86 @@ struct SettingsView: View {
         }
         .background(Color.authBackground.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
+        // Deletion loading overlay
+        .overlay {
+            if isDeletingAccount {
+                ZStack {
+                    Color.black.opacity(0.45).ignoresSafeArea()
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.4)
+                        Text("Deleting account...")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                    .padding(32)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
+            }
+        }
         .onAppear {
             self.user = UserDataModel.shared.getCurrentUser()
         }
         .onReceive(NotificationCenter.default.publisher(for: UserDataModel.avatarDidChangeNotification)) { _ in
             self.user = UserDataModel.shared.getCurrentUser()
+            self.refreshID = UUID() // Forces the view and card to completely redraw!
         }
-        .confirmationDialog(
-            "Delete Account?",
-            isPresented: $showingDeleteConfirmation,
-            titleVisibility: .visible
+        .alert(
+            "Log Out",
+            isPresented: $showingLogoutConfirmation
         ) {
-            Button("Delete Permanently", role: .destructive) {
-                print("🔘 [SettingsView] Delete Permanently clicked")
-                vm.deleteAccount()
-            }
             Button("Cancel", role: .cancel) { }
+            Button("Log Out", role: .destructive) {
+                vm.logout()
+            }
         } message: {
-            Text("This action is permanent and cannot be undone. All your data, seizure records, and credentials will be purged from our servers.")
+            Text("Are you sure you want to log out of your account?")
+        }
+        .alert("Delete Account", isPresented: $showingDeleteConfirmation) {
+            SecureField("Account Password", text: $deletePassword)
+            
+            Button("Cancel", role: .cancel) {
+                deletePassword = ""
+            }
+            
+            Button("Delete Permanently", role: .destructive) {
+                isDeletingAccount = true
+                Task {
+                    do {
+                        // 1. Validate email is available locally
+                        guard let email = user?.email, !email.isEmpty else {
+                            throw URLError(.userAuthenticationRequired)
+                        }
+                        
+                        // 2. Verify password by attempting to sign in
+                        _ = try await SupabaseService.shared.signIn(email: email, password: deletePassword)
+                        
+                        // 3. Password is correct, proceed with deletion
+                        try await SupabaseService.shared.deleteAccount()
+                        
+                        // 4. Logout and clean up
+                        vm.logout()
+                    } catch {
+                        isDeletingAccount = false
+                        // If the error is from sign-in, show a friendly message
+                        if error.localizedDescription.contains("Invalid login credentials") {
+                            deleteErrorMessage = "Incorrect password. Account deletion failed."
+                        } else {
+                            deleteErrorMessage = error.localizedDescription
+                        }
+                        deletePassword = ""
+                    }
+                }
+            }
+        } message: {
+            Text("This action is permanent and cannot be undone. All your data and seizure records will be purged. Please enter your password to confirm.")
+        }
+        .alert("Deletion Failed", isPresented: .constant(deleteErrorMessage != nil)) {
+            Button("OK") { deleteErrorMessage = nil }
+        } message: {
+            Text(deleteErrorMessage ?? "")
         }
     }
 }
@@ -216,7 +284,13 @@ struct SettingsProfileCard: View {
     var body: some View {
         HStack(spacing: 16) {
             ZStack {
-                if let urlStr = avatarUrl, let url = URL(string: urlStr) {
+                if let localImage = UserDataModel.shared.getLocalAvatarImage() {
+                    Image(uiImage: localImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 50, height: 50)
+                        .clipShape(Circle())
+                } else if let urlStr = avatarUrl, let url = URL(string: urlStr) {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:

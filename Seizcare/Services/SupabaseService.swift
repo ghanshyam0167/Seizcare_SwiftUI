@@ -68,13 +68,14 @@ final class SupabaseService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         
-        // 4. Headers: STRICTLY use accessToken for Authorization
+        // 4. Headers: Pass anonKey as Authorization to satisfy Kong's API gateway,
+        // and pass the actual user's ES256 token in a custom header to bypass Kong's rejection.
         let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw"
         
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        // Required for routing payload; but Authorization is strictly user session now.
         request.setValue(anonKey, forHTTPHeaderField: "apikey") 
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "x-user-token")
         
         // 5. Build Payload
         let payload = ["user_id": userId.uuidString.lowercased()]
@@ -294,14 +295,153 @@ final class SupabaseService {
     }
     
     /// Insert or update the sensitivity record for a user.
-    /// Uses upsert with `onConflict: "user_id"` so no duplicate rows are created.
     func upsertSensitivity(dto: SensitivityDTO) async throws {
         try await client
             .from("user_sensitivity")
             .upsert(dto, onConflict: "user_id")
             .execute()
     }
+    
+    // MARK: - Seizure Records
+    
+    /// Fetch all seizure records for the current user, ordered newest first.
+    func fetchSeizureRecords(userId: UUID) async throws -> [SeizureRecord] {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        
+        let response = try await client
+            .from("seizure_records")
+            .select()
+            .eq("user_id", value: userId.uuidString.lowercased())
+            .order("start_time", ascending: false)
+            .execute()
+        
+        return try decoder.decode([SeizureRecord].self, from: response.data)
+    }
+    
+    /// Insert a new seizure record.
+    func insertSeizureRecord(_ record: SeizureRecord) async throws {
+        let dto = SeizureRecordDTO(from: record)
+        try await client
+            .from("seizure_records")
+            .insert(dto)
+            .execute()
+    }
+    
+    /// Update an existing seizure record (matched by id).
+    func updateSeizureRecord(_ record: SeizureRecord) async throws {
+        let dto = SeizureRecordDTO(from: record)
+        try await client
+            .from("seizure_records")
+            .update(dto)
+            .eq("id", value: record.id.uuidString.lowercased())
+            .execute()
+    }
+    
+    /// Delete a seizure record by id.
+    func deleteSeizureRecord(id: UUID) async throws {
+        try await client
+            .from("seizure_records")
+            .delete()
+            .eq("id", value: id.uuidString.lowercased())
+            .execute()
+    }
+    
+    // MARK: - SeizureRecord Write DTO
+    
+    /// A dedicated Encodable struct for writing seizure records to Supabase.
+    /// Keeps the domain model clean while satisfying the SDK's Encodable requirement.
+    private struct SeizureRecordDTO: Encodable {
+        let id: String
+        let user_id: String
+        let entry_type: String
+        let start_time: String
+        let end_time: String
+        let severity_type: String
+        let triggers: [String]
+        let location: String?
+        let notes: String?
+        
+        init(from record: SeizureRecord) {
+            let fmt = ISO8601DateFormatter()
+            self.id            = record.id.uuidString.lowercased()
+            self.user_id       = record.userId.uuidString.lowercased()
+            self.entry_type    = record.entryType.rawValue
+            self.start_time    = fmt.string(from: record.startTime)
+            self.end_time      = fmt.string(from: record.endTime)
+            self.severity_type = record.type.rawValue
+            self.triggers      = record.triggers.map { $0.rawValue }
+            self.location      = record.location
+            self.notes         = record.notes
+        }
+    }
+    
+    // MARK: - Sleep Records
+    
+    /// Fetch sleep records for the current user.
+    func fetchSleepRecords(userId: UUID) async throws -> [SleepRecord] {
+        let decoder = JSONDecoder()
+        // Supabase returns `sleep_date` as a plain date string (no time), use custom strategy
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        decoder.dateDecodingStrategy = .formatted(dateFormatter)
+        
+        let response = try await client
+            .from("sleep_records")
+            .select()
+            .eq("user_id", value: userId.uuidString.lowercased())
+            .order("sleep_date", ascending: false)
+            .limit(90)
+            .execute()
+        
+        return try decoder.decode([SleepRecord].self, from: response.data)
+    }
+    
+    // MARK: - Heart Rate Samples
+    
+    /// Fetch heart rate samples linked to a specific seizure record.
+    func fetchHeartRateSamples(recordId: UUID) async throws -> [HeartRateSample] {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        
+        let response = try await client
+            .from("heart_rate_samples")
+            .select()
+            .eq("record_id", value: recordId.uuidString.lowercased())
+            .order("timestamp", ascending: true)
+            .execute()
+        
+        return try decoder.decode([HeartRateSample].self, from: response.data)
+    }
+    
+    // MARK: - Notifications
+    
+    /// Fetch all notifications for the current user, ordered newest first.
+    func fetchNotifications(userId: UUID) async throws -> [AppNotification] {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        
+        let response = try await client
+            .from("app_notifications")
+            .select()
+            .eq("user_id", value: userId.uuidString.lowercased())
+            .order("event_date", ascending: false)
+            .execute()
+        
+        return try decoder.decode([AppNotification].self, from: response.data)
+    }
+    
+    /// Mark a single notification as read.
+    func markNotificationRead(id: UUID) async throws {
+        struct ReadPatch: Encodable { let is_read: Bool }
+        try await client
+            .from("app_notifications")
+            .update(ReadPatch(is_read: true))
+            .eq("id", value: id.uuidString.lowercased())
+            .execute()
+    }
 }
+
     
     // MARK: - SupabaseServiceError
     

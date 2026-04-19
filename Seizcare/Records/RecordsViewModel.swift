@@ -115,7 +115,11 @@ struct RecordFilter {
 final class RecordsViewModel: ObservableObject {
 
     // All records (source of truth)
-    @Published var records: [SeizureRecord] = MockDashboardData.seizureRecords
+    @Published var records: [SeizureRecord] = []
+
+    // Loading / error state
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String? = nil
 
     // Search
     @Published var searchQuery: String = ""
@@ -129,6 +133,32 @@ final class RecordsViewModel: ObservableObject {
     @Published var showFilterSheet: Bool = false
     @Published var showReportOptions: Bool = false
     @Published var recordToEdit: SeizureRecord? = nil
+
+    init() {
+        Task { await fetchRecords() }
+    }
+
+    // MARK: - Fetch
+
+    func fetchRecords() async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        guard let userId = await SupabaseService.shared.currentUserId() else {
+            // Not logged in yet — fall back to mock data for previews / onboarding
+            records = MockDashboardData.seizureRecords
+            return
+        }
+
+        do {
+            records = try await SupabaseService.shared.fetchSeizureRecords(userId: userId)
+        } catch {
+            errorMessage = error.localizedDescription
+            // Keep mock data so UI isn't empty on network failure
+            if records.isEmpty { records = MockDashboardData.seizureRecords }
+        }
+    }
 
     // MARK: - Computed: search + filter applied
 
@@ -207,21 +237,55 @@ final class RecordsViewModel: ObservableObject {
         return result
     }
 
-    // MARK: - CRUD
+    // MARK: - CRUD (Optimistic local update + background Supabase sync)
 
     func addRecord(_ record: SeizureRecord) {
+        // Optimistic update
         records.insert(record, at: 0)
         records.sort { $0.startTime > $1.startTime }
+
+        Task {
+            do {
+                try await SupabaseService.shared.insertSeizureRecord(record)
+            } catch {
+                // Rollback on failure
+                records.removeAll { $0.id == record.id }
+                errorMessage = "Failed to save record: \(error.localizedDescription)"
+            }
+        }
     }
 
     func updateRecord(_ updated: SeizureRecord) {
+        // Optimistic update
         if let idx = records.firstIndex(where: { $0.id == updated.id }) {
             records[idx] = updated
         }
         records.sort { $0.startTime > $1.startTime }
+
+        Task {
+            do {
+                try await SupabaseService.shared.updateSeizureRecord(updated)
+            } catch {
+                // Refresh from server to restore correct state
+                errorMessage = "Failed to update record: \(error.localizedDescription)"
+                await fetchRecords()
+            }
+        }
     }
 
     func deleteRecord(_ record: SeizureRecord) {
+        // Optimistic update
         records.removeAll { $0.id == record.id }
+
+        Task {
+            do {
+                try await SupabaseService.shared.deleteSeizureRecord(id: record.id)
+            } catch {
+                // Re-insert on failure
+                records.append(record)
+                records.sort { $0.startTime > $1.startTime }
+                errorMessage = "Failed to delete record: \(error.localizedDescription)"
+            }
+        }
     }
 }

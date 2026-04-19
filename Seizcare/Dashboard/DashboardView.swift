@@ -65,12 +65,10 @@ struct DashboardView: View {
                                 .foregroundStyle(Color.dashSecondary)
                         }
                         Spacer()
-                        NavigationLink(destination: SettingsView(vm: authVM)) {
-                            Image(systemName: "person.crop.circle.fill")
-                                .resizable()
-                                .frame(width: 32, height: 32)
-                                .foregroundStyle(Color.dashLabel)
-                        }
+                        Spacer()
+                        
+                        GlassHeaderActionsView()
+                            .environmentObject(viewModel.recordsVM)
                     }
                     .padding(.top, 4)
 
@@ -283,6 +281,90 @@ struct DashboardView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - Glass Header Actions View
+struct GlassHeaderActionsView: View {
+    @EnvironmentObject var authVM: AuthViewModel
+    @EnvironmentObject var recordsVM: RecordsViewModel
+    
+    @State private var hasUnread: Bool = false
+    
+    var body: some View {
+        HStack(spacing: 24) {
+            // Notifications Icon
+            NavigationLink(destination:
+                NotificationsView()
+                    .environmentObject(recordsVM)
+                    .onDisappear { Task { await refreshUnreadCount() } }
+            ) {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "bell")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(Color.dashLabel)
+                    
+                    // Unread indicator dot — only shown when there are unread notifications
+                    if hasUnread {
+                        Circle()
+                            .fill(Color.errorRed)
+                            .frame(width: 8, height: 8)
+                            .overlay(Circle().stroke(Color.white.opacity(0.6), lineWidth: 1.5))
+                            .offset(x: 2, y: -2)
+                            .shadow(color: Color.errorRed.opacity(0.4), radius: 3, x: 0, y: 2)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+            }
+            .buttonStyle(ScaleButtonStyle())
+            
+            // Profile Icon
+            NavigationLink(destination: SettingsView(vm: authVM)) {
+                if let localImage = UserDataModel.shared.getLocalAvatarImage() {
+                    Image(uiImage: localImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 30, height: 30)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.5), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                } else {
+                    Image(systemName: "person.crop.circle")
+                        .font(.system(size: 22, weight: .light))
+                        .foregroundStyle(Color.dashLabel)
+                }
+            }
+            .buttonStyle(ScaleButtonStyle())
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        // Liquid Glass Effect
+        .background(.ultraThinMaterial)
+        .background(Color.white.opacity(0.2))
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .stroke(Color.white.opacity(0.3), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
+        .task { await refreshUnreadCount() }
+        .animation(.spring(response: 0.3), value: hasUnread)
+    }
+    
+    // MARK: - Helpers
+    
+    private func refreshUnreadCount() async {
+        guard let userId = await SupabaseService.shared.currentUserId() else {
+            // Fallback for demo / unauthenticated previews
+            hasUnread = true
+            return
+        }
+        do {
+            let notifications = try await SupabaseService.shared.fetchNotifications(userId: userId)
+            hasUnread = notifications.contains { !$0.isRead }
+        } catch {
+            // Keep previous state on network error
         }
     }
 }

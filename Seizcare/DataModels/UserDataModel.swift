@@ -5,6 +5,7 @@
 import Foundation
 import Auth
 import Supabase
+import UIKit
 
 
 //  User Model
@@ -126,6 +127,34 @@ class UserDataModel {
                 print("⚠️ [UserDataModel] updateAvatarURL failed: \(error.localizedDescription)")
             }
         }
+    }
+    
+    // MARK: - Local Image Storage
+    
+    func saveLocalAvatarImage(_ image: UIImage) {
+        if let data = image.jpegData(compressionQuality: 0.8) {
+            let url = getLocalAvatarURL()
+            try? data.write(to: url)
+            NotificationCenter.default.post(name: UserDataModel.avatarDidChangeNotification, object: nil)
+        }
+    }
+    
+    func getLocalAvatarImage() -> UIImage? {
+        let url = getLocalAvatarURL()
+        if let data = try? Data(contentsOf: url) {
+            return UIImage(data: data)
+        }
+        return nil
+    }
+    
+    func clearLocalAvatarImage() {
+        let url = getLocalAvatarURL()
+        try? FileManager.default.removeItem(at: url)
+    }
+    
+    private func getLocalAvatarURL() -> URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        return paths[0].appendingPathComponent("local_avatar.jpg")
     }
 
 }

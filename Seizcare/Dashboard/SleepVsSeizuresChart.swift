@@ -30,40 +30,39 @@ private func alignedData(
         return []
 
     case .weekly:
-        var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-        comps.weekday = 2
-        guard let startOfMonday = cal.date(from: comps) else { return [] }
-        return (0..<7).compactMap { offset -> TimePoint? in
-            guard let start = cal.date(byAdding: .day, value: offset, to: startOfMonday),
-                  let end   = cal.date(byAdding: .day, value: 1, to: start) else { return nil }
-            let count = records.filter { $0.startTime >= start && $0.startTime < end }.count
-            let hours = sleep.first { cal.isDate($0.date, inSameDayAs: start) }?.duration
-            return TimePoint(date: start, sleepHours: hours, seizureCount: count)
+        return (0..<7).reversed().compactMap { offset -> TimePoint? in
+            guard let start = cal.date(byAdding: .day, value: -offset, to: now) else { return nil }
+            let dayStart = cal.startOfDay(for: start)
+            guard let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) else { return nil }
+            
+            let count = records.filter { $0.startTime >= dayStart && $0.startTime < dayEnd }.count
+            let hours = sleep.first { cal.isDate($0.date, inSameDayAs: dayStart) }?.duration
+            return TimePoint(date: dayStart, sleepHours: hours, seizureCount: count)
         }
 
     case .monthly:
-        let comps = cal.dateComponents([.year, .month], from: now)
-        guard let startOfMonth = cal.date(from: comps),
-              let range = cal.range(of: .day, in: .month, for: startOfMonth) else { return [] }
-        return (0..<range.count).compactMap { offset -> TimePoint? in
-            guard let start = cal.date(byAdding: .day, value: offset, to: startOfMonth),
-                  let end   = cal.date(byAdding: .day, value: 1, to: start) else { return nil }
-            let count = records.filter { $0.startTime >= start && $0.startTime < end }.count
-            let hours = sleep.first { cal.isDate($0.date, inSameDayAs: start) }?.duration
-            return TimePoint(date: start, sleepHours: hours, seizureCount: count)
+        return (0..<30).reversed().compactMap { offset -> TimePoint? in
+            guard let start = cal.date(byAdding: .day, value: -offset, to: now) else { return nil }
+            let dayStart = cal.startOfDay(for: start)
+            guard let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) else { return nil }
+            
+            let count = records.filter { $0.startTime >= dayStart && $0.startTime < dayEnd }.count
+            let hours = sleep.first { cal.isDate($0.date, inSameDayAs: dayStart) }?.duration
+            return TimePoint(date: dayStart, sleepHours: hours, seizureCount: count)
         }
 
     case .yearly:
-        let year = cal.component(.year, from: now)
-        guard let startOfYear = cal.date(from: DateComponents(year: year, month: 1, day: 1)) else { return [] }
-        return (0..<12).compactMap { offset -> TimePoint? in
-            guard let start = cal.date(byAdding: .month, value: offset, to: startOfYear),
-                  let end   = cal.date(byAdding: .month, value: 1, to: start) else { return nil }
-            let count = records.filter { $0.startTime >= start && $0.startTime < end }.count
-            let monthSleeps = sleep.filter { $0.date >= start && $0.date < end }
+        return (0..<12).reversed().compactMap { offset -> TimePoint? in
+            guard let start = cal.date(byAdding: .month, value: -offset, to: now) else { return nil }
+            let comps = cal.dateComponents([.year, .month], from: start)
+            guard let monthStart = cal.date(from: comps),
+                  let monthEnd = cal.date(byAdding: .month, value: 1, to: monthStart) else { return nil }
+            
+            let count = records.filter { $0.startTime >= monthStart && $0.startTime < monthEnd }.count
+            let monthSleeps = sleep.filter { $0.date >= monthStart && $0.date < monthEnd }
             let avgHours: Double? = monthSleeps.isEmpty ? nil
                 : monthSleeps.reduce(0) { $0 + $1.duration } / Double(monthSleeps.count)
-            return TimePoint(date: start, sleepHours: avgHours, seizureCount: count)
+            return TimePoint(date: monthStart, sleepHours: avgHours, seizureCount: count)
         }
     }
 }
@@ -132,9 +131,9 @@ struct SleepVsSeizuresChartView: View {
 
                         // Segmented range picker
                         Picker("Range", selection: $selectedRange) {
-                            Text("This Week").tag(TimeFrameRange.weekly)
-                            Text("This Month").tag(TimeFrameRange.monthly)
-                            Text("This Year").tag(TimeFrameRange.yearly)
+                            Text("Last 7 Days").tag(TimeFrameRange.weekly)
+                            Text("Last 30 Days").tag(TimeFrameRange.monthly)
+                            Text("Last 12 Months").tag(TimeFrameRange.yearly)
                         }
                         .pickerStyle(.segmented)
                         .padding(.horizontal, 16)
@@ -181,10 +180,11 @@ struct SleepVsSeizuresChartView: View {
                                     y: .value("Seizures", pt.seizureCount)
                                 )
                                 .foregroundStyle(barColor(for: pt))
-                                .cornerRadius(3)
+                                .cornerRadius(4)
                             }
 
-                            ForEach(data) { pt in
+                            // Sleep circles — only on days that ALSO have a seizure event
+                            ForEach(data.filter { $0.seizureCount > 0 }) { pt in
                                 if let h = pt.sleepHours {
                                     LineMark(
                                         x: .value("Date", pt.date),
@@ -218,9 +218,8 @@ struct SleepVsSeizuresChartView: View {
                                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                             }
                         }
-                        .chartYScale(domain: 0...10)
                         .chartYAxis {
-                            AxisMarks(position: .leading, values: [0, 2, 4, 6, 8, 10]) { v in
+                            AxisMarks(position: .leading) { v in
                                 AxisGridLine()
                                     .foregroundStyle(Color(UIColor.separator).opacity(0.4))
                                 AxisValueLabel {
@@ -411,7 +410,7 @@ struct SleepVsSeizuresMiniChart: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             // Period label
-            Text("This Week")
+            Text("Last 7 Days")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Color.dashSecondary)
 
@@ -443,10 +442,11 @@ struct SleepVsSeizuresMiniChart: View {
                         x: .value("Day", pt.date),
                         y: .value("Seizures", pt.seizureCount)
                     )
-                    .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38).opacity(0.8))
-                    .cornerRadius(3)
+                    .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38).opacity(0.85))
+                    .cornerRadius(4)
                 }
-                ForEach(weekData) { pt in
+                // Sleep circles — only on seizure days
+                ForEach(weekData.filter { $0.seizureCount > 0 }) { pt in
                     if let h = pt.sleepHours {
                         LineMark(x: .value("Day", pt.date), y: .value("Sleep", h))
                             .interpolationMethod(.linear)
@@ -461,7 +461,6 @@ struct SleepVsSeizuresMiniChart: View {
                     }
                 }
             }
-            .chartYScale(domain: 0...10)
             .chartXAxis {
                 AxisMarks(values: .automatic) { value in
                     AxisValueLabel(centered: false) {

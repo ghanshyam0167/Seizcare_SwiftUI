@@ -66,7 +66,7 @@ struct SeizureFrequencyMiniChart: View {
                 }
             }
             .chartXAxis {
-                AxisMarks(preset: .aligned, values: xAxisValues(for: range)) { value in
+                AxisMarks(preset: .aligned, values: .automatic) { value in
                     AxisValueLabel {
                         if let date = value.as(Date.self) {
                             Text(xAxisLabel(for: date, range: range))
@@ -83,50 +83,14 @@ struct SeizureFrequencyMiniChart: View {
     }
 }
 
-// MARK: - Fileprivate Helpers
-
 fileprivate func dateLabel(for range: TimeFrameRange) -> String {
     switch range {
-    case .daily: return "Today"
-    case .weekly: return "This Week"
-    case .monthly:
-        let f = DateFormatter(); f.dateFormat = "MMM yyyy"
-        return f.string(from: Date()).uppercased()
-    case .yearly:
-        let f = DateFormatter(); f.dateFormat = "yyyy"
-        return f.string(from: Date())
+    case .daily: return "Last 24 Hours"
+    case .weekly: return "Last 7 Days"
+    case .monthly: return "Last 30 Days"
+    case .yearly: return "Last 12 Months"
     }
 }
-
-fileprivate func xAxisValues(for range: TimeFrameRange) -> [Date] {
-    let cal = Calendar.current
-    var dates: [Date] = []
-    let now = Date()
-    
-    switch range {
-    case .daily:
-        let start = cal.startOfDay(for: now)
-        for h in [0, 6, 12, 18] { if let d = cal.date(byAdding: .hour, value: h, to: start) { dates.append(d) } }
-    case .weekly:
-        var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-        comps.weekday = 2 // Monday
-        if let start = cal.date(from: comps) {
-            for d in 0..<7 { if let dt = cal.date(byAdding: .day, value: d, to: start) { dates.append(dt) } }
-        }
-    case .monthly:
-        let comps = cal.dateComponents([.year, .month], from: now)
-        if let start = cal.date(from: comps) {
-            for d in [0, 7, 14, 21, 28] { if let dt = cal.date(byAdding: .day, value: d, to: start) { dates.append(dt) } }
-        }
-    case .yearly:
-        let year = cal.component(.year, from: now)
-        if let start = cal.date(from: DateComponents(year: year, month: 1, day: 1)) {
-            for m in 0..<12 { if let dt = cal.date(byAdding: .month, value: m, to: start) { dates.append(dt) } }
-        }
-    }
-    return dates
-}
-
 fileprivate func xAxisLabel(for date: Date, range: TimeFrameRange) -> String {
     let f = DateFormatter()
     switch range {
@@ -163,23 +127,19 @@ struct SeizureFrequencyChartView: View {
         let now = Date()
         switch initialRange {
         case .daily:
-            return records.filter { cal.isDate($0.startTime, inSameDayAs: now) }
+            guard let start = cal.date(byAdding: .hour, value: -24, to: now) else { return [] }
+            return records.filter { $0.startTime >= start && $0.startTime <= now }
         case .weekly:
-            var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-            comps.weekday = 2 // Monday
-            guard let start = cal.date(from: comps),
-                  let end = cal.date(byAdding: .day, value: 7, to: start) else { return [] }
-            return records.filter { $0.startTime >= start && $0.startTime < end }
+            guard let start = cal.date(byAdding: .day, value: -7, to: now) else { return [] }
+            return records.filter { $0.startTime >= cal.startOfDay(for: start) && $0.startTime <= now }
         case .monthly:
-            let comps = cal.dateComponents([.year, .month], from: now)
-            guard let start = cal.date(from: comps),
-                  let end = cal.date(byAdding: .month, value: 1, to: start) else { return [] }
-            return records.filter { $0.startTime >= start && $0.startTime < end }
+            guard let start = cal.date(byAdding: .day, value: -30, to: now) else { return [] }
+            return records.filter { $0.startTime >= cal.startOfDay(for: start) && $0.startTime <= now }
         case .yearly:
-            let year = cal.component(.year, from: now)
-            guard let start = cal.date(from: DateComponents(year: year, month: 1, day: 1)),
-                  let end = cal.date(byAdding: .year, value: 1, to: start) else { return [] }
-            return records.filter { $0.startTime >= start && $0.startTime < end }
+            guard let start = cal.date(byAdding: .month, value: -12, to: now) else { return [] }
+            let comps = cal.dateComponents([.year, .month], from: start)
+            guard let monthStart = cal.date(from: comps) else { return [] }
+            return records.filter { $0.startTime >= monthStart && $0.startTime <= now }
         }
     }
     
@@ -299,12 +259,12 @@ struct SeizureFrequencyChartView: View {
                         .chartXScale(range: .plotDimension(padding: 20))
                         .chartYScale(domain: 0...(peakInView == 0 ? 5 : Int(Double(peakInView) * 1.35 + 1)))
                         .chartXAxis {
-                            AxisMarks(preset: .aligned, values: xAxisValues(for: initialRange)) { value in
+                            AxisMarks(preset: .aligned, values: .automatic) { value in
                                 AxisValueLabel {
                                     if let date = value.as(Date.self) {
                                         Text(xAxisLabel(for: date, range: initialRange))
-                                            .font(.system(size: 11, weight: .semibold))
-                                            .foregroundStyle(Color.gray)
+                                            .font(.system(size: 10, weight: .medium))
+                                            .foregroundStyle(Color.dashSecondary)
                                     }
                                 }
                             }
@@ -415,18 +375,11 @@ struct SeizureFrequencyChartView: View {
     }
     
     private func divisor(for range: TimeFrameRange) -> Double {
-        let cal = Calendar.current
-        let now = Date()
         switch range {
         case .daily: return 1
-        case .weekly: 
-            let weekday = cal.component(.weekday, from: now)
-            let mondayBased = (weekday + 5) % 7 + 1
-            return Double(mondayBased)
-        case .monthly: 
-            return Double(cal.component(.day, from: now))
-        case .yearly: 
-            return Double(cal.component(.month, from: now))
+        case .weekly: return 7
+        case .monthly: return 30
+        case .yearly: return 12
         }
     }
     

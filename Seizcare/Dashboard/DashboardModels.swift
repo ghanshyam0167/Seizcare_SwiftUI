@@ -68,19 +68,48 @@ struct SeizureRecord: Identifiable, Codable, Hashable {
 
     // Derived — not stored
     var duration: TimeInterval { endTime.timeIntervalSince(startTime) }
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case entryType = "entry_type"
+        case startTime = "start_time"
+        case endTime = "end_time"
+        case type = "severity_type"
+        case triggers
+        case location
+        case notes
+    }
 }
 
-struct HeartRateSample: Identifiable {
+struct HeartRateSample: Identifiable, Codable {
     let id: UUID
+    let userId: UUID?      // nil for HealthKit-sourced samples
     let timestamp: Date
     let bpm: Int
     let recordId: UUID?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case timestamp
+        case bpm
+        case recordId = "record_id"
+    }
 }
 
-struct SleepRecord: Identifiable {
+struct SleepRecord: Identifiable, Codable {
     let id: UUID
+    let userId: UUID
     let date: Date
     let hours: Double
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case date = "sleep_date"
+        case hours = "duration_hours"
+    }
 }
 
 // MARK: - Design tokens
@@ -197,7 +226,7 @@ struct MockDashboardData {
         let hoursPattern: [Double] = [5.5, 6.0, 7.5, 8.0, 6.5, 5.0, 7.0]
         return (0..<28).compactMap { offset in
             guard let date = calendar.date(byAdding: .day, value: -offset, to: now) else { return nil }
-            return SleepRecord(id: UUID(), date: date, hours: hoursPattern[offset % 7])
+            return SleepRecord(id: UUID(), userId: userId, date: date, hours: hoursPattern[offset % 7])
         }
     }()
 
@@ -222,10 +251,7 @@ struct MockDashboardData {
                 let p            = min(minutesAfter / 60.0, 1.0)
                 bpm = Int(150 - p * 80) + Int.random(in: -4...4)
             }
-            samples.append(HeartRateSample(
-                id: UUID(), timestamp: current,
-                bpm: max(50, min(180, bpm)), recordId: record.id
-            ))
+            samples.append(HeartRateSample(id: UUID(), userId: userId, timestamp: current, bpm: max(50, min(180, bpm)), recordId: record.id))
             current = current.addingTimeInterval(interval)
         }
         return samples
@@ -248,14 +274,7 @@ extension Array where Element == SeizureRecord {
     }
 
     func thisDayHourlyCounts() -> [(date: Date, count: Int)] {
-        let calendar = Calendar.current
-        let startOfToday = calendar.startOfDay(for: Date())
-        return (0..<24).compactMap { hourOffset -> (Date, Int)? in
-            guard let start = calendar.date(byAdding: .hour, value: hourOffset, to: startOfToday),
-                  let end = calendar.date(byAdding: .hour, value: 1, to: start) else { return nil }
-            let count = filter { $0.startTime >= start && $0.startTime < end }.count
-            return (start, count)
-        }
+        return hourlyCounts(over: 24)
     }
 
     func dailyCounts(over days: Int) -> [(date: Date, count: Int)] {
@@ -271,39 +290,11 @@ extension Array where Element == SeizureRecord {
     }
 
     func thisWeekDailyCounts() -> [(date: Date, count: Int)] {
-        let calendar = Calendar.current
-        let now = Date()
-        // Find Monday of the current week
-        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-        components.weekday = 2 // Monday
-        guard let startOfMonday = calendar.date(from: components) else {
-            // Fallback if weekday calculation fails
-            return dailyCounts(over: 7)
-        }
-        
-        return (0..<7).compactMap { dayOffset -> (Date, Int)? in
-            guard let start = calendar.date(byAdding: .day, value: dayOffset, to: startOfMonday),
-                  let end = calendar.date(byAdding: .day, value: 1, to: start) else { return nil }
-            let count = filter { $0.startTime >= start && $0.startTime < end }.count
-            return (start, count)
-        }
+        return dailyCounts(over: 7)
     }
 
     func thisMonthDailyCounts() -> [(date: Date, count: Int)] {
-        let calendar = Calendar.current
-        let now = Date()
-        let components = calendar.dateComponents([.year, .month], from: now)
-        guard let startOfMonth = calendar.date(from: components),
-              let range = calendar.range(of: .day, in: .month, for: startOfMonth) else {
-            return dailyCounts(over: 30)
-        }
-        
-        return (0..<range.count).compactMap { dayOffset -> (Date, Int)? in
-            guard let start = calendar.date(byAdding: .day, value: dayOffset, to: startOfMonth),
-                  let end = calendar.date(byAdding: .day, value: 1, to: start) else { return nil }
-            let count = filter { $0.startTime >= start && $0.startTime < end }.count
-            return (start, count)
-        }
+        return dailyCounts(over: 30)
     }
     
     func monthlyCounts(over months: Int) -> [(date: Date, count: Int)] {
@@ -320,19 +311,7 @@ extension Array where Element == SeizureRecord {
     }
     
     func thisYearMonthlyCounts() -> [(date: Date, count: Int)] {
-        let calendar = Calendar.current
-        let now = Date()
-        let year = calendar.component(.year, from: now)
-        guard let startOfYear = calendar.date(from: DateComponents(year: year, month: 1, day: 1)) else {
-            return monthlyCounts(over: 12)
-        }
-        
-        return (0..<12).compactMap { monthOffset -> (Date, Int)? in
-            guard let start = calendar.date(byAdding: .month, value: monthOffset, to: startOfYear),
-                  let end = calendar.date(byAdding: .month, value: 1, to: start) else { return nil }
-            let count = filter { $0.startTime >= start && $0.startTime < end }.count
-            return (start, count)
-        }
+        return monthlyCounts(over: 12)
     }
 
     var averageDurationSeconds: TimeInterval {

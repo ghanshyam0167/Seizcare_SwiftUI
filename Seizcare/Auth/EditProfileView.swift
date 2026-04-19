@@ -71,6 +71,13 @@ struct EditProfileView: View {
                                             .frame(width: 120, height: 120)
                                             .clipShape(Circle())
                                             .overlay(Circle().stroke(Color.authPrimaryButton.opacity(0.2), lineWidth: 4))
+                                    } else if let localImage = UserDataModel.shared.getLocalAvatarImage() {
+                                        Image(uiImage: localImage)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 120, height: 120)
+                                            .clipShape(Circle())
+                                            .overlay(Circle().stroke(Color.authPrimaryButton.opacity(0.2), lineWidth: 4))
                                     } else if let urlString = existingAvatarUrl, let url = URL(string: urlString) {
                                         AsyncImage(url: url) { phase in
                                             switch phase {
@@ -143,6 +150,22 @@ struct EditProfileView: View {
                         Text("Change Photo")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.authPrimaryButton)
+                            
+                        if !photoRemoved && (newProfileImage != nil || existingAvatarUrl != nil || UserDataModel.shared.getLocalAvatarImage() != nil) {
+                            Button(action: {
+                                withAnimation {
+                                    newProfileImage = nil
+                                    existingAvatarUrl = nil
+                                    photoRemoved = true
+                                    selectedItem = nil
+                                }
+                            }) {
+                                Text("Remove Photo")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.errorRed)
+                            }
+                            .padding(.top, -8)
+                        }
                     }
                     
                     // Inputs
@@ -312,6 +335,7 @@ struct EditProfileView: View {
         // Handle photo changes
         Task {
             if photoRemoved {
+                UserDataModel.shared.clearLocalAvatarImage()
                 // Clear avatar URL in DB
                 do {
                     try await SupabaseService.shared.updateUserAvatar(userId: user.id, url: "")
@@ -320,6 +344,7 @@ struct EditProfileView: View {
                     print("Failed to remove avatar: \(error)")
                 }
             } else if let image = newProfileImage, let data = image.jpegData(compressionQuality: 0.7) {
+                UserDataModel.shared.saveLocalAvatarImage(image)
                 // Upload new avatar
                 do {
                     let url = try await SupabaseService.shared.uploadAvatar(userId: user.id, imageData: data)
