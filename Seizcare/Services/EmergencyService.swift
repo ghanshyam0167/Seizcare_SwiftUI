@@ -9,9 +9,7 @@ class EmergencyService {
     static let shared = EmergencyService()
     
     // Supabase config
-    // Note: To be aligned with SupabaseService
-    private let edgeFunctionURL = URL(string: "https://ydbudbenyxrfwdzumxbu.supabase.co/functions/v1/smooth-service")!
-    private let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw"
+    private let edgeFunctionURL = URL(string: "\(SupabaseConfig.url.absoluteString)/functions/v1/smooth-service")!
 
     // Debounce / Cooldown management
     private var lastTriggerTime: Date?
@@ -77,7 +75,7 @@ class EmergencyService {
         var request = URLRequest(url: edgeFunctionURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(SupabaseConfig.anonKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = httpBody
         
         // 6. Retry Logic via Task

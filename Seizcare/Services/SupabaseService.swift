@@ -19,8 +19,8 @@ final class SupabaseService {
     
     private init() {
         client = SupabaseClient(
-            supabaseURL: URL(string: "https://ydbudbenyxrfwdzumxbu.supabase.co")!,
-            supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw"
+            supabaseURL: SupabaseConfig.url,
+            supabaseKey: SupabaseConfig.anonKey
         )
     }
     
@@ -61,7 +61,7 @@ final class SupabaseService {
         print("✅ Session refreshed. User ID: \(userId)")
 
         // 3. Build POST request to the explicit URL
-        guard let url = URL(string: "https://ydbudbenyxrfwdzumxbu.supabase.co/functions/v1/delete-user") else {
+        guard let url = URL(string: "\(SupabaseConfig.url.absoluteString)/functions/v1/delete-user") else {
             throw URLError(.badURL)
         }
         
@@ -70,7 +70,7 @@ final class SupabaseService {
         
         // 4. Headers: Pass anonKey as Authorization to satisfy Kong's API gateway,
         // and pass the actual user's ES256 token in a custom header to bypass Kong's rejection.
-        let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw"
+        let anonKey = SupabaseConfig.anonKey
         
         request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -139,6 +139,18 @@ final class SupabaseService {
     /// Returns the currently authenticated user's UUID, or nil if not logged in.
     func currentUserId() async -> UUID? {
         return try? await client.auth.user().id
+    }
+
+    /// Returns a valid access token for Supabase REST requests.
+    /// Attempts to use the current session first; refreshes if needed.
+    func currentAccessToken() async throws -> String {
+        // Fast path: existing session in memory/keychain.
+        if let session = try? await client.auth.session {
+            return session.accessToken
+        }
+        // Refresh path: requires a valid refresh token.
+        let fresh = try await client.auth.refreshSession()
+        return fresh.accessToken
     }
     
     // MARK: - Sign Up (OTP)
