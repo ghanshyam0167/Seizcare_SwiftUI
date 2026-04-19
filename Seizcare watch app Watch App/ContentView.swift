@@ -27,6 +27,8 @@ struct ContentView: View {
                 WatchControlView(connectivity: connectivity)
             }
             .padding(.horizontal)
+            
+
         }
         .background(Color.black.edgesIgnoringSafeArea(.all))
         .fullScreenCover(isPresented: $connectivity.isAlarmActive) {

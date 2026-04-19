@@ -5,6 +5,7 @@
 
 import SwiftUI
 import PhotosUI
+import AVFoundation
 
 struct EditProfileView: View {
     @Environment(\.dismiss) private var dismiss
@@ -26,6 +27,9 @@ struct EditProfileView: View {
     @State private var showingCamera = false
     @State private var showingGallery = false
     @State private var photoRemoved = false
+    
+    // Camera permission
+    @State private var showingCameraPermissionAlert = false
     
     // Crop flow
     @State private var imageToCrop: UIImage? = nil
@@ -109,7 +113,7 @@ struct EditProfileView: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                         .confirmationDialog("Change Profile Photo", isPresented: $showingActionSheet, titleVisibility: .visible) {
-                            Button("Take Photo") { showingCamera = true }
+                            Button("Take Photo") { requestCameraAndOpen() }
                             Button("Choose from Gallery") { showingGallery = true }
                             if newProfileImage != nil || existingAvatarUrl != nil {
                                 Button("Remove Photo", role: .destructive) {
@@ -122,6 +126,16 @@ struct EditProfileView: View {
                                 }
                             }
                             Button("Cancel", role: .cancel) {}
+                        }
+                        .alert("Camera Access Required", isPresented: $showingCameraPermissionAlert) {
+                            Button("Open Settings") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
+                            Button("Cancel", role: .cancel) {}
+                        } message: {
+                            Text("Please allow camera access in Settings to take a profile photo.")
                         }
                         .sheet(isPresented: $showingCamera) {
                             CameraPicker(image: $imageToCrop)
@@ -381,6 +395,25 @@ struct EditProfileView: View {
                 isSaving = false
                 dismiss()
             }
+        }
+    }
+    // MARK: - Camera Permission
+    
+    private func requestCameraAndOpen() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            showingCamera = true
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    if granted { showingCamera = true }
+                    else { showingCameraPermissionAlert = true }
+                }
+            }
+        case .denied, .restricted:
+            showingCameraPermissionAlert = true
+        @unknown default:
+            showingCameraPermissionAlert = true
         }
     }
 }

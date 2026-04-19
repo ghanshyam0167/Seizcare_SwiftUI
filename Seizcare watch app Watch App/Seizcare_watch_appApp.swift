@@ -1,19 +1,17 @@
-//
-//  Seizcare_watch_appApp.swift
-//  Seizcare watch app Watch App
-//
-//  Created by Diya Sharma on 18/04/26.
-//
-
 import SwiftUI
 
 @main
 struct Seizcare_watch_app_Watch_AppApp: App {
     @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var pipeline = DetectionPipelineManager()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    print("[Pipeline] Auto-starting seizure detection pipeline on launch...")
+                    pipeline.start()
+                }
         }
         .onChange(of: scenePhase) { newPhase in
             switch newPhase {

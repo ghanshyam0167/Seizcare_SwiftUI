@@ -148,7 +148,7 @@ struct SensitivitySetupView: View {
                         .fill(Color.authPrimaryButton)
                         .frame(height: 56)
                     
-                    Text(vm.isAuthenticated ? "Done" : "Confirm & Finish")
+                    Text(vm.isAuthenticated ? "Done" : "Next")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                 }

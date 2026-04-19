@@ -21,18 +21,18 @@ struct AddEmergencyContactsView: View {
         ZStack {
             VStack(spacing: 0) {
                 // Navigation Bar
-            HStack {
-                CustomBackButton {
-                    if vm.isAuthenticated {
-                        dismiss()
-                    } else {
-                        vm.goBack() 
+                HStack {
+                    CustomBackButton {
+                        if vm.isAuthenticated {
+                            dismiss()
+                        } else {
+                            vm.goBack()
+                        }
                     }
+                    Spacer()
                 }
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 10)
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
             
             Spacer().frame(height: 10)
             
@@ -157,7 +157,7 @@ struct AddEmergencyContactsView: View {
                             .fill(contacts.count >= 1 ? Color.authPrimaryButton : Color.authButtonDisabled)
                             .frame(height: 56)
                         
-                        Text(vm.isAuthenticated ? "Done" : "Finish Setup")
+                        Text(vm.isAuthenticated ? "Done" : "Next")
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
                     }

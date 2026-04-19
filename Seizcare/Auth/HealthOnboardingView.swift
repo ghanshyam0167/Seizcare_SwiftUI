@@ -107,7 +107,7 @@ struct HealthOnboardingView: View {
             // Footer
             VStack(spacing: 16) {
                 let isComplete = !vm.onboardingAvgSleep.isEmpty && !vm.onboardingFrequency.isEmpty && !vm.onboardingAvgDuration.isEmpty
-                AuthPrimaryButton(title: "Complete Setup", isLoading: vm.isLoading, isEnabled: isComplete) {
+                AuthPrimaryButton(title: "Finish Setup", isLoading: vm.isLoading, isEnabled: isComplete) {
                     vm.completeHealthOnboarding()
                 }
             }

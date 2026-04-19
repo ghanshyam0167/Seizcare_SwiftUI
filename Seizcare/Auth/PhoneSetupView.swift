@@ -96,7 +96,7 @@ struct PhoneSetupView: View {
                             .fill(isValid ? Color.authPrimaryButton : Color.authButtonDisabled)
                             .frame(height: 56)
                         
-                        Text(vm.onboardingPhoneNumber.isEmpty ? "Skip for Now" : "Continue")
+                        Text(vm.onboardingPhoneNumber.isEmpty ? "Skip" : "Next")
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
                     }

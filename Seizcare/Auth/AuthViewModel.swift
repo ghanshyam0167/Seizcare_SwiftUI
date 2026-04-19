@@ -354,16 +354,15 @@ final class AuthViewModel: ObservableObject {
         Task {
             defer { isLoading = false }
             do {
-                _ = try await service.signUpAndBypass(
+                let isResend = try await service.signUp(
                     email:    signupEmail.trimmingCharacters(in: .whitespaces),
                     password: signupPassword
                 )
-                
-                triggerSuccessToast(message: "Account created! Let's setup your profile.")
-                withAnimation(.spring()) { activeScreen = .setupProfile }
+                isResendSignupOTP = isResend
+                triggerSuccessToast(message: "Verification code sent to \(signupEmail.trimmingCharacters(in: .whitespaces))")
+                withAnimation(.spring()) { activeScreen = .signupVerification }
             } catch let e as AuthServiceError {
                 if case .emailAlreadyInUse = e {
-                    // Friendly nudge to log in instead
                     alertMessage = "This email is already registered. Please log in."
                 } else {
                     alertMessage = e.localizedDescription
@@ -389,12 +388,8 @@ final class AuthViewModel: ObservableObject {
                     isResend: isResendSignupOTP
                 )
                 
-                // Sync user data
-                await EmergencyContactDataModel.shared.refreshContacts()
-                await SensitivityDataModel.shared.refreshSensitivity()
-                
-                triggerSuccessToast(message: "Account verified successfully!")
-                isAuthenticated = true
+                triggerSuccessToast(message: "Email verified! Let's set up your profile.")
+                withAnimation(.spring()) { activeScreen = .setupProfile }
             } catch {
                 alertMessage = "Invalid or expired verification code."
                 showAlert = true
@@ -416,13 +411,12 @@ final class AuthViewModel: ObservableObject {
     }
     
     func completeHealthOnboarding() {
-        // Store the optional data in UserDataModel for future insights.
-        // For now, we print or safely store it so it doesn't break charts.
-        if UserDataModel.shared.getCurrentUser() != nil {
-            // Suppose user has extra fields or we add them later. 
-            // We just complete the auth flow.
+        Task {
+            // Sync user data now that onboarding is complete
+            await EmergencyContactDataModel.shared.refreshContacts()
+            await SensitivityDataModel.shared.refreshSensitivity()
+            isAuthenticated = true
         }
-        isAuthenticated = true
     }
 
     private func dismissKeyboard() {
@@ -712,6 +706,9 @@ final class AuthViewModel: ObservableObject {
         
         // If image provided, upload it
         if let image = onboardingProfileImage, let data = image.jpegData(compressionQuality: 0.7) {
+            // Save locally for instant reflection
+            UserDataModel.shared.saveLocalAvatarImage(image)
+            
             Task {
                 if let userId = UserDataModel.shared.getCurrentUser()?.id {
                     do {
@@ -732,6 +729,14 @@ final class AuthViewModel: ObservableObject {
     func goBack() {
         withAnimation(.spring()) {
             switch activeScreen {
+            case .signupVerification:
+                // Clear OTP field and go back to signup form
+                signupOTP = ""
+                isResendSignupOTP = false
+                activeScreen = .signup
+            case .setupProfile:
+                // Back from profile setup goes to OTP screen
+                activeScreen = .signupVerification
             case .setupPhone:
                 activeScreen = .setupProfile
             case .addEmergencyContacts:

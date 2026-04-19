@@ -184,9 +184,6 @@ struct DashboardView: View {
             // Toast Overlay
 emergencyToast
 
-// Countdown Overlay
-emergencyCountdown
-
 // Loading Overlay
 if viewModel.isLoading {
     ZStack {
@@ -230,8 +227,7 @@ if viewModel.isLoading {
 
 .toolbar(
     (emergencyVM.alertSuccessPopupVisible ||
-     emergencyVM.alertSending ||
-     emergencyVM.status == .countingDown)
+     emergencyVM.alertSending)
     ? .hidden : .visible,
     for: .bottomBar
 )
