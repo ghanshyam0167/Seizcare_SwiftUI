@@ -37,7 +37,7 @@ struct SeizureStreakMiniChart: View {
                 Text("\(daysSinceLast)")
                     .font(.system(size: 20, weight: .black, design: .rounded))
                     .foregroundStyle(Color.dashGreen)
-                Text("Days Free")
+                Text("days_free")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Color.dashSecondary)
             }
@@ -97,9 +97,9 @@ struct SeizureStreakChartView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     // Summary row
                     HStack(spacing: 0) {
-                        SummaryTile(label: "Current Streak", value: "\(currentStreak) Days")
+                        SummaryTile(label: "current_streak", value: String(localized: "streak_days \(currentStreak)"))
                             .foregroundStyle(Color.dashGreen)
-                        SummaryTile(label: "Longest Streak", value: "\(longestStreak) Days")
+                        SummaryTile(label: "longest_streak", value: String(localized: "streak_days \(longestStreak)"))
                             .foregroundStyle(Color.dashLabel)
                     }
                     .background(Color.dashCard)
@@ -111,12 +111,12 @@ struct SeizureStreakChartView: View {
                             .foregroundStyle(Color.dashGreen)
                             .font(.system(size: 24))
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(currentStreak == 0 ? "Keep going!" : "You're doing great!")
+                            Text(currentStreak == 0 ? "keep_going" : "doing_great")
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundStyle(Color.dashLabel)
                             Text(currentStreak == 0 
-                                 ? "A new streak starts today. Stay consistent." 
-                                 : "You haven't recorded a seizure in \(currentStreak) days. Keep up the good work!")
+                                 ? String(localized: "streak_start_today") 
+                                 : String(localized: "streak_congrats \(currentStreak)"))
                                 .font(.caption)
                                 .foregroundStyle(Color.dashSecondary)
                         }
@@ -128,7 +128,7 @@ struct SeizureStreakChartView: View {
                     
                     // Month Calendar
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("30-Day Outlook")
+                        Text("thirty_day_outlook")
                             .font(.caption)
                             .foregroundStyle(Color.dashSecondary)
                         
@@ -159,11 +159,11 @@ struct SeizureStreakChartView: View {
                 .padding(16)
             }
             .background(Color.dashBg.ignoresSafeArea())
-            .navigationTitle("Seizure-Free Streak")
+            .navigationTitle("seizure_free_streak")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button("done") { dismiss() }
                         .foregroundStyle(Color.dashGreen)
                 }
             }
@@ -190,7 +190,7 @@ private struct SummaryTile: View {
         VStack(spacing: 4) {
             Text(value)
                 .font(.system(size: 20, weight: .bold, design: .rounded))
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(.caption)
                 .foregroundStyle(Color.dashSecondary)
         }

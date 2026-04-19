@@ -34,11 +34,11 @@ struct ForgotPasswordOTPView: View {
             
             // Header
             VStack(spacing: 8) {
-                Text("Verification Code")
+                Text("verification_code")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
-                Text("We've sent an 8-digit code to\n\(vm.forgotPasswordEmail)")
+                Text("verification_code_desc \(vm.forgotPasswordEmail)")
                     .font(.system(size: 15))
                     .foregroundColor(.authSecondaryText)
                     .multilineTextAlignment(.center)
@@ -52,11 +52,11 @@ struct ForgotPasswordOTPView: View {
             VStack(spacing: 16) {
                 // OTP Field
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("OTP Code")
+                    Text("otp_code")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.authSecondaryText)
                     
-                    TextField("12345678", text: $vm.forgotPasswordOTP)
+                    TextField("otp_placeholder", text: $vm.forgotPasswordOTP)
                         .font(.system(size: 24, weight: .bold, design: .monospaced))
                         .multilineTextAlignment(.center)
                         .keyboardType(.numberPad)
@@ -84,7 +84,7 @@ struct ForgotPasswordOTPView: View {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
-                            Text("Verify Code")
+                            Text("verify_code")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.white)
                         }
@@ -103,7 +103,7 @@ struct ForgotPasswordOTPView: View {
             Spacer().frame(height: 24)
             
             HStack(spacing: 4) {
-                Text("Didn't receive code?")
+                Text("didnt_receive_code")
                     .font(.system(size: 14))
                     .foregroundColor(.authSecondaryText)
                 
@@ -111,7 +111,7 @@ struct ForgotPasswordOTPView: View {
                     vm.sendPasswordReset() 
                     timeRemaining = 60
                 }) {
-                    Text(timeRemaining > 0 ? "Resend in \(timeRemaining)s" : "Resend")
+                    Text(timeRemaining > 0 ? "resend_in \(timeRemaining)" : "resend")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(timeRemaining > 0 ? .authSecondaryText.opacity(0.5) : Color.authPrimaryButton)
                 }

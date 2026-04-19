@@ -15,6 +15,15 @@ enum ReportDuration: String, CaseIterable, Identifiable {
     case month6 = "Last 6 Months"
     var id: String { rawValue }
 
+    var localizationKey: String {
+        switch self {
+        case .week1:  return "last_7_days"
+        case .month1: return "last_1_month"
+        case .month3: return "last_3_months"
+        case .month6: return "last_6_months"
+        }
+    }
+
     var days: Int {
         switch self {
         case .week1: return 7
@@ -36,13 +45,13 @@ struct ReportOptionsSheet: View {
             // Custom Header
             HStack {
                 Spacer()
-                Text("Generate Report")
+                Text("generate_report".localized)
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.dashLabel)
                 Spacer()
             }
             .overlay(
-                Button("Cancel") { dismiss() }
+                Button("cancel".localized) { dismiss() }
                     .foregroundStyle(Color.dashSecondary)
                     .font(.system(size: 16, weight: .medium)),
                 alignment: .trailing
@@ -63,7 +72,7 @@ struct ReportOptionsSheet: View {
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundStyle(Color.dashSleep)
                                 .frame(width: 32)
-                            Text(duration.rawValue)
+                            Text(duration.localizationKey.localized)
                                 .font(.system(size: 15, weight: .medium))
                                 .foregroundStyle(Color.dashLabel)
                             Spacer()
@@ -95,6 +104,7 @@ struct ReportView: View {
     let records: [SeizureRecord]
     let duration: ReportDuration
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var languageManager: LanguageManager
 
     // MARK: - Analytics
 
@@ -107,14 +117,14 @@ struct ReportView: View {
         let avg = records.averageDurationSeconds
         let m = Int(avg / 60)
         let s = Int(avg.truncatingRemainder(dividingBy: 60))
-        return m > 0 ? "\(m)m \(s)s" : "\(s)s"
+        return m > 0 ? String(format: "min_m".localized, m) + " " + String(format: "sec_s".localized, s) : String(format: "sec_s".localized, s)
     }
 
     private var longestDurationText: String {
         guard let longest = records.max(by: { $0.duration < $1.duration }) else { return "—" }
         let m = Int(longest.duration / 60)
         let s = Int(longest.duration.truncatingRemainder(dividingBy: 60))
-        return m > 0 ? "\(m)m \(s)s" : "\(s)s"
+        return m > 0 ? String(format: "min_m".localized, m) + " " + String(format: "sec_s".localized, s) : String(format: "sec_s".localized, s)
     }
 
     private var avgSleepText: String {
@@ -138,17 +148,17 @@ struct ReportView: View {
         let overall = monthlyAvgs.reduce(0, +) / Double(monthlyAvgs.count)
         let h = Int(overall)
         let m = Int((overall - Double(h)) * 60)
-        return m > 0 ? "\(h)h \(m)m" : "\(h)h"
+        return m > 0 ? String(format: "hour_h".localized, h) + " " + String(format: "min_m".localized, m) : String(format: "hour_h".localized, h)
     }
 
     private var mostCommonTrigger: String {
-        records.triggerFrequency().first?.trigger.rawValue ?? "—"
+        records.triggerFrequency().first?.trigger.localizationKey ?? "—"
     }
 
     private var severityData: [(label: String, count: Int, color: Color)] {
         SeizureType.allCases.map { type in
             let count = records.filter { $0.type == type }.count
-            return (type.displayName, count, type.color)
+            return (type.localizationKey, count, type.color)
         }.filter { $0.count > 0 }
     }
 
@@ -196,18 +206,18 @@ struct ReportView: View {
                 .padding(.top, 12)
             }
             .background(Color.dashBg.ignoresSafeArea())
-            .navigationTitle("Report")
+            .navigationTitle("report".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") { dismiss() }
+                    Button("close".localized) { dismiss() }
                         .foregroundStyle(Color.dashSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(
                         item: reportSummaryText,
-                        subject: Text("Seizure Report"),
-                        message: Text("Seizure report for \(duration.rawValue.lowercased())")
+                        subject: Text("seizure_report".localized),
+                        message: Text("seizure_report".localized) // Simplified for now
                     ) {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 16, weight: .semibold))
@@ -231,13 +241,13 @@ struct ReportView: View {
                     .foregroundStyle(Color.dashSleep)
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text(duration.rawValue)
+                Text(duration.localizationKey.localized)
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(Color.dashLabel)
                 Text(dateRangeText)
                     .font(.system(size: 12))
                     .foregroundStyle(Color.dashSecondary)
-                Text("Generated \(Date().formatted(date: .abbreviated, time: .omitted))")
+                Text("\("generated_on".localized) \(Date().formatted(.dateTime.locale(Locale(identifier: UserDefaults.standard.string(forKey: "app_language") ?? "en")).month(.abbreviated).day().year()))")
                     .font(.system(size: 11))
                     .foregroundStyle(Color.dashTertiary)
             }
@@ -250,15 +260,15 @@ struct ReportView: View {
 
     private var summaryStatsCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            reportSectionHeader(title: "Summary", icon: "chart.bar.fill", color: .dashSeizure)
+            reportSectionHeader(title: "summary", icon: "chart.bar.fill", color: .dashSeizure)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                StatCard(icon: "waveform.path.ecg",        label: "Total Events",   value: "\(totalCount)",         color: .dashSeizure)
-                StatCard(icon: "timer",                    label: "Avg Duration",   value: avgDurationText,         color: .dashSleep)
-                StatCard(icon: "bolt.fill",                label: "Top Trigger",    value: mostCommonTrigger,       color: Color(red: 1.0, green: 0.6, blue: 0.2))
-                StatCard(icon: "clock.badge.checkmark",    label: "Peak Time",      value: records.peakTimeLabel,   color: Color(red: 0.8, green: 0.6, blue: 1.0))
-                StatCard(icon: "stopwatch",                label: "Longest Event",  value: longestDurationText,     color: Color(red: 0.4, green: 0.8, blue: 0.6))
-                StatCard(icon: "moon.zzz.fill",            label: "Monthly Sleep",  value: avgSleepText,            color: Color(red: 0.5, green: 0.7, blue: 1.0))
+                StatCard(icon: "waveform.path.ecg",        label: "total_events",   value: "\(totalCount)",         color: .dashSeizure)
+                StatCard(icon: "timer",                    label: "avg_duration",   value: avgDurationText,         color: .dashSleep)
+                StatCard(icon: "bolt.fill",                label: "top_trigger",    value: mostCommonTrigger.localized, color: Color(red: 1.0, green: 0.6, blue: 0.2))
+                StatCard(icon: "clock.badge.checkmark",    label: "peak_time",      value: records.peakTimeKey.localized,   color: Color(red: 0.8, green: 0.6, blue: 1.0))
+                StatCard(icon: "stopwatch",                label: "longest_event",  value: longestDurationText,     color: Color(red: 0.4, green: 0.8, blue: 0.6))
+                StatCard(icon: "moon.zzz.fill",            label: "monthly_sleep",  value: avgSleepText,            color: Color(red: 0.5, green: 0.7, blue: 1.0))
             }
         }
         .padding(16)
@@ -268,7 +278,7 @@ struct ReportView: View {
 
     private var entryTypeCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            reportSectionHeader(title: "Detection Source", icon: "waveform", color: Color(red: 0.5, green: 0.7, blue: 1.0))
+            reportSectionHeader(title: "detection_source", icon: "waveform", color: Color(red: 0.5, green: 0.7, blue: 1.0))
 
             HStack(spacing: 12) {
                 // Auto
@@ -277,14 +287,14 @@ struct ReportView: View {
                         Image(systemName: "applewatch")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(Color.dashSleep)
-                        Text("Auto-Detected")
+                        Text("auto_detected".localized)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Color.dashSecondary)
                     }
                     Text("\(autoCount)")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.dashSleep)
-                    Text("events")
+                    Text("events".localized)
                         .font(.caption2)
                         .foregroundStyle(Color.dashTertiary)
                 }
@@ -299,14 +309,14 @@ struct ReportView: View {
                         Image(systemName: "pencil")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(Color(red: 1.0, green: 0.6, blue: 0.2))
-                        Text("Manual Entry")
+                        Text("manual_entry".localized)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Color.dashSecondary)
                     }
                     Text("\(manualCount)")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundStyle(Color(red: 1.0, green: 0.6, blue: 0.2))
-                    Text("events")
+                    Text("events".localized)
                         .font(.caption2)
                         .foregroundStyle(Color.dashTertiary)
                 }
@@ -323,7 +333,7 @@ struct ReportView: View {
 
     private var severityChartCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            reportSectionHeader(title: "Severity Distribution", icon: "chart.pie.fill", color: Color(red: 0.8, green: 0.6, blue: 1.0))
+            reportSectionHeader(title: "severity_distribution", icon: "chart.pie.fill", color: Color(red: 0.8, green: 0.6, blue: 1.0))
 
             HStack(spacing: 20) {
                 // Donut
@@ -343,7 +353,7 @@ struct ReportView: View {
                     ForEach(severityData, id: \.label) { item in
                         HStack(spacing: 10) {
                             Circle().fill(item.color).frame(width: 10, height: 10)
-                            Text(item.label)
+                            Text(item.label.localized)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(Color.dashLabel)
                             Spacer()
@@ -367,13 +377,13 @@ struct ReportView: View {
 
     private var triggerBreakdownCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            reportSectionHeader(title: "Top Triggers", icon: "bolt.fill", color: Color(red: 1.0, green: 0.6, blue: 0.2))
+            reportSectionHeader(title: "top_triggers", icon: "bolt.fill", color: Color(red: 1.0, green: 0.6, blue: 0.2))
 
             VStack(spacing: 10) {
                 ForEach(Array(triggerData.enumerated()), id: \.offset) { _, item in
                     VStack(spacing: 5) {
                         HStack {
-                            Text(item.trigger.rawValue)
+                            Text(item.trigger.localizationKey.localized)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(Color.dashLabel)
                             Spacer()
@@ -408,7 +418,7 @@ struct ReportView: View {
 
     private var timeOfDayCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            reportSectionHeader(title: "Time of Day", icon: "clock.fill", color: Color.dashSleep)
+            reportSectionHeader(title: "time_of_day", icon: "clock.fill", color: Color.dashSleep)
 
             HStack(alignment: .bottom, spacing: 12) {
                 ForEach(records.timeOfDayCounts(), id: \.label) { item in
@@ -423,7 +433,7 @@ struct ReportView: View {
                             .fill(item.count > 0 ? item.color.opacity(0.8) : Color.dashTertiary.opacity(0.2))
                             .frame(height: max(8, 80 * heightRatio))
 
-                        Text(item.label)
+                        Text(item.label.localized)
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(Color.dashSecondary)
                     }
@@ -439,7 +449,7 @@ struct ReportView: View {
 
     private var monthlyTrendCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            reportSectionHeader(title: "Monthly Trend", icon: "chart.line.uptrend.xyaxis", color: Color.dashSleep)
+            reportSectionHeader(title: "monthly_trend", icon: "chart.line.uptrend.xyaxis", color: Color.dashSleep)
 
             if monthlyData.allSatisfy({ $0.count == 0 }) {
                 emptyChartState
@@ -500,7 +510,7 @@ struct ReportView: View {
                 Image(systemName: "chart.bar.xaxis")
                     .font(.system(size: 28))
                     .foregroundStyle(Color.dashTertiary)
-                Text("No data in this period")
+                Text("no_data_period".localized)
                     .font(.caption)
                     .foregroundStyle(Color.dashSecondary)
             }
@@ -520,33 +530,47 @@ struct ReportView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(color)
             }
-            Text(title)
+            Text(title.localized)
                 .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(Color.dashLabel)
         }
     }
 
     private var reportSummaryText: String {
-        let triggerLines = triggerData.map { "  \($0.trigger.rawValue): \(String(format: "%.0f", $0.percentage))%" }.joined(separator: "\n")
-        let severityLines = severityData.map { "  \($0.label): \($0.count)" }.joined(separator: "\n")
+        let triggerLines = triggerData.map { item in
+            let key = item.trigger.localizationKey
+            return "  \(key.localized): \(String(format: "%.0f", item.percentage))%"
+        }.joined(separator: "\n")
+        
+        let severityLines = severityData.map { item in
+            "  \(item.label.localized): \(item.count)"
+        }.joined(separator: "\n")
+        
+        let durationKey: String = {
+            switch duration {
+            case .week1:  return "last_7_days"
+            case .month1: return "last_1_month"
+            case .month3: return "last_3_months"
+            case .month6: return "last_6_months"
+            }
+        }()
+
         return """
-        Seizcare Seizure Report — \(duration.rawValue)
-        Period: \(dateRangeText)
-        Generated: \(Date().formatted(date: .long, time: .omitted))
+        \("seizure_report".localized) — \(durationKey.localized)
+        \("date_range".localized): \(dateRangeText)
+        \("generated_on".localized) \(Date().formatted(.dateTime.locale(Locale(identifier: UserDefaults.standard.string(forKey: "app_language") ?? "en")).month(.wide).day().year()))
 
-        ── Summary ──
-        Total Events: \(totalCount)
-        Auto-Detected: \(autoCount)
-        Manual Entries: \(manualCount)
-        Avg Duration: \(avgDurationText)
-        Longest Event: \(longestDurationText)
-        Top Trigger: \(mostCommonTrigger)
-        Peak Time: \(records.peakTimeLabel)
-
-        ── Severity Breakdown ──
+        ── \("Summary".localized) ──
+        \("total_events".localized): \(totalCount)
+        \("auto_detected".localized): \(autoCount)
+        \("manual_entry".localized): \(manualCount)
+        \("avg_duration".localized): \(avgDurationText)
+        \("longest_event".localized): \(longestDurationText)
+        
+        ── \("severity_distribution".localized) ──
         \(severityLines)
 
-        ── Top Triggers ──
+        ── \("top_triggers".localized) ──
         \(triggerLines)
         """
     }
@@ -566,7 +590,7 @@ private struct StatCard: View {
                 Image(systemName: icon)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(color)
-                Text(label)
+                Text(LocalizedStringKey(label))
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Color.dashSecondary)
                     .lineLimit(1)

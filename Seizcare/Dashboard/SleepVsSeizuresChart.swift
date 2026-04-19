@@ -115,12 +115,15 @@ struct SleepVsSeizuresChartView: View {
 
     private var insightText: String {
         let poorDays = data.filter { ($0.sleepHours ?? 99) < 6 && $0.seizureCount > 0 }.count
-        let unit = selectedRange == .yearly ? "months" : "days"
-        return "\(poorDays) \(unit) with poor sleep (<6h) coincided with a seizure."
+        if selectedRange == .yearly {
+            return String(localized: "sleep_insight_yearly \(poorDays)")
+        } else {
+            return String(localized: "sleep_insight_daily \(poorDays)")
+        }
     }
 
     private var avgSleepLabel: String {
-        selectedRange == .yearly ? "Avg Monthly Sleep" : "Avg Sleep"
+        selectedRange == .yearly ? "avg_monthly_sleep" : "avg_sleep"
     }
 
     private func barColor(for pt: TimePoint) -> Color {
@@ -146,7 +149,7 @@ struct SleepVsSeizuresChartView: View {
                 
                 Spacer()
                 
-                Text("Sleep vs Seizures")
+                Text("sleep_vs_seizures")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
@@ -167,10 +170,10 @@ struct SleepVsSeizuresChartView: View {
                     VStack(alignment: .leading, spacing: 0) {
 
                         // Segmented range picker
-                        Picker("Range", selection: $selectedRange) {
-                            Text("Last 7 Days").tag(TimeFrameRange.weekly)
-                            Text("Last 30 Days").tag(TimeFrameRange.monthly)
-                            Text("Last 12 Months").tag(TimeFrameRange.yearly)
+                        Picker("range", selection: $selectedRange) {
+                            Text("last_7_days").tag(TimeFrameRange.weekly)
+                            Text("last_30_days").tag(TimeFrameRange.monthly)
+                            Text("last_12_months").tag(TimeFrameRange.yearly)
                         }
                         .pickerStyle(.segmented)
                         .padding(.horizontal, 16)
@@ -183,7 +186,7 @@ struct SleepVsSeizuresChartView: View {
                             statCard(label: avgSleepLabel,
                                      value: String(format: "%.1fh", avgSleep),
                                      color: Color(red: 0.27, green: 0.57, blue: 1.0))
-                            statCard(label: "Total Seizures",
+                            statCard(label: "total_events",
                                      value: "\(totalSeizures)",
                                      color: Color(red: 1.0, green: 0.38, blue: 0.38))
                         }
@@ -193,9 +196,9 @@ struct SleepVsSeizuresChartView: View {
                         // Legend row
                         HStack(spacing: 16) {
                             legendDot(color: Color(red: 0.27, green: 0.57, blue: 1.0),
-                                      label: "Sleep (trend)")
+                                      label: "sleep_trend")
                             legendDot(color: Color(red: 1.0, green: 0.38, blue: 0.38),
-                                      label: "Seizures (count)")
+                                      label: "seizures_count")
                             Spacer()
                             if let pt = selectedPoint {
                                 Text(tooltipDateLabel(pt.date))
@@ -321,7 +324,7 @@ struct SleepVsSeizuresChartView: View {
 
     private func statCard(label: String, value: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(.system(size: 13))
                 .foregroundStyle(Color(UIColor.secondaryLabel))
             Text(value)
@@ -341,7 +344,7 @@ struct SleepVsSeizuresChartView: View {
                 .foregroundStyle(.yellow)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 4) {
-                Text("Insight")
+                Text("insight")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color(UIColor.label))
                 Text(insightText)
@@ -371,7 +374,7 @@ struct SleepVsSeizuresChartView: View {
                 Circle()
                     .fill(Color(red: 1.0, green: 0.38, blue: 0.38))
                     .frame(width: 7, height: 7)
-                Text("\(pt.seizureCount) event\(pt.seizureCount == 1 ? "" : "s")")
+                Text("\(pt.seizureCount) " + (pt.seizureCount == 1 ? String(localized: "event") : String(localized: "events")))
                     .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.38))
             }
@@ -392,7 +395,7 @@ struct SleepVsSeizuresChartView: View {
     private func legendDot(color: Color, label: String) -> some View {
         HStack(spacing: 6) {
             Circle().fill(color).frame(width: 8, height: 8)
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(.system(size: 12))
                 .foregroundStyle(Color(UIColor.secondaryLabel))
         }
@@ -454,7 +457,7 @@ struct SleepVsSeizuresMiniChart: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             // Period label
-            Text("Last 7 Days")
+            Text("last_7_days")
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(Color.dashSecondary)
 
@@ -463,11 +466,11 @@ if records.isEmpty {
         Image(systemName: "chart.line.uptrend.xyaxis")
             .font(.system(size: 20))
             .foregroundStyle(Color.dashSecondary.opacity(0.6))
-        Text("No data available yet...")
+        Text("no_records_yet")
             .font(.system(size: 13, weight: .medium))
             .foregroundStyle(Color.dashSecondary)
             .lineLimit(1)
-        Text("Start tracking to see summary.")
+        Text("no_records_desc")
             .font(.system(size: 11))
             .foregroundStyle(Color.dashSecondary.opacity(0.8))
             .lineLimit(1)

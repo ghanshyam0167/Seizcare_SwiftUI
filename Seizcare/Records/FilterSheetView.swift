@@ -18,11 +18,11 @@ struct FilterSheetView: View {
                 VStack(spacing: 24) {
 
                     // MARK: Severity
-                    filterSection(title: "Severity", icon: "waveform.path.ecg") {
+                    filterSection(title: "severity", icon: "waveform.path.ecg") {
                         FlowLayout(spacing: 8) {
                             ForEach(SeizureType.allCases, id: \.self) { type in
                                 FilterChip(
-                                    label: type.displayName,
+                                    label: LocalizedStringKey(type.localizationKey),
                                     color: type.color,
                                     isSelected: filter.severities.contains(type)
                                 ) {
@@ -33,11 +33,11 @@ struct FilterSheetView: View {
                     }
 
                     // MARK: Triggers
-                    filterSection(title: "Triggers", icon: "bolt.fill") {
+                    filterSection(title: "triggers", icon: "bolt.fill") {
                         FlowLayout(spacing: 8) {
                             ForEach(SeizureTrigger.allCases) { trigger in
                                 FilterChip(
-                                    label: trigger.rawValue,
+                                    label: LocalizedStringKey(trigger.localizationKey),
                                     color: .dashSleep,
                                     isSelected: filter.triggers.contains(trigger)
                                 ) {
@@ -48,11 +48,11 @@ struct FilterSheetView: View {
                     }
 
                     // MARK: Duration
-                    filterSection(title: "Duration", icon: "timer") {
+                    filterSection(title: "duration", icon: "timer") {
                         FlowLayout(spacing: 8) {
                             ForEach(DurationBucket.allCases) { bucket in
                                 FilterChip(
-                                    label: bucket.rawValue,
+                                    label: LocalizedStringKey(bucket.localizationKey),
                                     color: .dashGreen,
                                     isSelected: filter.durations.contains(bucket)
                                 ) {
@@ -63,37 +63,30 @@ struct FilterSheetView: View {
                     }
 
                     // MARK: Date Range
-                    filterSection(title: "Date Range", icon: "calendar") {
+                    filterSection(title: "date_range", icon: "calendar") {
                         VStack(spacing: 8) {
                             FlowLayout(spacing: 8) {
-                                ForEach([DateRangeFilter.last7, .last30]) { dr in
+                                ForEach(DateRangeFilter.allCases) { dr in
                                     FilterChip(
-                                        label: dr.rawValue,
+                                        label: LocalizedStringKey(dr.localizationKey),
                                         color: Color(red: 0.8, green: 0.6, blue: 1.0),
                                         isSelected: filter.dateRange == dr
                                     ) {
                                         filter.dateRange = (filter.dateRange == dr) ? nil : dr
                                     }
                                 }
-                                FilterChip(
-                                    label: "Custom",
-                                    color: Color(red: 0.8, green: 0.6, blue: 1.0),
-                                    isSelected: filter.dateRange == .custom
-                                ) {
-                                    filter.dateRange = (filter.dateRange == .custom) ? nil : .custom
-                                }
                             }
 
                             if filter.dateRange == .custom {
                                 VStack(spacing: 10) {
-                                    DatePicker("From", selection: $filter.customStart, displayedComponents: .date)
+                                    DatePicker("from", selection: $filter.customStart, displayedComponents: .date)
                                         .datePickerStyle(.compact)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 10)
                                         .background(Color.dashCardElevated)
                                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                                    DatePicker("To", selection: $filter.customEnd, in: filter.customStart..., displayedComponents: .date)
+                                    DatePicker("to", selection: $filter.customEnd, in: filter.customStart..., displayedComponents: .date)
                                         .datePickerStyle(.compact)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 10)
@@ -112,18 +105,18 @@ struct FilterSheetView: View {
                 .padding(.top, 8)
             }
             .background(Color.dashBg.ignoresSafeArea())
-            .navigationTitle("Filter Records")
+            .navigationTitle("filter_records")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Reset") {
+                    Button("reset") {
                         withAnimation { filter.reset() }
                         onReset()
                     }
                     .foregroundStyle(Color.dashSeizure)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Apply") {
+                    Button("apply") {
                         onApply()
                         dismiss()
                     }
@@ -154,10 +147,11 @@ struct FilterSheetView: View {
                 Image(systemName: icon)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color.dashSecondary)
-                Text(title.uppercased())
+                Text(LocalizedStringKey(title))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Color.dashTertiary)
                     .tracking(1.0)
+                    .textCase(.uppercase)
             }
             content()
         }
@@ -171,7 +165,7 @@ struct FilterSheetView: View {
 // MARK: - Filter Chip
 
 private struct FilterChip: View {
-    let label: String
+    let label: LocalizedStringKey
     let color: Color
     let isSelected: Bool
     let onTap: () -> Void

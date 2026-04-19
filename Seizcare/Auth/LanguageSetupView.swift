@@ -5,28 +5,10 @@
 
 import SwiftUI
 
-struct AppLanguageUI: Identifiable {
-    let id: String
-    let title: String
-    let subtitle: String
-    let iconChar: String
-}
-
 struct LanguageSetupView: View {
     @ObservedObject var vm: AuthViewModel
+    @EnvironmentObject var languageManager: LanguageManager
     @Environment(\.dismiss) private var dismiss
-    
-    // We'll use this just to highlight the selection in the UI
-    @State private var selectedLanguageId: String = "en"
-    
-    private let languages: [AppLanguageUI] = [
-        AppLanguageUI(id: "en", title: "English", subtitle: "Default", iconChar: "A"),
-        AppLanguageUI(id: "hi", title: "हिंदी", subtitle: "Hindi", iconChar: "अ"),
-        AppLanguageUI(id: "bn", title: "বাংলা", subtitle: "Bengali", iconChar: "অ"),
-        AppLanguageUI(id: "te", title: "తెలుగు", subtitle: "Telugu", iconChar: "అ"),
-        AppLanguageUI(id: "mr", title: "मराठी", subtitle: "Marathi", iconChar: "म"),
-        AppLanguageUI(id: "ta", title: "தமிழ்", subtitle: "Tamil", iconChar: "அ")
-    ]
     
     var body: some View {
         VStack(spacing: 0) {
@@ -47,11 +29,11 @@ struct LanguageSetupView: View {
                     .foregroundColor(.authPrimaryButton)
                     .padding(.bottom, 8)
                 
-                Text("Select Language")
+                Text("select_language".localized)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
-                Text("Choose your preferred language for the application interface.")
+                Text("select_language_desc".localized)
                     .font(.system(size: 15))
                     .foregroundColor(.authSecondaryText)
                     .multilineTextAlignment(.center)
@@ -64,36 +46,34 @@ struct LanguageSetupView: View {
             // Selection Options
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
-                    ForEach(languages) { language in
+                    ForEach(languageManager.languages) { language in
                         Button(action: {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                selectedLanguageId = language.id
-                            }
+                            languageManager.setLanguage(language.code)
                         }) {
                             HStack(spacing: 16) {
                                 ZStack {
                                     Circle()
-                                        .fill(selectedLanguageId == language.id ? Color.authPrimaryButton.opacity(0.15) : Color.white.opacity(0.05))
+                                        .fill(languageManager.currentLanguage == language.code ? Color.authPrimaryButton.opacity(0.15) : Color.white.opacity(0.05))
                                         .frame(width: 48, height: 48)
                                     
-                                    Text(language.iconChar)
+                                    Text(String(language.nativeName.prefix(1)))
                                         .font(.system(size: 24, weight: .medium))
-                                        .foregroundColor(selectedLanguageId == language.id ? .authPrimaryButton : .authSecondaryText)
+                                        .foregroundColor(languageManager.currentLanguage == language.code ? .authPrimaryButton : .authSecondaryText)
                                 }
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(language.title)
+                                    Text(language.nativeName)
                                         .font(.system(size: 17, weight: .bold))
-                                        .foregroundColor(selectedLanguageId == language.id ? .authPrimaryButton : .authPrimaryText)
+                                        .foregroundColor(languageManager.currentLanguage == language.code ? .authPrimaryButton : .authPrimaryText)
                                     
-                                    Text(language.subtitle)
+                                    Text(language.englishName)
                                         .font(.system(size: 13))
                                         .foregroundColor(.authSecondaryText)
                                 }
                                 
                                 Spacer()
                                 
-                                if selectedLanguageId == language.id {
+                                if languageManager.currentLanguage == language.code {
                                     Image(systemName: "checkmark.circle.fill")
                                         .foregroundColor(.authPrimaryButton)
                                         .font(.system(size: 22))
@@ -104,9 +84,9 @@ struct LanguageSetupView: View {
                             .background(
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .fill(selectedLanguageId == language.id ? Color.authPrimaryButton.opacity(0.05) : Color.authCardBackground)
+                                        .fill(languageManager.currentLanguage == language.code ? Color.authPrimaryButton.opacity(0.05) : Color.authCardBackground)
                                     
-                                    if selectedLanguageId == language.id {
+                                    if languageManager.currentLanguage == language.code {
                                         RoundedRectangle(cornerRadius: 20, style: .continuous)
                                             .stroke(Color.authPrimaryButton.opacity(0.3), lineWidth: 2)
                                     }
@@ -127,7 +107,7 @@ struct LanguageSetupView: View {
                         .fill(Color.authPrimaryButton)
                         .frame(height: 56)
                     
-                    Text("Done")
+                    Text("done".localized)
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                 }
@@ -142,4 +122,5 @@ struct LanguageSetupView: View {
 
 #Preview {
     LanguageSetupView(vm: AuthViewModel())
+        .environmentObject(LanguageManager())
 }

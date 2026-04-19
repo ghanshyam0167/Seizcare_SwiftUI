@@ -22,6 +22,14 @@ enum DurationBucket: String, CaseIterable, Identifiable {
     case gt10   = "> 10 min"
     var id: String { rawValue }
 
+    var localizationKey: String {
+        switch self {
+        case .lt5:    return "lt_5_min"
+        case .m5to10: return "5_10_min"
+        case .gt10:   return "gt_10_min"
+        }
+    }
+
     func matches(_ interval: TimeInterval) -> Bool {
         let mins = interval / 60
         switch self {
@@ -37,6 +45,14 @@ enum DateRangeFilter: String, CaseIterable, Identifiable {
     case last30 = "Last 30 Days"
     case custom = "Custom"
     var id: String { rawValue }
+
+    var localizationKey: String {
+        switch self {
+        case .last7:  return "last_7_days"
+        case .last30: return "last_30_days"
+        case .custom: return "custom"
+        }
+    }
 }
 
 struct RecordFilter {
@@ -192,10 +208,11 @@ final class RecordsViewModel: ObservableObject {
         let sorted = filteredRecords
         switch grouping {
         case .all:
-            return sorted.isEmpty ? [] : [("All Records", sorted)]
+            return sorted.isEmpty ? [] : [("all_records", sorted)]
 
         case .byMonth:
             let fmt = DateFormatter()
+            fmt.locale = Locale(identifier: UserDefaults.standard.string(forKey: "app_language") ?? "en")
             fmt.dateFormat = "MMMM yyyy"
             return group(sorted, by: { fmt.string(from: $0.startTime) })
 
@@ -209,11 +226,11 @@ final class RecordsViewModel: ObservableObject {
             var result: [(header: String, records: [SeizureRecord])] = []
             var seen = Set<String>()
             for record in sorted {
-                let label = record.triggers.first?.rawValue ?? "Unknown"
+                let label = record.triggers.first?.rawValue ?? "unknown"
                 if !seen.contains(label) {
                     seen.insert(label)
                     result.append((label, sorted.filter {
-                        ($0.triggers.first?.rawValue ?? "Unknown") == label
+                        ($0.triggers.first?.rawValue ?? "unknown") == label
                     }))
                 }
             }

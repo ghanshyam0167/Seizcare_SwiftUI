@@ -8,6 +8,7 @@ import PhotosUI
 
 struct EditProfileView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var languageManager: LanguageManager
     
     @State private var name: String = ""
     @State private var email: String = ""
@@ -39,7 +40,7 @@ struct EditProfileView: View {
                 
                 Spacer()
                 
-                Text("Edit Profile")
+                Text("edit_profile")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
@@ -108,11 +109,11 @@ struct EditProfileView: View {
                             }
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .confirmationDialog("Change Profile Photo", isPresented: $showingActionSheet, titleVisibility: .visible) {
-                            Button("Take Photo") { showingCamera = true }
-                            Button("Choose from Gallery") { showingGallery = true }
+                        .confirmationDialog("change_profile_photo", isPresented: $showingActionSheet, titleVisibility: .visible) {
+                            Button("take_photo") { showingCamera = true }
+                            Button("choose_from_gallery") { showingGallery = true }
                             if newProfileImage != nil || existingAvatarUrl != nil {
-                                Button("Remove Photo", role: .destructive) {
+                                Button("remove_photo", role: .destructive) {
                                     withAnimation {
                                         newProfileImage = nil
                                         existingAvatarUrl = nil
@@ -121,7 +122,7 @@ struct EditProfileView: View {
                                     }
                                 }
                             }
-                            Button("Cancel", role: .cancel) {}
+                            Button("cancel", role: .cancel) {}
                         }
                         .sheet(isPresented: $showingCamera) {
                             CameraPicker(image: $imageToCrop)
@@ -167,7 +168,7 @@ struct EditProfileView: View {
                             }
                         }
                         
-                        Text("Change Photo")
+                        Text("change_photo")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.authPrimaryButton)
                             
@@ -180,7 +181,7 @@ struct EditProfileView: View {
                                     selectedItem = nil
                                 }
                             }) {
-                                Text("Remove Photo")
+                                Text("remove_photo")
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.errorRed)
                             }
@@ -192,7 +193,7 @@ struct EditProfileView: View {
                     VStack(spacing: 24) {
                         // Full Name Input
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Full Name")
+                            Text("full_name")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.authSecondaryText)
                                 .padding(.leading, 4)
@@ -202,7 +203,7 @@ struct EditProfileView: View {
                                     .foregroundColor(.authSecondaryText)
                                     .frame(width: 20)
                                 
-                                TextField("Enter your full name", text: $name)
+                                TextField("enter_full_name", text: $name)
                                     .autocorrectionDisabled()
                                     .textContentType(.name)
                             }
@@ -217,7 +218,7 @@ struct EditProfileView: View {
                         
                         // Email Input
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Email Address")
+                            Text("email_address")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.authSecondaryText)
                                 .padding(.leading, 4)
@@ -227,7 +228,7 @@ struct EditProfileView: View {
                                     .foregroundColor(.authSecondaryText)
                                     .frame(width: 20)
                                 
-                                TextField("Enter your email", text: $email)
+                                TextField("enter_email", text: $email)
                                     .autocapitalization(.none)
                                     .keyboardType(.emailAddress)
                                     .autocorrectionDisabled()
@@ -246,7 +247,7 @@ struct EditProfileView: View {
                         
                         // Contact Number Input
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Contact Number")
+                            Text("contact_number_label")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.authSecondaryText)
                                 .padding(.leading, 4)
@@ -256,7 +257,7 @@ struct EditProfileView: View {
                                     .foregroundColor(.authSecondaryText)
                                     .frame(width: 20)
                                 
-                                TextField("Enter your phone number", text: $contactNumber)
+                                TextField("enter_phone_number", text: $contactNumber)
                                     .keyboardType(.phonePad)
                                     .textContentType(.telephoneNumber)
                                     .onChange(of: contactNumber) { _, newValue in
@@ -294,7 +295,7 @@ struct EditProfileView: View {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     } else {
-                        Text("Save Changes")
+                        Text("save_changes")
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
                     }

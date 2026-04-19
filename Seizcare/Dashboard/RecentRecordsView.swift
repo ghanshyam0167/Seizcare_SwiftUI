@@ -17,13 +17,13 @@ struct RecentRecordsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                SectionHeader(title: "Recent Seizures", icon: "waveform.path.ecg")
+                SectionHeader(title: "recent_seizures", icon: "waveform.path.ecg")
                 Spacer()
                 Button(action: {
                     onViewAll()
                 }) {
                     HStack(spacing: 4) {
-                        Text("View All")
+                        Text("view_all")
                         Image(systemName: "chevron.right")
                     }
                 }
@@ -32,7 +32,7 @@ struct RecentRecordsView: View {
             }
 
             if recent.isEmpty {
-                EmptyStateCard(message: "No seizures logged yet\nTap + to record your first event")
+                EmptyStateCard(message: "no_seizures_logged")
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(recent.enumerated()), id: \.element.id) { index, record in
@@ -68,13 +68,13 @@ private struct RecordRow: View {
 
     private var durationText: String {
         let m = Int(record.duration / 60)
-        return m > 0 ? "\(m) min" : "<1 min"
+        return m > 0 ? "\(m) min" : "less_than_1_min"
     }
 
     private var dateText: String {
         let cal = Calendar.current
-        if cal.isDateInToday(record.startTime)     { return "Today" }
-        if cal.isDateInYesterday(record.startTime) { return "Yesterday" }
+        if cal.isDateInToday(record.startTime)     { return "today" }
+        if cal.isDateInYesterday(record.startTime) { return "yesterday" }
         let f = DateFormatter()
         f.dateFormat = "MMM d"
         return f.string(from: record.startTime)
@@ -90,7 +90,7 @@ private struct RecordRow: View {
         HStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(dateText)
+                    Text(LocalizedStringKey(dateText))
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.dashLabel)
                     Text("·")
@@ -107,7 +107,7 @@ private struct RecordRow: View {
                 HStack(spacing: 8) {
                     SeverityBadge(type: record.type)
                     if let trigger = record.triggers.first {
-                        Text(trigger.rawValue)
+                        Text(LocalizedStringKey(trigger.localizationKey))
                             .font(.caption)
                             .foregroundStyle(Color.dashSecondary)
                     }
@@ -117,7 +117,7 @@ private struct RecordRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 4) {
-                Text(durationText)
+                Text(LocalizedStringKey(durationText))
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundStyle(Color.dashLabel)
                 Text("duration")
@@ -141,7 +141,7 @@ struct SeverityBadge: View {
     let type: SeizureType
 
     var body: some View {
-        Text(type.displayName)
+        Text(LocalizedStringKey(type.localizationKey))
             .font(.caption2.weight(.semibold))
             .foregroundStyle(type.color)
             .padding(.horizontal, 8)
@@ -162,7 +162,7 @@ struct SectionHeader: View {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Color.dashSecondary)
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(Color.dashLabel)
         }
@@ -179,7 +179,7 @@ struct EmptyStateCard: View {
                 Image(systemName: "tray")
                     .font(.system(size: 28))
                     .foregroundStyle(Color.dashTertiary)
-                Text(message)
+                Text(LocalizedStringKey(message))
                     .font(.subheadline)
                     .foregroundStyle(Color.dashSecondary)
                     .multilineTextAlignment(.center)

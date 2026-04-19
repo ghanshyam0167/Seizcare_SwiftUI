@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var vm: AuthViewModel
+    @EnvironmentObject var languageManager: LanguageManager
     @EnvironmentObject var avatarVM: AvatarViewModel
     @State private var user: User? = UserDataModel.shared.getCurrentUser()
     @State private var showingEmergencyContacts = false
@@ -25,7 +26,7 @@ struct SettingsView: View {
                 
                 Spacer()
                 
-                Text("Settings")
+                Text("settings")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
@@ -64,7 +65,7 @@ struct SettingsView: View {
                     
                     // Safety Section
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("SAFETY")
+                        Text("safety")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.authSecondaryText)
                             .padding(.leading, 12)
@@ -72,7 +73,7 @@ struct SettingsView: View {
                         VStack(spacing: 0) {
                             SettingsRowCard(
                                 icon: "person.2.fill",
-                                title: "Emergency Contacts",
+                                title: "emergency_contacts",
                                 iconColor: .brandPrimary,
                                 showDivider: true
                             ) {
@@ -84,7 +85,7 @@ struct SettingsView: View {
                             
                             SettingsRowCard(
                                 icon: "slider.horizontal.3",
-                                title: "Sensitivity",
+                                title: "sensitivity",
                                 iconColor: .brandPrimary,
                                 showDivider: false
                             ) {
@@ -102,7 +103,7 @@ struct SettingsView: View {
                     
                     // Preferences Section
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("PREFERENCES")
+                        Text("preferences")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.authSecondaryText)
                             .padding(.leading, 12)
@@ -110,7 +111,7 @@ struct SettingsView: View {
                         VStack(spacing: 0) {
                             SettingsRowCard(
                                 icon: "globe",
-                                title: "Language",
+                                title: "language",
                                 iconColor: .brandPrimary,
                                 showDivider: true
                             ) {
@@ -122,7 +123,7 @@ struct SettingsView: View {
                             
                             SettingsRowCard(
                                 icon: "applewatch",
-                                title: "Connect your watch",
+                                title: "connect_watch",
                                 iconColor: .brandPrimary,
                                 showDivider: false
                             ) {
@@ -140,7 +141,7 @@ struct SettingsView: View {
                     
                     // Danger Zone / Account Section
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("ACCOUNT")
+                        Text("account")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.authSecondaryText)
                             .padding(.leading, 12)
@@ -148,7 +149,7 @@ struct SettingsView: View {
                         VStack(spacing: 0) {
                             SettingsRowCard(
                                 icon: "lock.fill",
-                                title: "Change Password",
+                                title: "change_password",
                                 iconColor: .brandPrimary,
                                 showDivider: true
                             ) {
@@ -163,7 +164,7 @@ struct SettingsView: View {
                             
                             SettingsRowCard(
                                 icon: "trash.fill",
-                                title: "Delete Account",
+                                title: "delete_account",
                                 iconColor: .errorRed,
                                 showDivider: false
                             ) {
@@ -190,7 +191,7 @@ struct SettingsView: View {
                         .fill(Color.authCardBackground)
                         .frame(height: 56)
                     
-                    Text("Log Out")
+                    Text("logout")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.errorRed)
                 }
@@ -361,7 +362,7 @@ struct SettingsRowCard: View {
                             .foregroundColor(iconColor)
                     }
                     
-                    Text(title)
+                    Text(LocalizedStringKey(title))
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(.authPrimaryText)
                     

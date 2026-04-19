@@ -7,6 +7,7 @@ import SwiftUI
 
 struct PhoneSetupView: View {
     @ObservedObject var vm: AuthViewModel
+    @EnvironmentObject var languageManager: LanguageManager
     
     var body: some View {
         VStack(spacing: 0) {
@@ -22,11 +23,11 @@ struct PhoneSetupView: View {
             
             // Header
             VStack(spacing: 8) {
-                Text("Your Phone Number")
+                Text("phone_number".localized)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
-                Text("This allows us to contact you if we detect an emergency. You can skip this for now.")
+                Text("phone_number_desc".localized)
                     .font(.system(size: 15))
                     .foregroundColor(.authSecondaryText)
                     .multilineTextAlignment(.center)
@@ -37,7 +38,7 @@ struct PhoneSetupView: View {
             
             // Phone Number Input
             VStack(alignment: .leading, spacing: 10) {
-                Text("Personal Contact")
+                Text("personal_contact".localized)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.authSecondaryText)
                     .padding(.leading, 4)
@@ -64,7 +65,7 @@ struct PhoneSetupView: View {
                 .cornerRadius(16)
                 
                 if !vm.onboardingPhoneNumber.isEmpty && vm.onboardingPhoneNumber.count != 10 {
-                    Text("Please enter exactly 10 digits")
+                    Text("enter_10_digits".localized)
                         .font(.system(size: 12))
                         .foregroundColor(.errorRed)
                         .padding(.leading, 4)
@@ -96,7 +97,7 @@ struct PhoneSetupView: View {
                             .fill(isValid ? Color.authPrimaryButton : Color.authButtonDisabled)
                             .frame(height: 56)
                         
-                        Text(vm.onboardingPhoneNumber.isEmpty ? "Skip" : "Next")
+                        Text(vm.onboardingPhoneNumber.isEmpty ? "skip".localized : "next".localized)
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
                     }
@@ -108,7 +109,7 @@ struct PhoneSetupView: View {
                         vm.onboardingPhoneNumber = ""
                         vm.savePhoneAndContinue()
                     }) {
-                        Text("I'll do this later")
+                        Text("ill_do_this_later".localized)
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.authSecondaryText)
                     }

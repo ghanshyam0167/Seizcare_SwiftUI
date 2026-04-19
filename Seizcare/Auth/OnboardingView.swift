@@ -17,16 +17,16 @@ struct OnboardingPage {
 
 let onboardingPages = [
     OnboardingPage(
-        title: "Stay Safe, Stay Aware",
-        subtitle: "Seizcare helps monitor and assist you or your loved ones during seizures, keeping everyone informed."
+        title: "onboarding_title_1".localized,
+        subtitle: "onboarding_subtitle_1".localized
     ),
     OnboardingPage(
-        title: "Smart Monitoring",
-        subtitle: "Track patterns and get alerts in real time, so you're always one step ahead."
+        title: "onboarding_title_2".localized,
+        subtitle: "onboarding_subtitle_2".localized
     ),
     OnboardingPage(
-        title: "Get Started",
-        subtitle: "Create your account to begin monitoring and stay protected around the clock."
+        title: "onboarding_title_3".localized,
+        subtitle: "onboarding_subtitle_3".localized
     )
 ]
 
@@ -34,7 +34,25 @@ let onboardingPages = [
 
 struct OnboardingView: View {
     @ObservedObject var vm: AuthViewModel
+    @EnvironmentObject var languageManager: LanguageManager
     @State private var currentPage = 0
+    
+    private var onboardingPages: [OnboardingPage] {
+        [
+            OnboardingPage(
+                title: "onboarding_title_1",
+                subtitle: "onboarding_subtitle_1"
+            ),
+            OnboardingPage(
+                title: "onboarding_title_2",
+                subtitle: "onboarding_subtitle_2"
+            ),
+            OnboardingPage(
+                title: "onboarding_title_3",
+                subtitle: "onboarding_subtitle_3"
+            )
+        ]
+    }
     
     var body: some View {
         ZStack {
@@ -64,11 +82,11 @@ struct OnboardingView: View {
                             Spacer()
                             
                             VStack(alignment: .leading, spacing: 12) {
-                                Text(onboardingPages[index].title)
+                                Text(onboardingPages[index].title.localized)
                                     .font(.system(size: 28, weight: .bold, design: .rounded))
                                     .foregroundColor(.authPrimaryText)
                                 
-                                Text(onboardingPages[index].subtitle)
+                                Text(onboardingPages[index].subtitle.localized)
                                     .font(.system(size: 16, weight: .regular))
                                     .foregroundColor(.authSecondaryText)
                                     .lineSpacing(4)
@@ -79,9 +97,9 @@ struct OnboardingView: View {
                             // Second page has a list
                             if index == 1 {
                                 VStack(alignment: .leading, spacing: 16) {
-                                    FeatureRow(icon: "shield", text: "Automatic seizure detection")
-                                    FeatureRow(icon: "bell", text: "Instant emergency alerts")
-                                    FeatureRow(icon: "chart.bar.fill", text: "Pattern tracking & reports")
+                                    FeatureRow(icon: "shield", text: "feature_detection".localized)
+                                    FeatureRow(icon: "bell", text: "feature_alerts".localized)
+                                    FeatureRow(icon: "chart.bar.fill", text: "feature_reports".localized)
                                 }
                                 .padding(.horizontal, 24)
                                 .padding(.top, 24)
@@ -116,7 +134,7 @@ struct OnboardingView: View {
                     if currentPage == 2 {
                         VStack(spacing: 12) {
                             Button(action: { vm.switchToSignup() }) {
-                                Text("Sign Up")
+                                Text("sign_up".localized)
                                     .font(.system(size: 16, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -126,7 +144,7 @@ struct OnboardingView: View {
                             }
                             
                             Button(action: { vm.switchToLogin() }) {
-                                Text("Login")
+                                Text("login".localized)
                                     .font(.system(size: 16, weight: .semibold))
                                     .foregroundColor(.authPrimaryText)
                                     .frame(maxWidth: .infinity)
@@ -147,7 +165,7 @@ struct OnboardingView: View {
                             }
                         }) {
                             HStack {
-                                Text("Next")
+                                Text("next".localized)
                                     .font(.system(size: 16, weight: .semibold))
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 14, weight: .semibold))

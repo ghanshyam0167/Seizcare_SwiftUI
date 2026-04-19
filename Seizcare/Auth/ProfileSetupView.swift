@@ -9,6 +9,7 @@ import PhotosUI
 @MainActor
 struct ProfileSetupView: View {
     @ObservedObject var vm: AuthViewModel
+    @EnvironmentObject var languageManager: LanguageManager
     @State private var selectedItem: PhotosPickerItem? = nil
     
     var body: some View {
@@ -25,11 +26,11 @@ struct ProfileSetupView: View {
             
             // Header
             VStack(spacing: 8) {
-                Text("Complete Profile")
+                Text("complete_profile".localized)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
-                Text("Tell us a bit more about yourself to personalize your experience.")
+                Text("personalize_profile_desc".localized)
                     .font(.system(size: 15))
                     .foregroundColor(.authSecondaryText)
                     .multilineTextAlignment(.center)
@@ -82,7 +83,7 @@ struct ProfileSetupView: View {
                     }
                 }
                 
-                Text(vm.onboardingProfileImage == nil ? "Add Photo" : "Change Photo")
+                Text((vm.onboardingProfileImage == nil ? "add_photo" : "change_photo").localized)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.authPrimaryButton)
             }
@@ -91,7 +92,7 @@ struct ProfileSetupView: View {
             
             // Full Name Input
             VStack(alignment: .leading, spacing: 10) {
-                Text("Full Name")
+                Text("full_name".localized)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.authSecondaryText)
                     .padding(.leading, 4)
@@ -100,7 +101,7 @@ struct ProfileSetupView: View {
                     Image(systemName: "person")
                         .foregroundColor(.authSecondaryText)
                     
-                    TextField("Enter your full name", text: $vm.onboardingFullName)
+                    TextField("enter_full_name", text: $vm.onboardingFullName)
                         .autocorrectionDisabled()
                         .textContentType(.name)
                 }
@@ -125,7 +126,7 @@ struct ProfileSetupView: View {
                         .fill(vm.onboardingFullName.trimmingCharacters(in: .whitespaces).isEmpty ? Color.authButtonDisabled : Color.authPrimaryButton)
                         .frame(height: 56)
                     
-                    Text("Next")
+                    Text("next".localized)
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                 }

@@ -15,17 +15,21 @@ enum TimeFrameRange: String, CaseIterable, Identifiable {
     case yearly = "Yearly"
     
     var id: String { rawValue }
+    
+    var localizationKey: String {
+        rawValue.lowercased()
+    }
 }
 
 enum SeizureType: String, Codable, CaseIterable {
     case mild, moderate, severe
 
     var displayName: String {
-        switch self {
-        case .mild:     return "Mild"
-        case .moderate: return "Moderate"
-        case .severe:   return "Severe"
-        }
+        localizationKey.localized
+    }
+
+    var localizationKey: String {
+        rawValue.lowercased()
     }
 
     var color: Color {
@@ -51,6 +55,10 @@ enum SeizureTrigger: String, Codable, CaseIterable, Identifiable {
     case unknown          = "Unknown"
 
     var id: String { rawValue }
+
+    var localizationKey: String {
+        rawValue.lowercased().replacingOccurrences(of: " ", with: "_")
+    }
 }
 
 // MARK: - Models
@@ -325,7 +333,7 @@ extension Array where Element == SeizureRecord {
         for r in self { for t in r.triggers { counts[t, default: 0] += 1 } }
         let total = Double(count)
         return counts.map { ($0.key, Double($0.value) / total * 100) }
-                     .sorted { $0.percentage > $1.percentage }
+                      .sorted { $0.percentage > $1.percentage }
     }
 
     func timeOfDayCounts() -> [(label: String, count: Int, color: Color)] {
@@ -341,14 +349,14 @@ extension Array where Element == SeizureRecord {
             }
         }
         return [
-            ("Morning",   morning,   .dashSleep),
-            ("Afternoon", afternoon, Color(red: 0.8, green: 0.6, blue: 1.0)),
-            ("Evening",   evening,   .dashSeizure),
-            ("Night",     night,     Color(red: 0.4, green: 0.8, blue: 0.6)),
+            ("morning",   morning,   .dashSleep),
+            ("afternoon", afternoon, Color(red: 0.8, green: 0.6, blue: 1.0)),
+            ("evening",   evening,   .dashSeizure),
+            ("night",     night,     Color(red: 0.4, green: 0.8, blue: 0.6)),
         ]
     }
 
-    var peakTimeLabel: String {
+    var peakTimeKey: String {
         let sorted = timeOfDayCounts().max(by: { $0.count < $1.count })
         return sorted?.label ?? "—"
     }

@@ -30,11 +30,11 @@ struct ForgotPasswordEmailView: View {
 
             // Header
             VStack(spacing: 8) {
-                Text("Reset Password")
+                Text("reset_password")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
 
-                Text("Enter your email so we can send you an OTP code to reset your password.")
+                Text("reset_password_desc")
                     .font(.system(size: 15))
                     .foregroundColor(.authSecondaryText)
                     .multilineTextAlignment(.center)
@@ -48,7 +48,7 @@ struct ForgotPasswordEmailView: View {
             VStack(spacing: 16) {
                 // Email Field
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Email")
+                    Text("email")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.authSecondaryText)
 
@@ -82,7 +82,7 @@ struct ForgotPasswordEmailView: View {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
-                            Text("Send Code")
+                            Text("send_code")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.white)
                         }
@@ -101,7 +101,7 @@ struct ForgotPasswordEmailView: View {
             Spacer().frame(height: 24)
 
             Button(action: { vm.cancelForgotPasswordAndReturn() }) {
-                Text(vm.isAuthenticated ? "Cancel" : "Back to Login")
+                Text(vm.isAuthenticated ? "cancel" : "back_to_login")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(Color.authPrimaryButton)
             }

@@ -8,6 +8,7 @@ import SwiftUI
 
 struct RecordsListView: View {
     @EnvironmentObject var vm: RecordsViewModel
+    @EnvironmentObject var languageManager: LanguageManager
     @State private var selectedRecord: SeizureRecord? = nil
     @State private var selectedReportDuration: ReportDuration? = nil
 
@@ -34,9 +35,9 @@ struct RecordsListView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
         }
-        .navigationTitle("Records")
+        .navigationTitle("records_title")
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $vm.searchQuery, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search records")
+        .searchable(text: $vm.searchQuery, placement: .navigationBarDrawer(displayMode: .always), prompt: "search_records")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 // Report button
@@ -81,17 +82,19 @@ struct RecordsListView: View {
             ReportOptionsSheet { duration in
                 selectedReportDuration = duration
             }
+            .environmentObject(languageManager)
         }
         .sheet(item: $selectedReportDuration) { duration in
             let cutoff = Calendar.current.date(byAdding: .day, value: -duration.days, to: Date()) ?? Date()
             let reportRecords = vm.records.filter { $0.startTime >= cutoff }
             ReportView(records: reportRecords, duration: duration)
+                .environmentObject(languageManager)
         }
         .alert("Error", isPresented: Binding(
             get: { vm.errorMessage != nil },
             set: { _ in vm.errorMessage = nil }
         )) {
-            Button("OK", role: .cancel) {}
+            Button("ok", role: .cancel) {}
         } message: {
             Text(vm.errorMessage ?? "")
         }
@@ -108,7 +111,7 @@ struct RecordsListView: View {
                             vm.grouping = mode
                         }
                     } label: {
-                        Text(mode.rawValue)
+                        Text(LocalizedStringKey(mode.rawValue.lowercased()))
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(vm.grouping == mode ? .white : Color.dashSecondary)
                             .padding(.horizontal, 16)
@@ -138,7 +141,7 @@ struct RecordsListView: View {
                         withAnimation { vm.filter.removeChip(chip) }
                     } label: {
                         HStack(spacing: 5) {
-                            Text(chip)
+                            Text(chip.lowercased().replacingOccurrences(of: " ", with: "_").localized)
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(Color.dashSleep)
                             Image(systemName: "xmark")
@@ -157,7 +160,7 @@ struct RecordsListView: View {
                 Button {
                     withAnimation { vm.filter.reset() }
                 } label: {
-                    Text("Clear All")
+                    Text("clear_all".localized)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.dashSeizure)
                         .padding(.horizontal, 10)
@@ -194,14 +197,14 @@ struct RecordsListView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 36))
                         .foregroundStyle(Color.dashTertiary)
-                    Text("No results found")
+                    Text("no_results_found")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(Color.dashSecondary)
                     if vm.filter.isActive {
                         Button {
                             withAnimation { vm.filter.reset() }
                         } label: {
-                            Text("Clear Filters")
+                            Text("clear_filters")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 20)

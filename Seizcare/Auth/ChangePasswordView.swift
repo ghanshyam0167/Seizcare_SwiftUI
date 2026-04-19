@@ -37,7 +37,7 @@ struct ChangePasswordView: View {
                     
                     Spacer()
                     
-                    Text("Change Password")
+                    Text("change_password")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(.authPrimaryText)
                     
@@ -53,12 +53,12 @@ struct ChangePasswordView: View {
                 Spacer().frame(height: 24)
 
                 // Header
-                Text("Update Password")
+                Text("update_password")
                     .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                     .padding(.horizontal, 24)
 
-                Text("Enter your current and new password below.")
+                Text("update_password_desc")
                     .font(.system(size: 16, weight: .regular))
                     .foregroundColor(.authSecondaryText)
                     .padding(.top, 8)
@@ -71,7 +71,7 @@ struct ChangePasswordView: View {
                     
                     // Current Password Field
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Current Password")
+                        Text("current_password")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.authSecondaryText)
 
@@ -106,7 +106,7 @@ struct ChangePasswordView: View {
 
                     // New Password Field
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("New Password")
+                        Text("new_password")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.authSecondaryText)
 
@@ -141,7 +141,7 @@ struct ChangePasswordView: View {
 
                     // Confirm Password Field
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Confirm New Password")
+                        Text("confirm_new_password")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.authSecondaryText)
 
@@ -181,7 +181,7 @@ struct ChangePasswordView: View {
                             vm.isChangePasswordPresented = false
                             vm.startInAppForgotPassword()
                         }) {
-                            Text("Forgot password?")
+                            Text("forgot_password_question")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(Color.authPrimaryButton)
                         }
@@ -199,7 +199,7 @@ struct ChangePasswordView: View {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
-                                Text("Update Password")
+                                Text("update_password")
                                     .font(.system(size: 16, weight: .semibold))
                                     .foregroundColor(.white)
                             }

@@ -25,7 +25,7 @@ struct SeizureFrequencyMiniChart: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(dateLabel(for: range))
+            Text(LocalizedStringKey(dateLabel(for: range)))
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(Color.dashSecondary)
             
@@ -34,11 +34,11 @@ struct SeizureFrequencyMiniChart: View {
                     Image(systemName: "chart.bar.xaxis")
                         .font(.system(size: 20))
                         .foregroundStyle(Color.dashSecondary.opacity(0.6))
-                    Text("No data available yet...")
+                    Text("no_records_yet")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(Color.dashSecondary)
                         .lineLimit(1)
-                    Text("Start tracking to see summary.")
+                    Text("no_records_desc")
                         .font(.system(size: 11))
                         .foregroundStyle(Color.dashSecondary.opacity(0.8))
                         .lineLimit(1)
@@ -188,7 +188,7 @@ struct SeizureFrequencyChartView: View {
                 
                 Spacer()
                 
-                Text("Seizure Frequency")
+                Text("seizure_frequency")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
                 
@@ -208,9 +208,9 @@ struct SeizureFrequencyChartView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         // Segmented Picker
-                        Picker("Range", selection: $initialRange) {
+                        Picker("range", selection: $initialRange) {
                             ForEach(TimeFrameRange.allCases) { r in
-                                Text(r.rawValue).tag(r)
+                                Text(LocalizedStringKey(r.localizationKey)).tag(r)
                             }
                         }
                         .pickerStyle(.segmented)
@@ -220,7 +220,7 @@ struct SeizureFrequencyChartView: View {
                         
                         // Header Metrics
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(headerTitle(for: initialRange))
+                            Text(LocalizedStringKey(headerTitle(for: initialRange)))
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundStyle(Color.dashSecondary)
                             
@@ -236,7 +236,7 @@ struct SeizureFrequencyChartView: View {
                                 Text(valString)
                                     .font(.system(size: 34, weight: .semibold, design: .rounded))
                                     .foregroundStyle(Color.cyan)
-                                Text("SEIZURES")
+                                Text("seizures_uppercase")
                                     .font(.system(size: 16, weight: .medium, design: .rounded))
                                     .foregroundStyle(Color.cyan)
                             }
@@ -333,7 +333,7 @@ struct SeizureFrequencyChartView: View {
 
                         // Type breakdown
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Event Breakdown")
+                            Text("event_breakdown")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundStyle(Color.dashLabel)
                             TypeBreakdownView(records: filteredRecords)
@@ -400,10 +400,9 @@ struct SeizureFrequencyChartView: View {
     
     private func headerTitle(for range: TimeFrameRange) -> String {
         switch range {
-        case .daily: return "TOTAL"
-        case .weekly: return "DAILY AVERAGE"
-        case .monthly: return "DAILY AVERAGE"
-        case .yearly: return "MONTHLY AVERAGE"
+        case .daily: return "total_uppercase"
+        case .weekly, .monthly: return "daily_average"
+        case .yearly: return "monthly_average"
         }
     }
     
@@ -426,7 +425,7 @@ private struct TypeBreakdownView: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("By Severity")
+            Text("by_severity")
                 .font(.caption)
                 .foregroundStyle(Color.dashSecondary)
             ForEach(breakdown, id: \.type) { item in
@@ -461,7 +460,7 @@ private struct SummaryTile: View {
             Text(value)
                 .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundStyle(Color.dashLabel)
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(.caption)
                 .foregroundStyle(Color.dashSecondary)
         }

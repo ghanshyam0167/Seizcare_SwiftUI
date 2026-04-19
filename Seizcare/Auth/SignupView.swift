@@ -11,6 +11,7 @@ import SwiftUI
 
 struct SignupView: View {
     @ObservedObject var vm: AuthViewModel
+    @EnvironmentObject var languageManager: LanguageManager
     @State private var isPasswordRevealed = false
     @State private var isConfirmPasswordRevealed = false
 
@@ -22,11 +23,11 @@ struct SignupView: View {
                 Spacer()
 
                 // Header
-                Text("Create Account")
+                Text("create_account".localized)
                     .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundColor(.authPrimaryText)
 
-                Text("Join Seizcare")
+                Text("join_seizcare".localized)
                     .font(.system(size: 16, weight: .regular))
                     .foregroundColor(.authSecondaryText)
                     .padding(.top, 8)
@@ -38,7 +39,7 @@ struct SignupView: View {
 
                     // Email Field
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Email")
+                        Text("email".localized)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.authSecondaryText)
 
@@ -63,20 +64,19 @@ struct SignupView: View {
 
                     // Password Field
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Password")
+                        Text("password".localized)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.authSecondaryText)
 
                         HStack {
                             Group {
                                 if isPasswordRevealed {
-                                    TextField("Min. 6 characters", text: $vm.signupPassword)
+                                    TextField("........", text: $vm.signupPassword)
                                 } else {
-                                    SecureField("Min. 6 characters", text: $vm.signupPassword)
+                                    SecureField("........", text: $vm.signupPassword)
                                 }
                             }
                             .font(.system(size: 15))
-                            .textContentType(.oneTimeCode)
 
                             Button(action: { isPasswordRevealed.toggle() }) {
                                 Image(systemName: isPasswordRevealed ? "eye.slash" : "eye")
@@ -99,43 +99,29 @@ struct SignupView: View {
 
                     // Confirm Password Field
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Confirm Password")
+                        Text("confirm_password".localized)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.authSecondaryText)
 
-                        HStack {
-                            Group {
-                                if isConfirmPasswordRevealed {
-                                    TextField("........", text: $vm.signupConfirmPassword)
-                                } else {
-                                    SecureField("........", text: $vm.signupConfirmPassword)
-                                }
-                            }
+                        SecureField("........", text: $vm.signupConfirmPassword)
                             .font(.system(size: 15))
-                            .textContentType(.oneTimeCode)
-
-                            Button(action: { isConfirmPasswordRevealed.toggle() }) {
-                                Image(systemName: isConfirmPasswordRevealed ? "eye.slash" : "eye")
-                                    .foregroundColor(.authSecondaryText)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .frame(height: 52)
-                        .background(Color.authFieldBackground)
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(
-                                    vm.signupConfirmPasswordError != nil ? Color.errorRed : Color.authInputBorder,
-                                    lineWidth: vm.signupConfirmPasswordError != nil ? 1.5 : 1
-                                )
-                        )
-                        .animation(.easeInOut(duration: 0.2), value: vm.signupConfirmPasswordError)
+                            .padding(.horizontal, 16)
+                            .frame(height: 52)
+                            .background(Color.authFieldBackground)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(
+                                        vm.signupConfirmPasswordError != nil ? Color.errorRed : Color.authInputBorder,
+                                        lineWidth: vm.signupConfirmPasswordError != nil ? 1.5 : 1
+                                    )
+                            )
+                            .animation(.easeInOut(duration: 0.2), value: vm.signupConfirmPasswordError)
                     }
 
                     Spacer().frame(height: 8)
 
-                    // Sign Up Button
+                    // Signup Button
                     Button(action: { vm.signUp() }) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -145,7 +131,7 @@ struct SignupView: View {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
-                                Text("Sign Up")
+                                Text("sign_up".localized)
                                     .font(.system(size: 16, weight: .semibold))
                                     .foregroundColor(.white)
                             }
@@ -164,12 +150,12 @@ struct SignupView: View {
 
                 // Switch to Login
                 HStack(spacing: 4) {
-                    Text("Already have an account?")
+                    Text("already_have_account".localized)
                         .font(.system(size: 14))
                         .foregroundColor(.authSecondaryText)
 
                     Button(action: { vm.switchToLogin() }) {
-                        Text("Login")
+                        Text("login".localized)
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(Color.authPrimaryButton)
                     }
@@ -182,8 +168,8 @@ struct SignupView: View {
             .padding(.horizontal, 24)
         }
         .scrollDismissesKeyboard(.interactively)
-        .alert("Sign Up Failed", isPresented: $vm.showAlert) {
-            Button("OK", role: .cancel) {}
+        .alert("error".localized, isPresented: $vm.showAlert) {
+            Button("ok", role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }

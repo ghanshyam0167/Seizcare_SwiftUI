@@ -8,6 +8,7 @@ import SwiftUI
 struct WatchConnectionView: View {
     @ObservedObject var vm: AuthViewModel
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var languageManager: LanguageManager
     
     @State private var isRefreshing = false
     @State private var connectionStatus: WatchConnectionStatus = .notReachable
@@ -55,11 +56,11 @@ struct WatchConnectionView: View {
                         .padding(.top, 8)
                         
                         VStack(spacing: 6) {
-                            Text("Installed – Not Reachable")
+                            Text("installed_not_reachable".localized)
                                 .font(.system(size: 20, weight: .bold, design: .rounded))
                                 .foregroundColor(statusColor)
                             
-                            Text("Open the Seizcare app on your Apple Watch.")
+                            Text("open_seizcare_watch".localized)
                                 .font(.system(size: 14))
                                 .foregroundColor(.authSecondaryText)
                                 .multilineTextAlignment(.center)
@@ -79,13 +80,13 @@ struct WatchConnectionView: View {
                     
                     // Instructions Card
                     VStack(alignment: .leading, spacing: 20) {
-                        Text("How to connect")
+                        Text("how_to_connect".localized)
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.authPrimaryText)
                             .padding(.bottom, 4)
                         
-                        instructionRow(number: 1, text: "Make sure your Apple Watch is nearby and unlocked.")
-                        instructionRow(number: 2, text: "Open the Seizcare app on your Apple Watch.")
+                        instructionRow(number: 1, text: "make_sure_watch_nearby".localized)
+                        instructionRow(number: 2, text: "open_seizcare_watch".localized)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(24)
@@ -109,7 +110,7 @@ struct WatchConnectionView: View {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     } else {
-                        Text("Refresh Status")
+                        Text("refresh_status".localized)
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
                     }

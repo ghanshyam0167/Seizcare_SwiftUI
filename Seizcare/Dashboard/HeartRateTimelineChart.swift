@@ -95,27 +95,27 @@ struct HeartRateTimelineChartView: View {
                 VStack(spacing: 20) {
                     // Summary stats
                     HStack(spacing: 0) {
-                        HRStatTile(label: "Baseline",  value: "\(minBPM)", unit: "bpm", color: .dashSleep)
-                        HRStatTile(label: "Peak",      value: "\(peakBPM)", unit: "bpm", color: .dashSeizure)
-                        HRStatTile(label: "Recovery",  value: "\(recoveryBPM)", unit: "bpm", color: .dashGreen)
-                        HRStatTile(label: "Duration",  value: durationText, unit: "", color: .dashSecondary)
+                        HRStatTile(label: "baseline",  value: "\(minBPM)", unit: "bpm", color: .dashSleep)
+                        HRStatTile(label: "peak",      value: "\(peakBPM)", unit: "bpm", color: .dashSeizure)
+                        HRStatTile(label: "recovery",  value: "\(recoveryBPM)", unit: "bpm", color: .dashGreen)
+                        HRStatTile(label: "duration",  value: durationText, unit: "", color: .dashSecondary)
                     }
                     .background(Color.dashCard)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
 
                     // Phase labels
                     HStack(spacing: 0) {
-                        PhasePill(label: "Before",  color: .dashSleep)
+                        PhasePill(label: "before",  color: .dashSleep)
                         Spacer()
-                        PhasePill(label: "Seizure", color: .dashSeizure)
+                        PhasePill(label: "seizure", color: .dashSeizure)
                         Spacer()
-                        PhasePill(label: "After",   color: .dashGreen)
+                        PhasePill(label: "after",   color: .dashGreen)
                     }
                     .padding(.horizontal, 4)
 
                     // Heart rate chart
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Heart Rate Timeline")
+                        Text("heart_rate_timeline")
                             .font(.caption)
                             .foregroundStyle(Color.dashSecondary)
 
@@ -146,7 +146,7 @@ struct HeartRateTimelineChartView: View {
                                 .foregroundStyle(Color.dashSeizure.opacity(0.5))
                                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [4]))
                                 .annotation(position: .top, alignment: .leading) {
-                                    Text("Onset")
+                                    Text("onset")
                                         .font(.caption2.weight(.semibold))
                                         .foregroundStyle(Color.dashSeizure)
                                 }
@@ -156,7 +156,7 @@ struct HeartRateTimelineChartView: View {
                                 .foregroundStyle(Color.dashGreen.opacity(0.5))
                                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [4]))
                                 .annotation(position: .bottom, alignment: .trailing) {
-                                    Text("End")
+                                    Text("end")
                                         .font(.caption2.weight(.semibold))
                                         .foregroundStyle(Color.dashGreen)
                                 }
@@ -194,10 +194,10 @@ struct HeartRateTimelineChartView: View {
 
                     // Explanation card
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("What this shows", systemImage: "info.circle")
+                        Label("what_this_shows", systemImage: "info.circle")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(Color.dashLabel)
-                        Text("Heart rate 60 minutes before, during (highlighted), and 60 minutes after the seizure. The X-axis shows relative time in minutes from seizure onset.")
+                        Text("hr_timeline_desc")
                             .font(.caption)
                             .foregroundStyle(Color.dashSecondary)
                             .lineSpacing(4)
@@ -211,11 +211,11 @@ struct HeartRateTimelineChartView: View {
             .onAppear {
                 fetchSamples()
             }
-            .navigationTitle("Heart Rate")
+            .navigationTitle("heart_rate")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button("done") { dismiss() }
                         .foregroundStyle(Color.dashSeizure)
                 }
             }
@@ -242,7 +242,7 @@ private struct HRStatTile: View {
                         .foregroundStyle(Color.dashSecondary)
                 }
             }
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(.caption2)
                 .foregroundStyle(Color.dashSecondary)
         }
@@ -259,7 +259,7 @@ private struct PhasePill: View {
             RoundedRectangle(cornerRadius: 2)
                 .fill(color)
                 .frame(width: 14, height: 4)
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(color)
         }

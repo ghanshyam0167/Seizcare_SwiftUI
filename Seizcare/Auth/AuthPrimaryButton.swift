@@ -12,7 +12,7 @@ import SwiftUI
 
 struct AuthPrimaryButton: View {
 
-    let title:     String
+    let title:     LocalizedStringKey
     let isLoading: Bool
     let isEnabled: Bool
     let action:    () -> Void
@@ -43,7 +43,7 @@ struct AuthPrimaryButton: View {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .scaleEffect(0.9)
-                        Text("Please wait…")
+                        Text("please_wait")
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                             .foregroundColor(.white)
                     }
