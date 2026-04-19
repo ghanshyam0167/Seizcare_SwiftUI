@@ -4,20 +4,50 @@
 //
 
 import SwiftUI
+import WatchConnectivity
 
 struct WatchConnectionView: View {
     @ObservedObject var vm: AuthViewModel
     @Environment(\.dismiss) private var dismiss
     
+    @ObservedObject private var connectivity = WatchConnectivityManager.shared
     @State private var isRefreshing = false
-    @State private var connectionStatus: WatchConnectionStatus = .notReachable
     
-    enum WatchConnectionStatus {
-        case notReachable
-        case connected
+    // Status color logic
+    private var statusColor: Color {
+        if !connectivity.isPaired { return .errorRed }
+        if !connectivity.isReachable { return Color(red: 1.0, green: 0.72, blue: 0.0) } // Amber
+        if !connectivity.isStreaming { return Color(red: 1.0, green: 0.72, blue: 0.0) } // Amber
+        return .dashGreen
     }
     
-    private let statusColor = Color(red: 1.0, green: 0.72, blue: 0.0) // Premium Golden/Amber
+    private var statusIcon: String {
+        if !connectivity.isPaired { return "applewatch.slash" }
+        if !connectivity.isReachable { return "applewatch.radiowaves.left.and.right" }
+        if connectivity.isWaitingForFirstSample { return "rays" }
+        return "applewatch.watchface"
+    }
+    
+    private var statusTitle: String {
+        if !connectivity.isPaired { return "No Watch Paired" }
+        if !connectivity.isReachable { return "Installed – Not Reachable" }
+        if connectivity.isWaitingForFirstSample { return "Verifying Stream..." }
+        if !connectivity.isStreaming { return "Ready – Waiting for Data" }
+        return "All set!"
+    }
+    
+    private var statusDescription: String {
+        if !connectivity.isPaired { return "Please pair an Apple Watch with your iPhone in the Watch app." }
+        if !connectivity.isReachable { return "Open the Seizcare app on your Apple Watch to sync health data." }
+        if connectivity.isWaitingForFirstSample { return "Received signal from Watch. Waiting for first heart rate sample..." }
+        if !connectivity.isStreaming { return "Ensure the Seizcare app on your watch is active and streaming." }
+        return "Your Apple Watch is connected and actively streaming health data."
+    }
+    
+    private var statusSubtitleColor: Color {
+        if connectivity.isReachable && connectivity.isPaired && connectivity.isStreaming { return .dashGreen }
+        return Color(red: 1.0, green: 0.72, blue: 0.0) // Amber for others
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -48,18 +78,26 @@ struct WatchConnectionView: View {
                                 .fill(statusColor.opacity(0.1))
                                 .frame(width: 100, height: 100)
                             
-                            Image(systemName: "applewatch.radiowaves.left.and.right")
+                            Image(systemName: statusIcon)
                                 .font(.system(size: 44))
                                 .foregroundColor(statusColor)
+                                .rotationEffect(.degrees(connectivity.isWaitingForFirstSample ? 360 : 0))
+                                .animation(connectivity.isWaitingForFirstSample ? .linear(duration: 2).repeatForever(autoreverses: false) : .default, value: connectivity.isWaitingForFirstSample)
+                            
+                            if connectivity.isWaitingForFirstSample {
+                                ProgressView()
+                                    .tint(statusColor)
+                                    .scaleEffect(1.2)
+                            }
                         }
                         .padding(.top, 8)
                         
                         VStack(spacing: 6) {
-                            Text("Installed – Not Reachable")
+                            Text(statusTitle)
                                 .font(.system(size: 20, weight: .bold, design: .rounded))
                                 .foregroundColor(statusColor)
                             
-                            Text("Open the Seizcare app on your Apple Watch.")
+                            Text(statusDescription)
                                 .font(.system(size: 14))
                                 .foregroundColor(.authSecondaryText)
                                 .multilineTextAlignment(.center)
@@ -145,10 +183,14 @@ struct WatchConnectionView: View {
     private func refreshConnection() {
         isRefreshing = true
         
-        // Simulate a connection check delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+        // Re-activate session to trigger status delegates
+        if WCSession.isSupported() {
+            WCSession.default.activate()
+        }
+        
+        // Simulate a connection check delay for UI feedback
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             isRefreshing = false
-            // Here you would normally update the status based on WCSession
         }
     }
 }

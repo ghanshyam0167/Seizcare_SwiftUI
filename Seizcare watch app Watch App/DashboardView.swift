@@ -26,15 +26,15 @@ struct DashboardView: View {
             
             Spacer().frame(height: 10)
             
-            if connectivity.heartRate > 0 {
+            if connectivity.isHeartRateFresh {
                 Text("\(Int(connectivity.heartRate))")
                     .font(.system(size: 52, weight: .bold, design: .rounded))
                     .foregroundStyle(.green)
                     .transition(.opacity)
             } else {
-                ProgressView()
-                    .scaleEffect(1.2)
-                    .padding()
+                Text("-")
+                    .font(.system(size: 52, weight: .bold, design: .rounded))
+                    .foregroundStyle(.secondary.opacity(0.5))
             }
             
             Text("BPM")
@@ -49,6 +49,6 @@ struct DashboardView: View {
     
     private var statusText: String {
         if !connectivity.isStreaming { return "STOPPED" }
-        return connectivity.heartRate > 0 ? "LIVE" : "WAITING"
+        return connectivity.isHeartRateFresh ? "LIVE" : "WAITING"
     }
 }

@@ -77,9 +77,20 @@ struct DashboardView: View {
                     // Hero Card
                     HeroCardView(
                         records: records,
-                        sleepHours: viewModel.avgSleep7Days,
-                        heartRate: viewModel.currentHeartRate
+                        heartRate: viewModel.displayHeartRate,
+                        sleepHours: viewModel.avgSleep7Days
                     )
+                    
+                    if !viewModel.guidanceText.isEmpty && viewModel.displayHeartRate == nil {
+                        Text(viewModel.guidanceText)
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundStyle(Color.dashSeizure)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 16)
+                            .background(Color.dashSeizure.opacity(0.1))
+                            .clipShape(Capsule())
+                            .padding(.bottom, 8)
+                    }
 
                     // MARK: - Hold to Send Alert
                     HoldToAlertView(onAlertTriggered: {

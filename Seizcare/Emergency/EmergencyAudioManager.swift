@@ -7,6 +7,7 @@ import Foundation
 import AudioToolbox
 import AVFoundation
 import MediaPlayer
+import UserNotifications
 
 class EmergencyAudioManager {
     static let shared = EmergencyAudioManager()
@@ -27,10 +28,11 @@ class EmergencyAudioManager {
         
         // 2. Configure Audio Session to bypass Silent Switch
         do {
+            print("[Audio] Configuring AVAudioSession for background playback...")
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.duckOthers, .interruptSpokenAudioAndMixWithOthers])
-            try AVAudioSession.sharedInstance().setActive(true)
+            try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
-            print("[Audio] Failed to set audio session: \(error.localizedDescription)")
+            print("[ERROR] [Audio] Failed to set audio session: \(error.localizedDescription)")
         }
         
         // 3. Play the generated siren file
@@ -41,20 +43,55 @@ class EmergencyAudioManager {
                 audioPlayer?.numberOfLoops = -1 // Loop infinitely
                 audioPlayer?.volume = 1.0
                 audioPlayer?.prepareToPlay()
-                audioPlayer?.play()
-                print("✅ [Audio] Siren playback started successfully")
+                
+                let success = audioPlayer?.play() ?? false
+                if success {
+                    print("✅ [Audio] Siren playback started successfully")
+                } else {
+                    print("❌ [Audio] AVAudioPlayer failed to start playback (possibly background restriction)")
+                    // Fallback to high-pitched system sound
+                    AudioServicesPlaySystemSound(1351)
+                }
             } catch {
-                print("❌ [Audio] Failed to play siren file: \(error.localizedDescription)")
-                // Fallback to system sound if player fails
+                print("❌ [Audio] Failed to initialize AVAudioPlayer: \(error.localizedDescription)")
                 AudioServicesPlaySystemSound(1351)
             }
         } else {
-            print("⚠️ [Audio] Siren file not found for playback")
+            print("⚠️ [Audio] Siren file not found, synth file if missing...")
+            prepareSirenFile()
             AudioServicesPlaySystemSound(1351)
         }
         
         // Haptic feedback as additional layer
         AudioServicesPlayAlertSound(kSystemSoundID_Vibrate)
+        
+        // 4. Trigger Local Notification as high-reliability background fallback
+        triggerLocalNotificationAlarm()
+    }
+    
+    private func triggerLocalNotificationAlarm() {
+        let content = UNMutableNotificationContent()
+        content.title = "EMERGENCY ALERT TRIGGERED"
+        content.body = "Open the app immediately to view location and stop the alarm."
+        content.sound = .defaultCritical // Requires entitlement, falls back to default if unavailable
+        
+        // Use a default loud sound if critical category isn't available
+        if #available(iOS 12.0, *) {
+            content.sound = UNNotificationSound.defaultCritical
+        } else {
+            content.sound = UNNotificationSound.default
+        }
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+        let request = UNNotificationRequest(identifier: "EmergencyAlarm-\(UUID().uuidString)", content: content, trigger: trigger)
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("[ERROR] [Audio] Failed to add local notification: \(error.localizedDescription)")
+            } else {
+                print("✅ [Audio] Local Notification alarm triggered successfully")
+            }
+        }
     }
     
     func stopAlarm() {

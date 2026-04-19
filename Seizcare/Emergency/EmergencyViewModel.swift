@@ -25,6 +25,25 @@ class EmergencyViewModel: ObservableObject {
     @Published var alertSuccessPopupVisible: Bool = false
     @Published var alarmPlaying: Bool = false
     @Published var currentAlertSessionID: UUID = UUID()
+    
+    private var cancellables = Set<AnyCancellable>()
+    
+    init() {
+        setupWatchNotificationObserver()
+    }
+    
+    private func setupWatchNotificationObserver() {
+        NotificationCenter.default.publisher(for: NSNotification.Name("WatchTriggeredAlert"))
+            .sink { [weak self] _ in
+                print("[Alert] Watch alert notification received in ViewModel — Showing prompt")
+                DispatchQueue.main.async {
+                    self?.alarmPlaying = true
+                    self?.status = .success
+                    self?.alertSuccessPopupVisible = true
+                }
+            }
+            .store(in: &cancellables)
+    }
 
     /// Immediately fires the alert with no countdown (used by slide-to-alert).
     func sendEmergencyAlertImmediately(location: CLLocation?) {
@@ -72,6 +91,9 @@ class EmergencyViewModel: ObservableObject {
         self.status = .idle
         self.alertSending = false
         self.errorMessage = nil
+        
+        // Sync stop to Watch
+        WatchConnectivityManager.shared.sendStopAlarmToWatch()
         
         if self.alarmPlaying {
             EmergencyAudioManager.shared.stopAlarm()

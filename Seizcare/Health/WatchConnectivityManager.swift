@@ -6,9 +6,19 @@
 import Foundation
 import WatchConnectivity
 import CoreLocation
+import Combine
 
-class WatchConnectivityManager: NSObject, WCSessionDelegate {
+class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     static let shared = WatchConnectivityManager()
+
+    @Published var isReachable: Bool = false
+    @Published var isPaired: Bool = false
+    @Published var isAppInstalled: Bool = false
+    @Published var isStreaming: Bool = false
+    @Published var isWaitingForFirstSample: Bool = false
+    
+    private var lastStreamTimestamp: Date?
+    private var streamTimer: Timer?
 
     /// Merged context dict — all keys (spo2, sleepHours, heartRate) live here together.
     /// updateApplicationContext REPLACES the whole dict, so we must send all keys every time.
@@ -29,6 +39,32 @@ class WatchConnectivityManager: NSObject, WCSessionDelegate {
             WCSession.default.activate()
             print("[WC] Session initialized on iOS")
         }
+        
+        // Start a slow timer to check stream status (every 5s)
+        streamTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            self?.checkStreamStatus()
+        }
+    }
+
+    private func checkStreamStatus() {
+        guard let lastTs = lastStreamTimestamp else {
+            if isStreaming { isStreaming = false }
+            return
+        }
+        
+        let age = Date().timeIntervalSince(lastTs)
+        let isNowStreaming = age < 15.0
+        print("[STREAM] Last update: \(lastTs)")
+        print("[STREAM] Active: \(isNowStreaming)")
+        
+        if isStreaming != isNowStreaming {
+            DispatchQueue.main.async {
+                self.isStreaming = isNowStreaming
+                if !isNowStreaming {
+                    self.isWaitingForFirstSample = false
+                }
+            }
+        }
     }
 
     // MARK: - Private context helper
@@ -48,6 +84,7 @@ class WatchConnectivityManager: NSObject, WCSessionDelegate {
             try WCSession.default.updateApplicationContext(sharedContext)
             print("[WC] Context pushed: \(sharedContext)")
         } catch {
+            print("[ERROR] \(error.localizedDescription)")
             print("[WC] Context push error: \(error.localizedDescription)")
         }
     }
@@ -55,13 +92,26 @@ class WatchConnectivityManager: NSObject, WCSessionDelegate {
     // MARK: - API
 
     func sendHeartRateToWatch(_ value: Double) {
+        print("[WC] Sending HR: \(value)")
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(["heartRate": value], replyHandler: nil) { error in
+                print("[ERROR] \(error.localizedDescription)")
                 print("[WC] Error sending HR: \(error.localizedDescription)")
             }
             print("[WC] Sent HR live: \(value)")
         }
         pushContext(["heartRate": value])
+    }
+    
+    func sendStopAlarmToWatch() {
+        print("[WC] Sending stopAlarm command to Watch")
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(["action": "stopAlarm"], replyHandler: nil) { error in
+                print("[ERROR] Failed to send stopAlarm to Watch: \(error.localizedDescription)")
+            }
+        }
+        // Also push via context for eventual consistency
+        pushContext(["action": "stopAlarm"])
     }
 
     func sendSpO2ToWatch(_ value: Double) {
@@ -107,7 +157,17 @@ class WatchConnectivityManager: NSObject, WCSessionDelegate {
     // MARK: - WCSessionDelegate
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        print("[WC] Session activated on iOS: \(activationState.rawValue)")
+        print("[WC] Session activated: \(activationState.rawValue)")
+        if let error = error {
+            print("[ERROR] \(error.localizedDescription)")
+        }
+        
+        DispatchQueue.main.async {
+            self.isReachable = session.isReachable
+            self.isPaired = session.isPaired
+            self.isAppInstalled = session.isWatchAppInstalled
+        }
+        
         // Re-push the full context 1 second after activation so Watch gets all values on reconnect
         if !sharedContext.isEmpty {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -125,11 +185,38 @@ class WatchConnectivityManager: NSObject, WCSessionDelegate {
         WCSession.default.activate()
     }
 
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        print("[WC] Reachability changed: \(session.isReachable)")
+        DispatchQueue.main.async {
+            self.isReachable = session.isReachable
+        }
+    }
+
+    func sessionWatchStateDidChange(_ session: WCSession) {
+        print("[WC] Watch state changed: Paired: \(session.isPaired), Installed: \(session.isWatchAppInstalled)")
+        DispatchQueue.main.async {
+            self.isPaired = session.isPaired
+            self.isAppInstalled = session.isWatchAppInstalled
+        }
+    }
+
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        print("[WC] Message received")
         print("[WC] Received message from Watch: \(message)")
+        print("[WC] Reachable: \(session.isReachable)")
 
         if let hr = message["heartRate"] as? Double {
             print("[WC] Direct HR from Watch: \(hr)")
+            
+            // Mark stream as active if HR is coming (and not 0)
+            if hr > 0 {
+                lastStreamTimestamp = Date()
+                DispatchQueue.main.async {
+                    self.isStreaming = true
+                    self.isWaitingForFirstSample = false
+                }
+            }
+            
             NotificationCenter.default.post(
                 name: NSNotification.Name("WatchHeartRateUpdate"),
                 object: nil,
@@ -149,11 +236,18 @@ class WatchConnectivityManager: NSObject, WCSessionDelegate {
             if action == "stopStream" {
                 NotificationCenter.default.post(name: NSNotification.Name("StopHealthStream"), object: nil)
             } else if action == "startStream" {
+                DispatchQueue.main.async { self.isWaitingForFirstSample = true }
                 NotificationCenter.default.post(name: NSNotification.Name("StartHealthStream"), object: nil)
             } else if action == "triggerAlert" {
                 print("[WC] Watch triggered emergency alert. Executing direct background logic.")
                 executeEmergencyAlertFromWatch()
                 NotificationCenter.default.post(name: NSNotification.Name("WatchTriggeredAlert"), object: nil)
+            } else if action == "stopAlarm" {
+                print("[WC] Received stopAlarm from Watch — silencing iPhone siren")
+                DispatchQueue.main.async {
+                    EmergencyAudioManager.shared.stopAlarm()
+                    NotificationCenter.default.post(name: NSNotification.Name("StopEmergencySiren"), object: nil)
+                }
             }
         }
     }
@@ -173,8 +267,10 @@ class WatchConnectivityManager: NSObject, WCSessionDelegate {
             print("[WC] Fetched \(contacts.count) contacts for Watch SOS")
             
             do {
-                // Countdown finished on Watch! Trigger SIREN on iPhone immediately
-                EmergencyAudioManager.shared.playEmergencyAlarm()
+                // Background trigger needs main-thread for consistent AudioSession activation
+                await MainActor.run {
+                    EmergencyAudioManager.shared.playEmergencyAlarm()
+                }
                 
                 try await EmergencyService.shared.triggerEmergencyAlert(
                     latitude: location?.coordinate.latitude ?? 0.0,
