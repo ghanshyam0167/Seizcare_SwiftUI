@@ -9,9 +9,21 @@ import SwiftUI
 
 @main
 struct Seizcare_watch_app_Watch_AppApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+        }
+        .onChange(of: scenePhase) { newPhase in
+            switch newPhase {
+            case .active:
+                print("[APP] App became active")
+            case .background:
+                print("[APP] App moved to background")
+            default:
+                break
+            }
         }
     }
 }

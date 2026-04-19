@@ -21,10 +21,10 @@ struct WatchStatsView: View {
                     Text("SpO₂")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-                    if connectivity.spo2 == 0 {
-                        Text("No data")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.secondary)
+                    if !connectivity.isSpO2Fresh {
+                        Text("—")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundStyle(.secondary.opacity(0.5))
                     } else {
                         Text("\(Int(connectivity.spo2))%")
                             .font(.system(size: 18, weight: .bold, design: .rounded))

@@ -15,6 +15,20 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     @Published var sleepHours: Double = 0
     @Published var isStreaming: Bool = true
     @Published var sensitivity: Int = 1 // 0: low, 1: medium, 2: high
+    @Published var isAlarmActive: Bool = false
+    
+    // Freshness Tracking
+    @Published var heartRateTimestamp: Date?
+    @Published var spo2Timestamp: Date?
+    @Published var isHeartRateFresh: Bool = false
+    @Published var isSpO2Fresh: Bool = false
+    
+    private let hrFreshnessThreshold: TimeInterval = 15 // seconds
+    private let spo2FreshnessThreshold: TimeInterval = 300 // 5 minutes
+    private var stalenessTimer: AnyCancellable?
+    
+    // Throttling: only send if change >= 2 BPM
+    private var lastSentHeartRate: Double = 0
     
     override init() {
         super.init()
@@ -29,6 +43,45 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         HealthKitManager_Watch.shared.heartRateUpdateHandler = { [weak self] bpm in
             self?.sendLocalHRtoPhone(bpm)
         }
+        
+        startStalenessChecker()
+    }
+    
+    private func startStalenessChecker() {
+        stalenessTimer = Timer.publish(every: 1, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.checkFreshness()
+            }
+    }
+    
+    private func checkFreshness() {
+        let now = Date()
+        
+        // Heart Rate Validity
+        if let hrTs = heartRateTimestamp {
+            let age = now.timeIntervalSince(hrTs)
+            let fresh = age < hrFreshnessThreshold && heartRate > 0
+            print("[STREAM] Active: \(fresh)")
+            if isHeartRateFresh != fresh {
+                isHeartRateFresh = fresh
+                print("[Watch] HR Freshness changed: \(fresh) (age: \(Int(age))s)")
+            }
+        } else {
+            isHeartRateFresh = false
+        }
+        
+        // SpO2 Validity
+        if let spo2Ts = spo2Timestamp {
+            let age = now.timeIntervalSince(spo2Ts)
+            let fresh = age < spo2FreshnessThreshold && spo2 > 0
+            if isSpO2Fresh != fresh {
+                isSpO2Fresh = fresh
+                print("[Watch] SpO2 Freshness changed: \(fresh) (age: \(Int(age))s)")
+            }
+        } else {
+            isSpO2Fresh = false
+        }
     }
     
     private func sendLocalHRtoPhone(_ bpm: Double) {
@@ -36,12 +89,28 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
             return
         }
         
-        print("[Watch] Sending local HR to Phone: \(bpm)")
-        DispatchQueue.main.async { self.heartRate = bpm }
+        // Throttling Logic: Only send if value changes significantly (>= 2 BPM)
+        // Always allow 0 to pass through to clear the UI on the phone.
+        let diff = abs(bpm - lastSentHeartRate)
+        if diff < 2 && bpm != 0 {
+            print("[WC] Skipped minor HR update: \(Int(bpm)) BPM (diff: \(Int(diff)))")
+            return
+        }
+        
+        print("[WC] Sent HR change to Phone: \(Int(bpm)) BPM")
+        print("[WC] Sending HR: \(bpm)")
+        lastSentHeartRate = bpm
+        
+        DispatchQueue.main.async {
+            self.heartRate = bpm
+            self.heartRateTimestamp = Date()
+            self.checkFreshness()
+        }
         
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(["heartRate": bpm], replyHandler: nil) { error in
-                print("[Watch] Error sending local HR: \(error.localizedDescription)")
+                print("[ERROR] \(error.localizedDescription)")
+                print("[WC] Error sending local HR: \(error.localizedDescription)")
             }
         }
     }
@@ -49,15 +118,20 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     // MARK: - WCSessionDelegate
     
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        print("[Watch] WCSession activated: \(activationState.rawValue)")
+        print("[WC] Session activated: \(activationState.rawValue)")
+        if let error = error {
+            print("[ERROR] \(error.localizedDescription)")
+        }
     }
     
     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+        print("[WC] Message received")
         print("[Watch] Message received: \(message)")
         
         DispatchQueue.main.async {
             if let hr = message["heartRate"] as? Double {
                 self.heartRate = hr
+                self.heartRateTimestamp = Date()
                 print("[Watch] Received HR: \(hr)")
             }
             
@@ -68,12 +142,22 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
             
             if let spo2 = message["spo2"] as? Double {
                 self.spo2 = spo2
+                self.spo2Timestamp = Date()
                 print("[Watch] Received SpO2: \(spo2)")
             }
+            
+            self.checkFreshness()
             
             if let levelString = message["sensitivity"] as? String {
                 self.sensitivity = self.mapSensitivityStringToInt(levelString)
                 print("[Watch] Received sensitivity: \(levelString) (\(self.sensitivity))")
+            }
+            
+            if let action = message["action"] as? String {
+                if action == "stopAlarm" {
+                    print("[Watch] Remote stopAlarm received!")
+                    self.isAlarmActive = false
+                }
             }
         }
     }
@@ -84,17 +168,25 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         DispatchQueue.main.async {
             if let spo2 = applicationContext["spo2"] as? Double {
                 self.spo2 = spo2
+                self.spo2Timestamp = Date()
                 print("[Watch] SpO2 from context: \(spo2)")
             }
             if let hr = applicationContext["heartRate"] as? Double {
                 self.heartRate = hr
+                self.heartRateTimestamp = Date()
             }
+            self.checkFreshness()
             if let sleep = applicationContext["sleepHours"] as? Double {
                 self.sleepHours = sleep
             }
             if let levelString = applicationContext["sensitivity"] as? String {
                 self.sensitivity = self.mapSensitivityStringToInt(levelString)
                 print("[Watch] Context sensitivity: \(levelString)")
+            }
+            if let action = applicationContext["action"] as? String {
+                if action == "stopAlarm" {
+                    self.isAlarmActive = false
+                }
             }
         }
     }
@@ -146,9 +238,20 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     
     func triggerEmergencyAlert() {
         print("[Watch-SOS] Sending alert trigger to iPhone")
+        DispatchQueue.main.async { self.isAlarmActive = true }
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(["action": "triggerAlert"], replyHandler: nil) { error in
                 print("[Watch-SOS] Error sending alert trigger: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func sendStopAlarmToPhone() {
+        print("[Watch-SOS] Sending stopAlarm to Phone")
+        DispatchQueue.main.async { self.isAlarmActive = false }
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(["action": "stopAlarm"], replyHandler: nil) { error in
+                print("[ERROR] Failed to send stopAlarm to phone: \(error.localizedDescription)")
             }
         }
     }

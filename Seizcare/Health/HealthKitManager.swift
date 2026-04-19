@@ -17,9 +17,16 @@ class HealthKitManager {
     
     private var hrQuery: HKAnchoredObjectQuery?
     private var observerQuery: HKObserverQuery?
+    private var spo2ObserverQuery: HKObserverQuery?
     
-    // Callback for heart rate updates
+    // Callback for heart rate updates — includes BPM value
     var heartRateUpdateHandler: ((Double) -> Void)?
+    
+    // Callback for heart rate timestamp — called alongside heartRateUpdateHandler
+    var heartRateTimestampHandler: ((Date) -> Void)?
+    
+    // Callback for SpO2 updates
+    var spo2UpdateHandler: ((Double) -> Void)?
     
     private init() {
         print("[HK] Initialized")
@@ -36,13 +43,22 @@ class HealthKitManager {
         
         print("[HK] Requesting Auth for .heartRate, .sleepAnalysis, .oxygenSaturation")
         healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
+            let status = self.healthStore.authorizationStatus(for: self.heartRateType)
+            print("[HK] Permission status: \(status.rawValue)")
+            
             if success {
                 print("[HK] Auth success: HealthKit access granted")
+                
+                // Enable background delivery for heart rate
+                self.healthStore.enableBackgroundDelivery(for: self.heartRateType, frequency: .immediate) { success, error in
+                    print("[HK] Background delivery setup — success=\(success), error=\(error?.localizedDescription ?? "none")")
+                }
+                
                 // Log individual SpO2 status for debugging
                 let spo2Status = self.healthStore.authorizationStatus(for: self.oxygenSaturationType)
                 print("[HK] SpO2 auth status: \(spo2Status.rawValue) (0=notDetermined, 1=denied, 2=sharingAuthorized)")
             } else if let error = error {
-                print("[HK] Auth failed ERROR: \(error.localizedDescription)")
+                print("[ERROR] \(error.localizedDescription)")
             } else {
                 print("[HK] Auth denied: User cancelled or restricted access")
             }
@@ -66,17 +82,29 @@ class HealthKitManager {
         }
         print("[HK] Starting HR Streaming (Observer + Anchored)")
         
-        // 1. Observer Query for background updates
+        // 1. Observer Query for background updates (PRIMARY SOURCE)
         let observerQuery = HKObserverQuery(sampleType: heartRateType, predicate: nil) { [weak self] _, completionHandler, error in
-            print("[HK] HR Observer triggered")
-            if error == nil {
-                self?.fetchLatestHeartRate { bpm in
-                    completionHandler() // Let HK know we received it
-                }
-            } else {
+            print("[HK] Observer triggered for heart rate update")
+            if let error = error {
+                print("[HK] Observer error: \(error.localizedDescription)")
                 completionHandler()
+                return
+            }
+            
+            // FETCH LATEST VALUE (Step 2)
+            self?.fetchLatestHeartRate { bpm, sampleDate in
+                if let value = bpm {
+                    print("[HK] HR fetched: \(value) BPM at \(sampleDate ?? Date())")
+                }
+                completionHandler() // MUST call this to let HK know we finished background work
             }
         }
+        
+        // Step 1.2: Enable background delivery (Frequency = .immediate)
+        healthStore.enableBackgroundDelivery(for: heartRateType, frequency: .immediate) { success, error in
+            print("[HK] Background delivery setup — success=\(success), error=\(error?.localizedDescription ?? "none")")
+        }
+        
         healthStore.execute(observerQuery)
         self.observerQuery = observerQuery
         
@@ -112,6 +140,41 @@ class HealthKitManager {
         }
     }
     
+    func startSpO2Streaming() {
+        if spo2ObserverQuery != nil {
+            print("[HK] SpO2 Streaming already active, skipping re-start")
+            return
+        }
+        print("[HK] Starting SpO2 Streaming (Observer)")
+        
+        // Observer Query for background updates
+        let observerQuery = HKObserverQuery(sampleType: oxygenSaturationType, predicate: nil) { [weak self] _, completionHandler, error in
+            print("[HK] SpO2 Observer triggered")
+            if error == nil {
+                self?.fetchLatestSpO2 { spo2 in
+                    if let spo2 = spo2 {
+                        DispatchQueue.main.async {
+                            self?.spo2UpdateHandler?(spo2)
+                        }
+                    }
+                    completionHandler() // Let HK know we received it
+                }
+            } else {
+                completionHandler()
+            }
+        }
+        healthStore.execute(observerQuery)
+        self.spo2ObserverQuery = observerQuery
+    }
+    
+    func stopSpO2Streaming() {
+        if let observer = spo2ObserverQuery {
+            print("[HK] Stopping SpO2 Observer Query")
+            healthStore.stop(observer)
+            self.spo2ObserverQuery = nil
+        }
+    }
+    
     private func processHRSamples(_ samples: [HKSample]?) {
         guard let samples = samples as? [HKQuantitySample], let latest = samples.last else {
             print("[HK] HR No data in batch")
@@ -119,15 +182,18 @@ class HealthKitManager {
         }
         
         let bpm = latest.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
-        print("[HK] HR Update: \(bpm) BPM")
+        let sampleDate = latest.endDate
+        print("[HK] HR Update: \(bpm) BPM, timestamp: \(sampleDate)")
         
         DispatchQueue.main.async {
             self.heartRateUpdateHandler?(bpm)
+            self.heartRateTimestampHandler?(sampleDate)
         }
     }
     
-    func fetchLatestHeartRate(completion: @escaping (Double?) -> Void) {
-        print("[HK] Fetching latest HR...")
+    /// Fetches latest heart rate. Returns (bpm, sampleDate) so caller can check freshness.
+    func fetchLatestHeartRate(completion: @escaping (Double?, Date?) -> Void) {
+        print("[HK] Fetching heart rate...")
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         let query = HKSampleQuery(
             sampleType: heartRateType,
@@ -135,15 +201,22 @@ class HealthKitManager {
             limit: 1,
             sortDescriptors: [sortDescriptor]
         ) { _, samples, error in
+            if let error = error {
+                print("[ERROR] \(error.localizedDescription)")
+            }
+            
             guard let sample = samples?.first as? HKQuantitySample else {
-                print("[HK] HR latest: No data")
-                completion(nil)
+                print("[HK] No data available")
+                DispatchQueue.main.async { completion(nil, nil) }
                 return
             }
             let bpm = sample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
-            print("[HK] HR latest found: \(Int(bpm)) BPM")
+            print("[HK] HR value: \(bpm)")
+            let sampleDate = sample.endDate
+            let age = Date().timeIntervalSince(sampleDate)
+            print("[HK] HR latest: \(Int(bpm)) BPM, age: \(String(format: "%.0f", age))s, timestamp: \(sampleDate)")
             DispatchQueue.main.async {
-                completion(bpm)
+                completion(bpm, sampleDate)
             }
         }
         healthStore.execute(query)

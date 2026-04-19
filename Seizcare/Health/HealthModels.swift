@@ -10,3 +10,8 @@ struct SleepData: Identifiable {
     let date: Date
     let duration: Double // In hours
 }
+
+struct HRPoint {
+    let value: Double
+    let timestamp: Date
+}
