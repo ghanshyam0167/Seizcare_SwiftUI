@@ -17,10 +17,30 @@ class HealthViewModel: ObservableObject {
     
     @Published var guidanceText: String = ""
     
-    private let hkManager = HealthKitManager.shared
-    private var cancellables = Set<AnyCancellable>()
-    private var pollingTimer: AnyCancellable?
+    // MARK: - Advanced HR Handling State
+    /// RAW Pipeline: Buffer of recent heart rate points for detection and filtering
+    private var hrBuffer: [HRPoint] = []
+    
+    /// UI Pipeline: The stable, confirmed heart rate value shown to the user
+    @Published var displayHeartRate: Double? = nil
+    
+    /// Flag indicating if the heart rate stream is currently receiving fresh data
+    @Published var isStreamActive: Bool = false
+    
+    // MARK: - Freshness Tracking
+    /// Timestamp of the most recent HR sample from HealthKit
+    private(set) var heartRateTimestamp: Date? = nil
+    
+    /// UI Freshness: 15s is the threshold for general UI "health" status
+    private let heartRateFreshnessThreshold: TimeInterval = 15
+    
+    /// Stream Loss: 15s is the threshold for marking the stream as "Inactive" (showing "-")
+    private let streamLossThreshold: TimeInterval = 15
+    
+    private var stalenessTimer: AnyCancellable?
     private var loadingTimeout: AnyCancellable?
+    
+    private let hkManager = HealthKitManager.shared
     
     init() {
         setupHealthKit()
@@ -40,7 +60,7 @@ class HealthViewModel: ObservableObject {
         NotificationCenter.default.addObserver(forName: NSNotification.Name("WatchHeartRateUpdate"), object: nil, queue: .main) { [weak self] note in
             if let bpm = note.userInfo?["bpm"] as? Double {
                 print("[VM] Received direct HR from notification: \(bpm)")
-                self?.updateHeartRate(bpm)
+                self?.handleIncomingHeartRate(bpm, timestamp: Date())
             }
         }
     }
@@ -59,7 +79,6 @@ class HealthViewModel: ObservableObject {
             }
         }
         
-        // Fallback: Ensure loading screen clears after 5 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
             if self.isLoading {
                 print("[VM] HealthViewModel: Loading timeout reached, clearing spinner")
@@ -69,48 +88,175 @@ class HealthViewModel: ObservableObject {
     }
     
     private func startDataCollection() {
-        // Handle heart rate updates
         hkManager.heartRateUpdateHandler = { [weak self] bpm in
-            self?.updateHeartRate(bpm)
+            self?.handleIncomingHeartRate(bpm, timestamp: Date())
+        }
+        hkManager.heartRateTimestampHandler = { [weak self] date in
+            self?.heartRateTimestamp = date
         }
         
         hkManager.startHeartRateStreaming()
         print("[VM] HealthViewModel: HR Streaming started")
         
-        // Initial fetch for latest HR
-        hkManager.fetchLatestHeartRate { [weak self] bpm in
+        hkManager.spo2UpdateHandler = { [weak self] spo2 in
             DispatchQueue.main.async {
-                if let bpm = bpm {
-                    print("[VM] HealthViewModel: Initial HR fetched: \(bpm)")
-                    self?.updateHeartRate(bpm)
+                print("[VM] HealthViewModel: SpO2 update received: \(spo2)%")
+                self?.currentSpO2 = spo2
+                WatchConnectivityManager.shared.sendSpO2ToWatch(spo2)
+            }
+        }
+        hkManager.startSpO2Streaming()
+        
+        hkManager.fetchLatestHeartRate { [weak self] bpm, sampleDate in
+            DispatchQueue.main.async {
+                if let bpm = bpm, let sampleDate = sampleDate {
+                    let age = Date().timeIntervalSince(sampleDate)
+                    if age <= (self?.heartRateFreshnessThreshold ?? 15) {
+                        self?.handleIncomingHeartRate(bpm, timestamp: sampleDate)
+                    } else {
+                        self?.displayHeartRate = nil
+                        self?.currentHeartRate = 0
+                    }
                 }
                 self?.isLoading = false
             }
         }
         
-        // Fetch latest SpO2 — also requests auth if not yet granted
         fetchSpO2()
-        
-        // Fetch last night's sleep and sync to Watch
         fetchSleep()
-        
-
-        // Start Polling Timer (Fallback every 2 seconds)
-        startPolling()
-        
-        // Start Loading Timeout (10 seconds)
+        startStalenessChecker()
         startLoadingTimeout()
     }
     
-    private func startPolling() {
-        pollingTimer?.cancel()
-        pollingTimer = Timer.publish(every: 2, on: .main, in: .common)
+    // MARK: - Core Heart Rate Pipelines
+    
+    /// Entry point for ALL incoming heart rate data
+    private func handleIncomingHeartRate(_ bpm: Double, timestamp: Date) {
+        let newPoint = HRPoint(value: bpm, timestamp: timestamp)
+        
+        // --- DETECTION PIPELINE (RAW) ---
+        // Immediately process for seizure detection (Step 3: No delay, no filtering)
+        processForSeizureDetection(bpm)
+        
+        // --- UI PIPELINE (FILTERED) ---
+        // Step 2: Append to buffer and maintain constraints
+        hrBuffer.append(newPoint)
+        
+        // Prune the buffer: keep last 7 values OR values within 12 seconds
+        let windowLimit = Date().addingTimeInterval(-12)
+        hrBuffer = hrBuffer.filter { $0.timestamp > windowLimit }
+        if hrBuffer.count > 7 {
+            hrBuffer.removeFirst(hrBuffer.count - 7)
+        }
+        
+        print("[BUFFER] Count: \(hrBuffer.count), Latest: \(Int(bpm)) BPM")
+        
+        // Step 4 & 5 & 6: Process for UI display
+        updateUIDisplay()
+        
+        // Sync with Watch & Local State
+        self.heartRateTimestamp = timestamp
+        self.isStreamActive = true
+        self.isLoading = false
+        self.guidanceText = ""
+    }
+    
+    /// RAW Pipeline: Seizure spike detection
+    private func processForSeizureDetection(_ value: Double) {
+        print("[RAW] Processing HR: \(Int(value)) BPM")
+        
+        // Step 4: Baseline = average of last 3 valid values
+        let validValues = hrBuffer.map { $0.value }
+        let baseline: Double
+        if validValues.count >= 3 {
+             baseline = validValues.suffix(3).reduce(0, +) / 3.0
+        } else {
+            baseline = value // Temporary baseline
+        }
+        
+        // Step 5: Spike Detection (RAW)
+        let delta = value - baseline
+        print("[BASELINE] \(Int(baseline)), Delta: \(Int(delta))")
+        
+        if delta >= 25 {
+            print("[SPIKE-DETECTED] Delta of \(Int(delta)) BPM (Raw) exceeds 25 BPM threshold!")
+            // Trigger emergency spike alert
+            NotificationCenter.default.post(name: NSNotification.Name("EmergencySpikeDetected"), object: nil, userInfo: ["bpm": value, "delta": delta])
+        }
+    }
+    
+    /// UI Pipeline: Stable, confirmed display value
+    private func updateUIDisplay() {
+        guard let latestPoint = hrBuffer.last else {
+            self.displayHeartRate = nil
+            self.currentHeartRate = 0
+            return
+        }
+        
+        let value = latestPoint.value
+        let validValues = hrBuffer.map { $0.value }
+        let baseline = validValues.dropLast().suffix(3).reduce(0, +) / max(1, Double(min(3, validValues.count - 1)))
+        
+        // Step 7: Stream Reliability check (At least 2 readings in last 8s)
+        let eightSecondsAgo = Date().addingTimeInterval(-8)
+        let recentPointCount = hrBuffer.filter { $0.timestamp > eightSecondsAgo }.count
+        let streamIsReliable = recentPointCount >= 2
+        
+        // Step 6: UI Spike Confirmation
+        // 1. At least 2 readings >= baseline + 15
+        let spikeReadings = hrBuffer.filter { $0.value >= (baseline + 15) }
+        let isConfirmedSpike = (spikeReadings.count >= 2 && latestPoint.value >= baseline + 15)
+        
+        // Step 12: Confidence Score
+        var confidence: Double = 0
+        if recentPointCount >= 2 { confidence += 0.4 }
+        if isConfirmedSpike { confidence += 0.3 }
+        // Self-consistency check (std dev equivalent)
+        if hrBuffer.count >= 3 {
+            let avg = validValues.reduce(0, +) / Double(validValues.count)
+            let variance = validValues.map { pow($0 - avg, 2) }.reduce(0, +) / Double(validValues.count)
+            if sqrt(variance) < 10 { confidence += 0.3 }
+        }
+        
+        print("[STREAM] Reliable: \(streamIsReliable), Confirmed Spike: \(isConfirmedSpike), Confidence: \(String(format: "%.1f", confidence))")
+        
+        // Step 9: UI Display Selection
+        if streamIsReliable || isConfirmedSpike || confidence >= 0.6 {
+            print("[UI] Displaying confirmed value: \(Int(value))")
+            self.displayHeartRate = value
+            self.currentHeartRate = value
+            self.heartRateHistory.append(value)
+            WatchConnectivityManager.shared.sendHeartRateToWatch(value)
+            
+            if heartRateHistory.count > 100 { heartRateHistory.removeFirst() }
+        } else {
+            print("[UI] Stream unstable, keeping previous or show dash if first run")
+        }
+    }
+    
+    private func startStalenessChecker() {
+        stalenessTimer?.cancel()
+        stalenessTimer = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
-                print("[Timer] Polling HR...")
-                self?.hkManager.fetchLatestHeartRate { bpm in
-                    if let bpm = bpm {
-                        self?.updateHeartRate(bpm)
+                guard let self = self else { return }
+                
+                // Step 8: Fast Stream Loss Detection (> 5s)
+                if let ts = self.heartRateTimestamp {
+                    let age = Date().timeIntervalSince(ts)
+                    
+                    if age > self.streamLossThreshold && self.isStreamActive {
+                        print("[STREAM] Loss detected (\(Int(age))s) — clearing buffer and marking inactive")
+                        self.hrBuffer.removeAll()
+                        self.isStreamActive = false
+                        self.displayHeartRate = nil
+                        self.currentHeartRate = 0
+                        self.guidanceText = "Connect your Apple Watch to start monitoring."
+                        WatchConnectivityManager.shared.sendHeartRateToWatch(0)
+                        
+                        // Stop background streams to save battery (Step 11)
+                        self.hkManager.stopHeartRateStreaming()
+                        self.hkManager.stopSpO2Streaming()
                     }
                 }
             }
@@ -122,79 +268,56 @@ class HealthViewModel: ObservableObject {
             .delay(for: .seconds(10), scheduler: RunLoop.main)
             .sink { [weak self] in
                 if self?.isLoading == true {
-                    print("[VM] Loading timeout reached - showing guidance")
+                    print("[VM] Loading timeout reached")
                     self?.isLoading = false
-                    self?.guidanceText = "Waiting for heart rate data... Start a workout on your watch to enable continuous tracking."
+                    self?.guidanceText = "Waiting for data. Start a workout on your watch for better results."
                 }
             }
     }
-    
 
     private func stopDataCollection() {
         print("[VM] HealthViewModel: Stopping data collection")
-        pollingTimer?.cancel()
         loadingTimeout?.cancel()
+        stalenessTimer?.cancel()
         
         DispatchQueue.main.async {
             self.isLoading = false
+            self.displayHeartRate = nil
+            self.currentHeartRate = 0
+            self.isStreamActive = false
+            self.hrBuffer.removeAll()
+            self.guidanceText = "Connect your Apple Watch to start monitoring."
+            WatchConnectivityManager.shared.sendHeartRateToWatch(0)
         }
         
         hkManager.stopHeartRateStreaming()
+        hkManager.stopSpO2Streaming()
     }
     
-    /// Public: call from view .onAppear or refresh button
     func fetchSpO2() {
-        print("[VM] Triggering SpO2 fetch...")
         hkManager.fetchLatestSpO2 { [weak self] spo2 in
             DispatchQueue.main.async {
                 if let spo2 = spo2 {
-                    print("[VM] SpO2 fetched: \(spo2)%")
                     self?.currentSpO2 = spo2
                     WatchConnectivityManager.shared.sendSpO2ToWatch(spo2)
-                } else {
-                    print("[VM] SpO2: No data returned")
                 }
             }
         }
     }
     
-    /// Public: call from view .onAppear or refresh button
     func fetchSleep() {
-        print("[VM] Triggering last-night sleep fetch...")
         hkManager.fetchLastNightSleep { [weak self] hours in
             guard let self = self else { return }
             self.lastNightSleep = hours
-            print("[VM] Sleep result: \(String(format: "%.2f", hours)) hrs — sending to Watch")
             WatchConnectivityManager.shared.sendSleepToWatch(hours)
         }
-        
-        // Debug Extraction: Print 30-day history to console as requested
-        hkManager.printDailySleepHistory()
     }
     
-    func fetchSleepData() {
-        hkManager.fetchSleepData(lastDays: 7) { [weak self] data in
-            DispatchQueue.main.async {
-                self?.sleepData = data
-                if let lastNight = data.first {
-                    self?.lastNightSleep = lastNight.duration
-                    WatchConnectivityManager.shared.sendSleepDataToWatch(lastNight.duration)
-                }
-                print("[HK] Updated sleepData: \(data.count) entries, last night: \(self?.lastNightSleep ?? 0)h")
-            }
-        }
-    }
-    
-    /// Fetch 90 days of sleep data from Supabase as a backup/complement to HealthKit.
     func fetchSleepFromSupabase() async {
-        await MainActor.run { isLoading = true }
-        defer { Task { @MainActor in isLoading = false } }
-        
         guard let userId = await SupabaseService.shared.currentUserId() else { return }
         do {
             let supabaseRecords = try await SupabaseService.shared.fetchSleepRecords(userId: userId)
             await MainActor.run {
-                // Merge with HealthKit data — avoid duplicates by date
                 let existingDates = Set(sleepData.map { Calendar.current.startOfDay(for: $0.date) })
                 let newItems: [SleepData] = supabaseRecords.compactMap { record in
                     let day = Calendar.current.startOfDay(for: record.date)
@@ -207,27 +330,7 @@ class HealthViewModel: ObservableObject {
                 }
             }
         } catch {
-            await MainActor.run {
-                self.errorMessage = error.localizedDescription
-            }
-        }
-    }
-    
-    private func updateHeartRate(_ bpm: Double) {
-        if bpm != self.currentHeartRate {
-            print("[HK] HR Value Updated: \(bpm) BPM")
-            self.currentHeartRate = bpm
-            self.heartRateHistory.append(bpm)
-            self.isLoading = false
-            self.guidanceText = "" // Clear guidance if we have data
-            
-            // Sync with Watch
-            WatchConnectivityManager.shared.sendHeartRateToWatch(bpm)
-            
-            // Keep last 100 samples for history
-            if heartRateHistory.count > 100 {
-                heartRateHistory.removeFirst()
-            }
+            await MainActor.run { self.errorMessage = error.localizedDescription }
         }
     }
 }

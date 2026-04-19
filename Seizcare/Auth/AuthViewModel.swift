@@ -706,6 +706,9 @@ final class AuthViewModel: ObservableObject {
         
         // If image provided, upload it
         if let image = onboardingProfileImage, let data = image.jpegData(compressionQuality: 0.7) {
+            // Save locally for instant reflection
+            UserDataModel.shared.saveLocalAvatarImage(image)
+            
             Task {
                 if let userId = UserDataModel.shared.getCurrentUser()?.id {
                     do {

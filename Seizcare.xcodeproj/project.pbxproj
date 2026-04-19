@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		055DB8D92F94F45400BCF8DE /* ArtifactFilter.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 055DB8D82F94F45400BCF8DE /* ArtifactFilter.mlmodel */; };
+		055DB8DB2F94FD2300BCF8DE /* SeizureDetector.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 055DB8DA2F94FD2300BCF8DE /* SeizureDetector.mlmodel */; };
+		055DB8F12F95136600BCF8DE /* ArtifactFilter.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 055DB8D82F94F45400BCF8DE /* ArtifactFilter.mlmodel */; };
+		055DB8F22F95136A00BCF8DE /* SeizureDetector.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 055DB8DA2F94FD2300BCF8DE /* SeizureDetector.mlmodel */; };
 		C9B9E59E2F92BC98005767EE /* Seizcare watch app Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = C9B9E5942F92BC97005767EE /* Seizcare watch app Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D8A328AE2F8E5CD400BDABD5 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = D8A328AD2F8E5CD400BDABD5 /* Auth */; };
 		D8A328B02F8E5CD400BDABD5 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = D8A328AF2F8E5CD400BDABD5 /* Supabase */; };
@@ -37,6 +41,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		055DB8D82F94F45400BCF8DE /* ArtifactFilter.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = ArtifactFilter.mlmodel; sourceTree = "<group>"; };
+		055DB8DA2F94FD2300BCF8DE /* SeizureDetector.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = SeizureDetector.mlmodel; sourceTree = "<group>"; };
 		C9B9E5942F92BC97005767EE /* Seizcare watch app Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Seizcare watch app Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D8FCA43E2F7ACEED00D052C0 /* Seizcare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Seizcare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -77,6 +83,8 @@
 		D8FCA4352F7ACEED00D052C0 = {
 			isa = PBXGroup;
 			children = (
+				055DB8DA2F94FD2300BCF8DE /* SeizureDetector.mlmodel */,
+				055DB8D82F94F45400BCF8DE /* ArtifactFilter.mlmodel */,
 				D8FCA4402F7ACEED00D052C0 /* Seizcare */,
 				C9B9E5952F92BC97005767EE /* Seizcare watch app Watch App */,
 				D8FCA43F2F7ACEED00D052C0 /* Products */,
@@ -211,6 +219,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				055DB8F22F95136A00BCF8DE /* SeizureDetector.mlmodel in Sources */,
+				055DB8F12F95136600BCF8DE /* ArtifactFilter.mlmodel in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,6 +228,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				055DB8D92F94F45400BCF8DE /* ArtifactFilter.mlmodel in Sources */,
+				055DB8DB2F94FD2300BCF8DE /* SeizureDetector.mlmodel in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -436,9 +448,11 @@
 				DEVELOPMENT_TEAM = WQ98R62YF4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Seizcare needs camera access to let you set your profile photo.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Seizcare reads your heart rate and sleep data to help you understand your health patterns. Your data is kept private and is never shared.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Seizcare does not modify or write any health data.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to attach it to emergency texts.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Seizcare needs photo library access to let you select a profile photo.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -473,10 +487,11 @@
 				DEVELOPMENT_TEAM = WQ98R62YF4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Seizcare needs camera access to let you set your profile photo.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Seizcare reads your heart rate and sleep data to help you understand your health patterns. Your data is kept private and is never shared.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Seizcare does not modify or write any health data.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to attach it to emergency texts.";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Seizcare needs photo library access to let you select a profile photo.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

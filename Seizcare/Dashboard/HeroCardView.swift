@@ -8,8 +8,8 @@ import Charts
 
 struct HeroCardView: View {
     let records: [SeizureRecord]
+    let heartRate: Double?
     let sleepHours: Double
-    let heartRate: Double
 
     private var thisMonth: [SeizureRecord] {
         let cal = Calendar.current
@@ -70,7 +70,7 @@ struct HeroCardView: View {
             Spacer().frame(height: 28)
 
             // Stats row
-            if records.isEmpty && sleepHours == 0 {
+            if records.isEmpty && avgSleep == 0 {
                 VStack(spacing: 8) {
                     Image(systemName: "chart.pie.fill")
                         .font(.system(size: 24))
@@ -87,7 +87,7 @@ struct HeroCardView: View {
                     StatPill(
                         icon: "moon.zzz.fill",
                         label: "avg_sleep",
-                        value: sleepHours == 0 ? "--" : String(format: "%.1fh", avgSleep),
+                        value: avgSleep > 0 ? String(format: "%.1fh", avgSleep) : "—",
                         color: .dashSleep
                     )
                     Divider()
@@ -117,7 +117,7 @@ struct HeroCardView: View {
                     StatPill(
                         icon: "heart.fill",
                         label: "current_hr",
-                        value: heartRate > 0 ? "\(Int(heartRate))" : "—",
+                        value: (heartRate ?? 0) > 0 ? "\(Int(heartRate ?? 0))" : "—",
                         color: .dashSeizure
                     )
                 }

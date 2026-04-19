@@ -5,6 +5,7 @@
 
 import SwiftUI
 import UIKit
+import AVFoundation
 
 struct CameraPicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
@@ -13,8 +14,17 @@ struct CameraPicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
-        picker.sourceType = .camera
-        picker.allowsEditing = true
+
+        // Safe guard: only use .camera if it's actually available
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+            picker.sourceType = .camera
+            picker.allowsEditing = false // We handle crop ourselves
+            picker.cameraDevice = .front
+        } else {
+            // Fallback to photo library on simulators
+            picker.sourceType = .photoLibrary
+        }
+
         return picker
     }
 
@@ -31,11 +41,12 @@ struct CameraPicker: UIViewControllerRepresentable {
             self.parent = parent
         }
 
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let editedImage = info[.editedImage] as? UIImage {
-                parent.image = editedImage
-            } else if let originalImage = info[.originalImage] as? UIImage {
-                parent.image = originalImage
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            // Prefer original image — we crop ourselves via ImageCropView
+            if let original = info[.originalImage] as? UIImage {
+                parent.image = original
+            } else if let edited = info[.editedImage] as? UIImage {
+                parent.image = edited
             }
             parent.dismiss()
         }
