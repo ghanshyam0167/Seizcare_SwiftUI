@@ -186,6 +186,9 @@ struct DashboardView: View {
             Text("Enable location to send emergency alerts.")
         }
         .toolbar(emergencyVM.status == .countingDown ? .hidden : .visible, for: .bottomBar)
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WatchTriggeredAlert"))) { _ in
+            print("[Dashboard] Received Watch SOS notification for UI feedback.")
+        }
     }
 
     // MARK: - Emergency Logic
@@ -211,19 +214,45 @@ struct DashboardView: View {
         Group {
             if emergencyVM.status != .idle && emergencyVM.status != .countingDown {
                 VStack {
-                    HStack {
-                        Text(emergencyVM.status.rawValue)
-                            .foregroundColor(.white)
-                        Spacer()
+                    VStack(spacing: 12) {
+                        HStack {
+                            Text(emergencyVM.status.rawValue)
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            if emergencyVM.status == .sending {
+                                ProgressView()
+                                    .tint(.white)
+                            }
+                        }
+                        
+                        if emergencyVM.status == .success || emergencyVM.status == .failed {
+                            Button(action: {
+                                withAnimation {
+                                    emergencyVM.resetToIdle()
+                                }
+                            }) {
+                                Text("Stop Alarm")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.red)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 24)
+                                    .background(Color.white)
+                                    .clipShape(Capsule())
+                                    .shadow(radius: 5)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                     .padding()
-                    .background(Color.black.opacity(0.85))
+                    .background(emergencyVM.status == .failed ? Color.orange : Color.green)
                     .cornerRadius(12)
-                    .padding(.top, 40)
-
+                    .shadow(radius: 10)
                     Spacer()
                 }
-                .transition(.move(edge: .top))
+                .padding()
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .zIndex(100)
             }
         }
     }

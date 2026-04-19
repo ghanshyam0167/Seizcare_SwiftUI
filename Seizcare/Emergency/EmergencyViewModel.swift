@@ -35,6 +35,10 @@ class EmergencyViewModel: ObservableObject {
         self.errorMessage = nil
         self.countdownTime = 10
         
+        // Initial feedback
+        AudioServicesPlaySystemSound(1105)
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+        
         // Cancel any existing task
         countdownTask?.cancel()
         
@@ -44,6 +48,8 @@ class EmergencyViewModel: ObservableObject {
                 
                 await MainActor.run {
                     self.countdownTime = i
+                    // Cumulative feedback: Sound + Vibrate
+                    AudioServicesPlaySystemSound(1105) // Tock
                     AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
                 }
                 
@@ -51,7 +57,9 @@ class EmergencyViewModel: ObservableObject {
             }
             
             if !Task.isCancelled {
+                // Countdown finished! Trigger SIREN immediately
                 await MainActor.run {
+                    EmergencyAudioManager.shared.playEmergencyAlarm()
                     // Start the actual network request
                     self.sendEmergencyAlert(location: location)
                 }
@@ -61,7 +69,13 @@ class EmergencyViewModel: ObservableObject {
     
     func cancelEmergencyAlert() {
         countdownTask?.cancel()
+        resetToIdle()
+    }
+    
+    func resetToIdle() {
         self.status = .idle
+        self.errorMessage = nil
+        EmergencyAudioManager.shared.stopAlarm()
     }
     
     func sendEmergencyAlert(location: CLLocation?) {

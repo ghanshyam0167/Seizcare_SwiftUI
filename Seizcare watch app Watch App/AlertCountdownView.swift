@@ -88,10 +88,18 @@ struct AlertCountdownView: View {
     
     private func triggerAlert() {
         print("🚨 Alert Sent")
-        // Notification Haptic
-        WKInterfaceDevice.current().play(.notification)
+        // SOS System Feedback (Haptics only on Watch per user request)
+        WKInterfaceDevice.current().play(.failure) // Jarring vibration
         
-        // Final action logic would go here
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            WKInterfaceDevice.current().play(.notification)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            WKInterfaceDevice.current().play(.notification)
+        }
+        
+        // Trigger alert via iPhone logic
+        WatchConnectivityManager.shared.triggerEmergencyAlert()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             stopAndDismiss(cancelled: false)
