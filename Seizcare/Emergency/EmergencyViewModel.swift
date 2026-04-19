@@ -10,84 +10,93 @@ import Combine
 import AudioToolbox
 
 enum EmergencyStatus: String {
-    case idle = "Ready"
-    case countingDown = "Sending in..."
-    case sending = "Sending Alert..."
-    case success = "Alert Sent Successfully!"
-    case failed = "Failed to Send Alert"
+    case idle        = "Ready"
+    case sending     = "Sending Alert..."
+    case success     = "Alert Sent Successfully!"
+    case failed      = "Failed to Send Alert"
 }
 
 class EmergencyViewModel: ObservableObject {
     @Published var status: EmergencyStatus = .idle
     @Published var errorMessage: String? = nil
-    @Published var countdownTime: Int = 10
-    
-    private var countdownTask: Task<Void, Never>?
-    
-    func startEmergencyCountdown(location: CLLocation?) {
+
+    // Explicit separate states for alert lifecycle
+    @Published var alertSending: Bool = false
+    @Published var alertSuccessPopupVisible: Bool = false
+    @Published var alarmPlaying: Bool = false
+    @Published var currentAlertSessionID: UUID = UUID()
+
+    /// Immediately fires the alert with no countdown (used by slide-to-alert).
+    func sendEmergencyAlertImmediately(location: CLLocation?) {
         guard let location = location else {
+            print("[Alert] ❌ Location unavailable, cannot send alert")
             self.errorMessage = "Location unavailable. Cannot send alert."
             self.status = .failed
+            self.alertSending = false
             return
         }
-        
-        self.status = .countingDown
-        self.errorMessage = nil
-        self.countdownTime = 10
-        
-        // Initial feedback
-        AudioServicesPlaySystemSound(1105)
-        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
-        
-        // Cancel any existing task
-        countdownTask?.cancel()
-        
-        countdownTask = Task {
-            for i in stride(from: 10, to: 0, by: -1) {
-                if Task.isCancelled { break }
-                
-                await MainActor.run {
-                    self.countdownTime = i
-                    // Cumulative feedback: Sound + Vibrate
-                    AudioServicesPlaySystemSound(1105) // Tock
-                    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
-                }
-                
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-            }
-            
-            if !Task.isCancelled {
-                // Countdown finished! Trigger SIREN immediately
-                await MainActor.run {
-                    EmergencyAudioManager.shared.playEmergencyAlarm()
-                    // Start the actual network request
-                    self.sendEmergencyAlert(location: location)
-                }
-            }
-        }
-    }
-    
-    func cancelEmergencyAlert() {
-        countdownTask?.cancel()
-        resetToIdle()
-    }
-    
-    func resetToIdle() {
+
+        print("[Alert] Swipe triggered")
+        print("[Alert] Resetting popup state")
+
+        // 1. Reset popup state first
+        self.alertSuccessPopupVisible = false
         self.status = .idle
         self.errorMessage = nil
-        EmergencyAudioManager.shared.stopAlarm()
+
+        // 2. Clear any old state and assign new session ID
+        self.currentAlertSessionID = UUID()
+        print("[Alert] New session ID: \(self.currentAlertSessionID)")
+
+        // 3. Restart SOUND properly
+        if self.alarmPlaying {
+            EmergencyAudioManager.shared.stopAlarm()
+            self.alarmPlaying = false
+        }
+        EmergencyAudioManager.shared.playEmergencyAlarm()
+        self.alarmPlaying = true
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+
+        // 4. Force RE-PRESENTATION OF POPUP
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            print("[Alert] Showing success popup")
+            self.alertSuccessPopupVisible = true
+            self.sendEmergencyAlert(location: location)
+        }
     }
-    
+
+    func resetToIdle() {
+        print("[Alert] Popup dismissed")
+        // RESET AFTER DISMISS
+        self.alertSuccessPopupVisible = false
+        self.status = .idle
+        self.alertSending = false
+        self.errorMessage = nil
+        
+        if self.alarmPlaying {
+            EmergencyAudioManager.shared.stopAlarm()
+            self.alarmPlaying = false
+            print("[Alert] Alarm stopped")
+        } else {
+            // Just in case it was playing but state got out of sync
+            EmergencyAudioManager.shared.stopAlarm()
+            print("[Alert] Alarm stopped forcefully")
+        }
+    }
+
     func sendEmergencyAlert(location: CLLocation?) {
         guard let location = location else {
             self.errorMessage = "Location unavailable. Cannot send alert."
             self.status = .failed
+            self.alertSending = false
             return
         }
-        
+
         self.status = .sending
+        self.alertSending = true
         self.errorMessage = nil
-        
+        print("[Alert] Sending alert — status: sending")
+
         Task {
             do {
                 let contacts = EmergencyContactDataModel.shared.getContactsForCurrentUser()
@@ -97,17 +106,22 @@ class EmergencyViewModel: ObservableObject {
                     contacts: contacts
                 )
                 await MainActor.run {
+                    print("[Alert] ✅ Alert sent successfully")
                     self.status = .success
+                    self.alertSending = false
                 }
             } catch {
                 await MainActor.run {
-                    if let emergencyError = error as? EmergencyError, case .cooldownActive = emergencyError {
-                        self.errorMessage = "Alert already flagged. Please wait."
-                        self.status = .idle // Revert logically
+                    print("[Alert] ❌ Alert failed: \(error.localizedDescription)")
+                    if let emergencyError = error as? EmergencyError,
+                       case .cooldownActive = emergencyError {
+                        self.errorMessage = "Alert already sent recently. Please wait."
+                        self.status = .idle
                     } else {
                         self.errorMessage = error.localizedDescription
                         self.status = .failed
                     }
+                    self.alertSending = false
                 }
             }
         }
