@@ -14,7 +14,15 @@ struct SignupOTPView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            Spacer().frame(height: 60)
+            // Back button
+            HStack {
+                CustomBackButton { vm.goBack() }
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            
+            Spacer().frame(height: 32)
             
             // Header
             VStack(spacing: 8) {
@@ -68,7 +76,7 @@ struct SignupOTPView: View {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
-                            Text("Verify & Continue")
+                            Text("Next")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.white)
                         }
@@ -101,14 +109,6 @@ struct SignupOTPView: View {
                 }
                 .disabled(timeRemaining > 0)
             }
-            
-            // Back to Login switch
-            Button(action: { vm.switchToLogin() }) {
-                Text("Back to Login")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.authSecondaryText)
-            }
-            .padding(.vertical, 16)
             
             Spacer()
         }

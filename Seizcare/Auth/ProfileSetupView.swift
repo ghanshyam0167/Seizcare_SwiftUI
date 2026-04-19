@@ -13,7 +13,15 @@ struct ProfileSetupView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            Spacer().frame(height: 60)
+            // Back button
+            HStack {
+                CustomBackButton { vm.goBack() }
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            
+            Spacer().frame(height: 32)
             
             // Header
             VStack(spacing: 8) {
@@ -117,7 +125,7 @@ struct ProfileSetupView: View {
                         .fill(vm.onboardingFullName.trimmingCharacters(in: .whitespaces).isEmpty ? Color.authButtonDisabled : Color.authPrimaryButton)
                         .frame(height: 56)
                     
-                    Text("Continue")
+                    Text("Next")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                 }
