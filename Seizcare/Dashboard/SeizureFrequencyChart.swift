@@ -29,56 +29,74 @@ struct SeizureFrequencyMiniChart: View {
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(Color.dashSecondary)
             
-            Text("\(totalInView)")
-                .font(.system(size: 28, weight: .semibold, design: .rounded))
-                .foregroundStyle(Color.cyan)
-                .padding(.bottom, 4)
-            
-            let barUnit: Calendar.Component = {
-                switch range {
-                case .daily: return .hour
-                case .weekly: return .day
-                case .monthly: return .day
-                case .yearly: return .month
+            if records.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "chart.bar.xaxis")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Color.dashSecondary.opacity(0.6))
+                    Text("No data available yet...")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.dashSecondary)
+                        .lineLimit(1)
+                    Text("Start tracking to see summary.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.dashSecondary.opacity(0.8))
+                        .lineLimit(1)
                 }
-            }()
-            
-            let maxCount = Double(data.map(\.count).max() ?? 0)
-            let yDomain = maxCount == 0 ? 1.0 : maxCount * 1.2
-            
-            Chart(data, id: \.date) { point in
-                if point.count == 0 {
-                    BarMark(
-                        x: .value("Time", point.date, unit: barUnit),
-                        y: .value("Count", yDomain * 0.95),
-                        width: .fixed(1.5)
-                    )
-                    .foregroundStyle(Color.gray.opacity(0.15))
-                    .cornerRadius(1)
-                } else {
-                    BarMark(
-                        x: .value("Time", point.date, unit: barUnit),
-                        y: .value("Count", Double(point.count)),
-                        width: .fixed(1.5)
-                    )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(height: 110)
+            } else {
+                Text("\(totalInView)")
+                    .font(.system(size: 28, weight: .semibold, design: .rounded))
                     .foregroundStyle(Color.cyan)
-                    .cornerRadius(1)
+                    .padding(.bottom, 4)
+                
+                let barUnit: Calendar.Component = {
+                    switch range {
+                    case .daily: return .hour
+                    case .weekly: return .day
+                    case .monthly: return .day
+                    case .yearly: return .month
+                    }
+                }()
+                
+                let maxCount = Double(data.map(\.count).max() ?? 0)
+                let yDomain = maxCount == 0 ? 1.0 : maxCount * 1.2
+                
+                Chart(data, id: \.date) { point in
+                    if point.count == 0 {
+                        BarMark(
+                            x: .value("Time", point.date, unit: barUnit),
+                            y: .value("Count", yDomain * 0.95),
+                            width: .fixed(1.5)
+                        )
+                        .foregroundStyle(Color.gray.opacity(0.15))
+                        .cornerRadius(1)
+                    } else {
+                        BarMark(
+                            x: .value("Time", point.date, unit: barUnit),
+                            y: .value("Count", Double(point.count)),
+                            width: .fixed(1.5)
+                        )
+                        .foregroundStyle(Color.cyan)
+                        .cornerRadius(1)
+                    }
                 }
-            }
-            .chartXAxis {
-                AxisMarks(preset: .aligned, values: .automatic) { value in
-                    AxisValueLabel {
-                        if let date = value.as(Date.self) {
-                            Text(xAxisLabel(for: date, range: range))
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(Color.dashSecondary)
+                .chartXAxis {
+                    AxisMarks(preset: .aligned, values: .automatic) { value in
+                        AxisValueLabel {
+                            if let date = value.as(Date.self) {
+                                Text(xAxisLabel(for: date, range: range))
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundStyle(Color.dashSecondary)
+                            }
                         }
                     }
                 }
+                .chartYAxis(.hidden)
+                .chartYScale(domain: 0...yDomain)
+                .frame(height: 70)
             }
-            .chartYAxis(.hidden)
-            .chartYScale(domain: 0...yDomain)
-            .frame(height: 70)
         }
     }
 }
@@ -163,7 +181,27 @@ struct SeizureFrequencyChartView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            // Navigation Bar
+            HStack {
+                CustomBackButton { dismiss() }
+                
+                Spacer()
+                
+                Text("Seizure Frequency")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundColor(.authPrimaryText)
+                
+                Spacer()
+                
+                Circle()
+                    .fill(Color.clear)
+                    .frame(width: 42, height: 42)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            .background(Color.dashBg)
+            
             ZStack {
                 Color.dashBg.ignoresSafeArea()
                 
@@ -177,7 +215,8 @@ struct SeizureFrequencyChartView: View {
                         }
                         .pickerStyle(.segmented)
                         .padding(.horizontal, 16)
-                        .padding(.top, 10)
+                        .padding(.top, 24)
+                        .padding(.bottom, 16)
                         
                         // Header Metrics
                         VStack(alignment: .leading, spacing: 4) {
@@ -221,11 +260,13 @@ struct SeizureFrequencyChartView: View {
                         }()
                         
                         Chart(data, id: \.date) { point in
-                            BarMark(
-                                x: .value("Time", point.date, unit: barUnit),
-                                y: .value("Count", point.count)
-                            )
-                            .foregroundStyle(selectedPoint == nil || selectedPoint?.date == point.date ? Color.cyan : Color.cyan.opacity(0.3))
+                            if !records.isEmpty {
+                                BarMark(
+                                    x: .value("Time", point.date, unit: barUnit),
+                                    y: .value("Count", point.count)
+                                )
+                                .foregroundStyle(selectedPoint == nil || selectedPoint?.date == point.date ? Color.cyan : Color.cyan.opacity(0.3))
+                            }
                             
                             if let selectedPoint, selectedPoint.date == point.date {
                                 RuleMark(x: .value("Time", point.date, unit: barUnit))
@@ -284,6 +325,7 @@ struct SeizureFrequencyChartView: View {
                             }
                         }
                         .frame(height: 250)
+                        .emptyChartOverlay(isEmpty: records.isEmpty)
                         .padding(.horizontal, 20)
                         
                         // Padding out
@@ -298,17 +340,8 @@ struct SeizureFrequencyChartView: View {
                         }
                         .padding(.horizontal, 16)
                     }
-                }
-            }
-            .navigationTitle("Seizure Frequency")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(Color.dashLabel)
-                    }
+                    .padding(.top, 16)
+                    .padding(.bottom, 24)
                 }
             }
         }

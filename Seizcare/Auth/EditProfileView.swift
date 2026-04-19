@@ -27,18 +27,15 @@ struct EditProfileView: View {
     @State private var showingGallery = false
     @State private var photoRemoved = false
     
+    // Crop flow
+    @State private var imageToCrop: UIImage? = nil
+    @State private var showingCrop = false
+    
     var body: some View {
         VStack(spacing: 0) {
             // Navigation Bar
             HStack {
-                Button(action: { dismiss() }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.authPrimaryText)
-                        .padding(12)
-                        .background(Color.authCardBackground)
-                        .clipShape(Circle())
-                }
+                CustomBackButton { dismiss() }
                 
                 Spacer()
                 
@@ -127,10 +124,15 @@ struct EditProfileView: View {
                             Button("Cancel", role: .cancel) {}
                         }
                         .sheet(isPresented: $showingCamera) {
-                            CameraPicker(image: $newProfileImage)
+                            CameraPicker(image: $imageToCrop)
                                 .onDisappear {
-                                    if newProfileImage != nil {
-                                        photoRemoved = false
+                                    if let captured = imageToCrop {
+                                        imageToCrop = nil
+                                        // Show crop for camera photo too
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                            imageToCrop = captured
+                                            showingCrop = true
+                                        }
                                     }
                                 }
                         }
@@ -140,10 +142,28 @@ struct EditProfileView: View {
                                 if let data = try? await newItem?.loadTransferable(type: Data.self),
                                    let uiImage = UIImage(data: data) {
                                     await MainActor.run {
-                                        newProfileImage = uiImage
-                                        photoRemoved = false
+                                        imageToCrop = uiImage
+                                        showingCrop = true
+                                        selectedItem = nil
                                     }
                                 }
+                            }
+                        }
+                        .fullScreenCover(isPresented: $showingCrop) {
+                            if let img = imageToCrop {
+                                ImageCropView(
+                                    image: img,
+                                    onCrop: { cropped in
+                                        newProfileImage = cropped
+                                        photoRemoved = false
+                                        imageToCrop = nil
+                                        showingCrop = false
+                                    },
+                                    onCancel: {
+                                        imageToCrop = nil
+                                        showingCrop = false
+                                    }
+                                )
                             }
                         }
                         

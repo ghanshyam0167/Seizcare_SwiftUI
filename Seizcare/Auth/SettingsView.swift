@@ -21,16 +21,7 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             // Navigation Bar
             HStack {
-                Button(action: { 
-                    dismiss()
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.authPrimaryText)
-                        .padding(12)
-                        .background(Color.authCardBackground)
-                        .clipShape(Circle())
-                }
+                CustomBackButton { dismiss() }
                 
                 Spacer()
                 

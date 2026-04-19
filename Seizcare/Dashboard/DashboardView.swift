@@ -170,14 +170,22 @@ struct DashboardView: View {
             }
 
             // Toast Overlay
-            emergencyToast
+            // Toast Overlay
+emergencyToast
 
+// Countdown Overlay
+emergencyCountdown
 
-            if viewModel.isLoading {
-                Color.black.opacity(0.1).ignoresSafeArea()
-                LoadingView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            }
+// Loading Overlay
+if viewModel.isLoading {
+    ZStack {
+        Color.black.opacity(0.1).ignoresSafeArea()
+        LoadingView()
+    }
+    .transition(.opacity)
+    .zIndex(200)
+}
+         
         }
         .fullScreenCover(item: $viewModel.activeChart) { chart in
             switch chart {
@@ -209,8 +217,13 @@ struct DashboardView: View {
     Text(viewModel.errorMessage ?? "")
 }
 
-// Hide bottom bar during emergency popup
-.toolbar((emergencyVM.alertSuccessPopupVisible || emergencyVM.alertSending) ? .hidden : .visible, for: .bottomBar)
+.toolbar(
+    (emergencyVM.alertSuccessPopupVisible ||
+     emergencyVM.alertSending ||
+     emergencyVM.status == .countingDown)
+    ? .hidden : .visible,
+    for: .bottomBar
+)
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WatchTriggeredAlert"))) { _ in
             print("[Dashboard] Received Watch SOS notification for UI feedback.")
         }
