@@ -235,20 +235,20 @@
 				CODE_SIGN_ENTITLEMENTS = "Seizcare watch app Watch App/Seizcare watch app Watch App.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HTW9G6WB72;
+				DEVELOPMENT_TEAM = WQ98R62YF4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Seizcare watch app";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Seizcare reads heart rate, oxygen saturation, and sleep data to detect potential seizure risk patterns and provide health insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Seizcare uses health data to provide detailed activity summaries.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = gs.Seizcare.3;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = gs.Seizcare.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare.3.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare.4.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -271,20 +271,20 @@
 				CODE_SIGN_ENTITLEMENTS = "Seizcare watch app Watch App/Seizcare watch app Watch App.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HTW9G6WB72;
+				DEVELOPMENT_TEAM = WQ98R62YF4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Seizcare watch app";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Seizcare reads heart rate, oxygen saturation, and sleep data to detect potential seizure risk patterns and provide health insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Seizcare uses health data to provide detailed activity summaries.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = gs.Seizcare.3;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = gs.Seizcare.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare.3.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare.4.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -428,7 +428,7 @@
 				CODE_SIGN_ENTITLEMENTS = Seizcare/Seizcare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HTW9G6WB72;
+				DEVELOPMENT_TEAM = WQ98R62YF4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Seizcare needs camera access so you can take a profile picture.";
@@ -446,7 +446,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare.3;
+				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare.4;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -466,7 +466,7 @@
 				CODE_SIGN_ENTITLEMENTS = Seizcare/Seizcare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HTW9G6WB72;
+				DEVELOPMENT_TEAM = WQ98R62YF4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Seizcare needs camera access so you can take a profile picture.";
@@ -484,7 +484,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare.3;
+				PRODUCT_BUNDLE_IDENTIFIER = gs.Seizcare.4;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;

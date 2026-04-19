@@ -27,6 +27,12 @@ struct RecordsListView: View {
                 // Main content
                 mainContent
             }
+            
+            if vm.isLoading {
+                Color.black.opacity(0.1).ignoresSafeArea()
+                LoadingView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            }
         }
         .navigationTitle("Records")
         .navigationBarTitleDisplayMode(.inline)
@@ -80,6 +86,14 @@ struct RecordsListView: View {
             let cutoff = Calendar.current.date(byAdding: .day, value: -duration.days, to: Date()) ?? Date()
             let reportRecords = vm.records.filter { $0.startTime >= cutoff }
             ReportView(records: reportRecords, duration: duration)
+        }
+        .alert("Error", isPresented: Binding(
+            get: { vm.errorMessage != nil },
+            set: { _ in vm.errorMessage = nil }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(vm.errorMessage ?? "")
         }
     }
 
@@ -165,7 +179,9 @@ struct RecordsListView: View {
     private var mainContent: some View {
         let groups = vm.groupedRecords
 
-        if vm.records.isEmpty {
+        if vm.isLoading {
+            Spacer()
+        } else if vm.records.isEmpty {
             ScrollView {
                 RecordsEmptyState()
                     .padding(.horizontal, 20)

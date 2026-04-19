@@ -15,6 +15,7 @@ struct MainTabView: View {
     @ObservedObject var authVM: AuthViewModel
     @StateObject private var recordsVM = RecordsViewModel()
     @StateObject private var healthVM = HealthViewModel()
+    @StateObject private var avatarVM = AvatarViewModel.shared
     
     @State private var selectedTab: Tab = .dashboard
 
@@ -29,9 +30,11 @@ DashboardView(
     healthVM: healthVM
 )
 .environmentObject(authVM)
+.environmentObject(avatarVM)
                 case .records:
                     RecordsListView()
                         .environmentObject(recordsVM)
+                        .environmentObject(avatarVM)
                 }
             }
             // By attaching toolbar here, it correctly surfaces in the NavigationStack
