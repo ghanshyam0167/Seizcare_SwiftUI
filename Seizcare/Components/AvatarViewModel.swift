@@ -32,6 +32,11 @@ class AvatarViewModel: ObservableObject {
 
     /// Loads the avatar: local file first, then remote URL from the user profile.
     func refresh() async {
+        guard let user = UserDataModel.shared.getCurrentUser() else {
+            avatarImage = nil
+            return
+        }
+
         // 1. Try local user-scoped file first (fastest, no network)
         if let local = UserDataModel.shared.getLocalAvatarImage() {
             avatarImage = local
@@ -39,19 +44,33 @@ class AvatarViewModel: ObservableObject {
         }
 
         // 2. Fall back to remote URL stored in Supabase user profile
-        if let urlStr = UserDataModel.shared.getCurrentUser()?.avatarUrl,
-           !urlStr.isEmpty,
-           let url = URL(string: urlStr) {
+        if let urlStr = user.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !urlStr.isEmpty {
+            // 2a. Try the stored URL first (public bucket case)
+            if let url = URL(string: urlStr) {
+                do {
+                    let (data, _) = try await URLSession.shared.data(from: url)
+                    if let img = UIImage(data: data) {
+                        // Cache locally for future loads
+                        UserDataModel.shared.saveLocalAvatarImage(img)
+                        avatarImage = img
+                        return
+                    }
+                } catch {
+                    print("⚠️ [AvatarViewModel] URL fetch failed: \(error.localizedDescription)")
+                }
+            }
+
+            // 2b. Fallback for private buckets / non-image URL responses: authenticated download.
             do {
-                let (data, _) = try await URLSession.shared.data(from: url)
+                let data = try await SupabaseService.shared.downloadAvatar(userId: user.id)
                 if let img = UIImage(data: data) {
-                    // Cache locally for future loads
                     UserDataModel.shared.saveLocalAvatarImage(img)
                     avatarImage = img
                     return
                 }
             } catch {
-                print("⚠️ [AvatarViewModel] Remote fetch failed: \(error.localizedDescription)")
+                print("⚠️ [AvatarViewModel] Authenticated avatar download failed: \(error.localizedDescription)")
             }
         }
 

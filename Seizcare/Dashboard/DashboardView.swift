@@ -258,7 +258,7 @@ if viewModel.isLoading {
                 showLocationSettingsAlert = true
                 sliderCompleted = false
             } else {
-                locationManager.requestWhenInUseAuthorization()
+                locationManager.requestAlwaysAuthorization()
                 sliderCompleted = false
             }
         } else {

@@ -243,24 +243,20 @@ extension UserDataModel {
             
             // Check if the user is already confirmed/verified
             if authUser.confirmedAt != nil {
-                throw SupabaseServiceError.authFailed("This email is already registered and verified. Please log in.")
+                throw SupabaseServiceError.authFailed("This email is already registered. Please log in.")
             }
             
-            // If the user already existed but was NOT confirmed, Supabase might not send an email
-            // (especially in the 'user_repeated_signup' scenario seen in logs).
-            // If identities is empty or count is same but unconfirmed, we force a resend.
+            // If the user already existed but was NOT confirmed, Supabase returns empty identities.
+            // Throw an error here instead of resending OTP to block them.
             if authUser.identities?.isEmpty ?? true {
-                try await SupabaseService.shared.resendSignUpOTP(email: user.email)
-                return true
+                throw SupabaseServiceError.authFailed("This email is already registered. Please log in.")
             }
             
             return false
         } catch {
             let errorDesc = error.localizedDescription.lowercased()
             if errorDesc.contains("user already registered") {
-                // If the error explicitly says registered, force resend
-                try await SupabaseService.shared.resendSignUpOTP(email: user.email)
-                return true
+                throw SupabaseServiceError.authFailed("This email is already registered. Please log in.")
             }
             throw error
         }
