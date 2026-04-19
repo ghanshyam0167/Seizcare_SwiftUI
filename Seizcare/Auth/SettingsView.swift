@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var vm: AuthViewModel
+    @EnvironmentObject var avatarVM: AvatarViewModel
     @State private var user: User? = UserDataModel.shared.getCurrentUser()
     @State private var showingEmergencyContacts = false
     @State private var showingSensitivity = false
@@ -58,6 +59,7 @@ struct SettingsView: View {
                     .buttonStyle(PlainButtonStyle())
                     .fullScreenCover(isPresented: $showingEditProfile) {
                         EditProfileView()
+                            .environmentObject(avatarVM)
                     }
                     
                     // Safety Section
@@ -144,6 +146,18 @@ struct SettingsView: View {
                             .padding(.leading, 12)
                         
                         VStack(spacing: 0) {
+                            SettingsRowCard(
+                                icon: "lock.fill",
+                                title: "Change Password",
+                                iconColor: .brandPrimary,
+                                showDivider: true
+                            ) {
+                                vm.isChangePasswordPresented = true
+                            }
+                            .fullScreenCover(isPresented: $vm.isChangePasswordPresented) {
+                                ChangePasswordView(vm: vm)
+                            }
+                            
                             SettingsRowCard(
                                 icon: "trash.fill",
                                 title: "Delete Account",
@@ -264,6 +278,7 @@ struct SettingsView: View {
         } message: {
             Text(deleteErrorMessage ?? "")
         }
+        .task { await avatarVM.refresh() }
     }
 }
 
@@ -271,33 +286,17 @@ struct SettingsProfileCard: View {
     let name: String
     let email: String
     let avatarUrl: String?
+    @EnvironmentObject var avatarVM: AvatarViewModel
     
     var body: some View {
         HStack(spacing: 16) {
             ZStack {
-                if let localImage = UserDataModel.shared.getLocalAvatarImage() {
-                    Image(uiImage: localImage)
+                if let img = avatarVM.avatarImage {
+                    Image(uiImage: img)
                         .resizable()
                         .scaledToFill()
                         .frame(width: 50, height: 50)
                         .clipShape(Circle())
-                } else if let urlStr = avatarUrl, let url = URL(string: urlStr) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                        case .success(let image):
-                            image.resizable()
-                                .scaledToFill()
-                                .frame(width: 50, height: 50)
-                                .clipShape(Circle())
-                        case .failure:
-                            fallbackAvatar
-                        @unknown default:
-                            EmptyView()
-                        }
-                    }
-                    .frame(width: 50, height: 50)
                 } else {
                     fallbackAvatar
                 }

@@ -10,7 +10,6 @@ struct HeroCardView: View {
     let records: [SeizureRecord]
     let sleepHours: Double
     let heartRate: Double
-    var onSendAlert: () -> Void = {}
 
     private var thisMonth: [SeizureRecord] {
         let cal = Calendar.current
@@ -66,21 +65,6 @@ struct HeroCardView: View {
                 }
 
                 Spacer()
-
-                // Send alert button
-                Button(action: onSendAlert) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "bell.fill")
-                            .font(.system(size: 12, weight: .semibold))
-                        Text("Alert")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(Color.dashSeizure.opacity(0.85))
-                    .clipShape(Capsule())
-                }
             }
 
             Spacer().frame(height: 28)

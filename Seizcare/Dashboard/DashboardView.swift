@@ -27,7 +27,9 @@ struct DashboardView: View {
     @StateObject private var viewModel: DashboardViewModel
     @StateObject private var locationManager = LocationManager()
     @StateObject private var emergencyVM = EmergencyViewModel()
-
+    
+    @State private var sliderTriggered = false
+    @State private var sliderCompleted = false
     @State private var showLocationSettingsAlert = false
 
     init(selectedTab: Binding<Tab>, recordsVM: RecordsViewModel, healthVM: HealthViewModel) {
@@ -76,9 +78,15 @@ struct DashboardView: View {
                     HeroCardView(
                         records: records,
                         sleepHours: viewModel.avgSleep7Days,
-                        heartRate: viewModel.currentHeartRate,
-                        onSendAlert: handleEmergency
+                        heartRate: viewModel.currentHeartRate
                     )
+
+                    // MARK: - Hold to Send Alert
+                    HoldToAlertView(onAlertTriggered: {
+                        handleEmergency()
+                    }, isCompleted: $sliderCompleted)
+                    .padding(.horizontal, 2)
+                    .onChange(of: sliderTriggered) { _ in }
 
                     // Analysis Section
                     VStack(alignment: .leading, spacing: 12) {
@@ -95,7 +103,7 @@ struct DashboardView: View {
                             Button { viewModel.activeChart = .seizureFrequency } label: {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
-                                        Text("Event Count")
+                                        Text("Seizure Count")
                                             .font(.system(size: 14, weight: .semibold))
                                             .foregroundStyle(Color.dashLabel)
                                         Spacer()
@@ -122,7 +130,7 @@ struct DashboardView: View {
                             Button { viewModel.activeChart = .sleepVsSeizures } label: {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
-                                        Text("Sleep")
+                                        Text("Sleep vs Seizures")
                                             .font(.system(size: 14, weight: .semibold))
                                             .foregroundStyle(Color.dashLabel)
                                         Spacer()
@@ -164,8 +172,14 @@ struct DashboardView: View {
             // Toast Overlay
             emergencyToast
 
-            // Countdown Overlay
-            emergencyCountdown
+            // Countdown Overlay (Unimplemented)
+            // emergencyCountdown
+            
+            if viewModel.isLoading {
+                Color.black.opacity(0.1).ignoresSafeArea()
+                LoadingView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            }
         }
         .fullScreenCover(item: $viewModel.activeChart) { chart in
             switch chart {
@@ -185,7 +199,20 @@ struct DashboardView: View {
         } message: {
             Text("Enable location to send emergency alerts.")
         }
-        .toolbar(emergencyVM.status == .countingDown ? .hidden : .visible, for: .bottomBar)
+.alert("Error", isPresented: Binding(
+    get: { viewModel.errorMessage != nil },
+    set: { _ in
+        viewModel.recordsVM.errorMessage = nil
+        viewModel.healthVM.errorMessage = nil
+    }
+)) {
+    Button("OK", role: .cancel) {}
+} message: {
+    Text(viewModel.errorMessage ?? "")
+}
+
+// Hide bottom bar during emergency sending
+.toolbar(emergencyVM.status == .sending ? .hidden : .visible, for: .bottomBar)
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WatchTriggeredAlert"))) { _ in
             print("[Dashboard] Received Watch SOS notification for UI feedback.")
         }
@@ -198,88 +225,131 @@ struct DashboardView: View {
             if locationManager.authorizationStatus == .denied ||
                locationManager.authorizationStatus == .restricted {
                 showLocationSettingsAlert = true
+                sliderCompleted = false
             } else {
                 locationManager.requestWhenInUseAuthorization()
-                emergencyVM.errorMessage = "Waiting for location..."
-                emergencyVM.status = .failed
+                sliderCompleted = false
             }
         } else {
-            emergencyVM.startEmergencyCountdown(location: locationManager.location)
-        }
-    }
-
-    // MARK: - Overlays
-
-    private var emergencyToast: some View {
-        Group {
-            if emergencyVM.status != .idle && emergencyVM.status != .countingDown {
-                VStack {
-                    VStack(spacing: 12) {
-                        HStack {
-                            Text(emergencyVM.status.rawValue)
-                                .font(.headline)
-                                .foregroundColor(.white)
-                            
-                            if emergencyVM.status == .sending {
-                                ProgressView()
-                                    .tint(.white)
-                            }
-                        }
-                        
-                        if emergencyVM.status == .success || emergencyVM.status == .failed {
-                            Button(action: {
-                                withAnimation {
-                                    emergencyVM.resetToIdle()
-                                }
-                            }) {
-                                Text("Stop Alarm")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(.red)
-                                    .padding(.vertical, 8)
-                                    .padding(.horizontal, 24)
-                                    .background(Color.white)
-                                    .clipShape(Capsule())
-                                    .shadow(radius: 5)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding()
-                    .background(emergencyVM.status == .failed ? Color.orange : Color.green)
-                    .cornerRadius(12)
-                    .shadow(radius: 10)
-                    Spacer()
-                }
-                .padding()
-                .transition(.move(edge: .top).combined(with: .opacity))
-                .zIndex(100)
+            // Slight delay so slider snap animation completes, then fire immediately
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                emergencyVM.sendEmergencyAlertImmediately(location: locationManager.location)
             }
         }
     }
 
-    private var emergencyCountdown: some View {
+    // MARK: - Stop Alarm Overlay (centered modal)
+    // Driven by alertSuccessPopupVisible
+    private var emergencyToast: some View {
         Group {
-            if emergencyVM.status == .countingDown {
+            if emergencyVM.alertSuccessPopupVisible {
                 ZStack {
-                    Color.black.opacity(0.95).ignoresSafeArea()
+                    // Dim background
+                    Color.black.opacity(0.55)
+                        .ignoresSafeArea()
+                        .transition(.opacity)
 
-                    VStack(spacing: 30) {
-                        Text("EMERGENCY ALERT")
-                            .foregroundColor(.white)
+                    // Center card — keyed by sessionID so SwiftUI always recreates it
+                    VStack(spacing: 20) {
 
-                        Text("\(emergencyVM.countdownTime)")
-                            .font(.system(size: 80, weight: .bold))
-                            .foregroundColor(.red)
+                        // Status Icon / Spinner
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    emergencyVM.status == .success
+                                        ? Color.green.opacity(0.12)
+                                        : emergencyVM.status == .sending
+                                            ? Color(red: 0.85, green: 0.10, blue: 0.10).opacity(0.08)
+                                            : Color.orange.opacity(0.12)
+                                )
+                                .frame(width: 72, height: 72)
 
-                        Button("Cancel") {
-                            emergencyVM.cancelEmergencyAlert()
+                            if emergencyVM.status == .sending {
+                                ProgressView()
+                                    .tint(Color(red: 0.85, green: 0.10, blue: 0.10))
+                                    .scaleEffect(2.0)
+                            } else {
+                                Image(systemName:
+                                    emergencyVM.status == .success
+                                        ? "checkmark.shield.fill"
+                                        : "exclamationmark.triangle.fill"
+                                )
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundStyle(
+                                    emergencyVM.status == .success ? Color.green : Color.orange
+                                )
+                                .transition(.scale.combined(with: .opacity))
+                            }
                         }
-                        .padding()
-                        .background(Color.red)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
+                        .animation(.spring(response: 0.4), value: emergencyVM.status)
+
+                        // Status text
+                        VStack(spacing: 6) {
+                            Text(emergencyVM.status.rawValue)
+                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color.primary)
+                                .multilineTextAlignment(.center)
+                                .animation(.easeInOut, value: emergencyVM.status)
+
+                            if let err = emergencyVM.errorMessage {
+                                Text(err)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Color.secondary)
+                                    .multilineTextAlignment(.center)
+                            } else if emergencyVM.status == .sending {
+                                Text("Please wait while we notify your contacts...")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Color.secondary)
+                                    .multilineTextAlignment(.center)
+                            } else if emergencyVM.status == .success {
+                                Text("Emergency contacts have been notified.")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Color.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                        }
+
+                        // Stop Alarm button — only shown after final result
+                        if !emergencyVM.alertSending {
+                            Button(action: {
+                                print("[Alert] Stop Alarm tapped — dismissing")
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                                    emergencyVM.resetToIdle()
+                                    sliderCompleted = false
+                                }
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "speaker.slash.fill")
+                                        .font(.system(size: 14, weight: .bold))
+                                    Text("Stop Alarm")
+                                        .font(.system(size: 15, weight: .bold))
+                                }
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Color(red: 0.85, green: 0.10, blue: 0.10))
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .shadow(
+                                    color: Color(red: 0.85, green: 0.10, blue: 0.10).opacity(0.3),
+                                    radius: 10, x: 0, y: 4
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .transition(.opacity)
+                        }
                     }
+                    .padding(28)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(Color(.systemBackground))
+                            .shadow(color: .black.opacity(0.18), radius: 30, x: 0, y: 10)
+                    )
+                    .padding(.horizontal, 36)
+                    .id(emergencyVM.currentAlertSessionID)  // 🔑 Key: forces brand-new view on every alert session
+                    .transition(.scale(scale: 0.9).combined(with: .opacity))
                 }
+                .zIndex(100)
+                .transition(.opacity)
             }
         }
     }
@@ -289,6 +359,7 @@ struct DashboardView: View {
 struct GlassHeaderActionsView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @EnvironmentObject var recordsVM: RecordsViewModel
+    @EnvironmentObject var avatarVM: AvatarViewModel
     
     @State private var hasUnread: Bool = false
     
@@ -320,9 +391,9 @@ struct GlassHeaderActionsView: View {
             .buttonStyle(ScaleButtonStyle())
             
             // Profile Icon
-            NavigationLink(destination: SettingsView(vm: authVM)) {
-                if let localImage = UserDataModel.shared.getLocalAvatarImage() {
-                    Image(uiImage: localImage)
+            NavigationLink(destination: SettingsView(vm: authVM).environmentObject(avatarVM)) {
+                if let img = avatarVM.avatarImage {
+                    Image(uiImage: img)
                         .resizable()
                         .scaledToFill()
                         .frame(width: 30, height: 30)
@@ -348,7 +419,10 @@ struct GlassHeaderActionsView: View {
                 .stroke(Color.white.opacity(0.3), lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
-        .task { await refreshUnreadCount() }
+        .task {
+            await refreshUnreadCount()
+            await avatarVM.refresh()
+        }
         .animation(.spring(response: 0.3), value: hasUnread)
     }
     

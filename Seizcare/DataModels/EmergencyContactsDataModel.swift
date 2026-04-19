@@ -41,7 +41,7 @@ class EmergencyContactDataModel: ObservableObject {
     static let shared = EmergencyContactDataModel()
 
     @Published private var cachedContacts: [EmergencyContact] = []
-    private var isRefreshing = false
+    @Published private(set) var isRefreshing = false
 
     private init() {}
 

@@ -119,15 +119,12 @@ final class SupabaseService {
     
     /// Ask Supabase to send an 8-digit OTP to the given email for password reset.
     func sendPasswordResetOTP(email: String) async throws {
-        try await client.auth.signInWithOTP(
-            email: email,
-            shouldCreateUser: false
-        )
+        try await client.auth.resetPasswordForEmail(email)
     }
     
     /// Verifies the OTP code sent to the email address.
     func verifyPasswordResetOTP(email: String, otp: String) async throws {
-        try await client.auth.verifyOTP(email: email, token: otp, type: .email)
+        try await client.auth.verifyOTP(email: email, token: otp, type: .recovery)
     }
     
     /// Updates the user's password once an active session (via verified OTP) is established.
@@ -204,10 +201,22 @@ final class SupabaseService {
     }
     
     func updateUser(_ dto: UserDTO) async throws {
+        /// Only patch profile fields — avatar_url is managed separately
+        /// to prevent accidental overwrite with nil on profile saves.
+        struct ProfilePatch: Encodable {
+            let full_name: String?
+            let email: String?
+            let contact_number: String?
+        }
+        let patch = ProfilePatch(
+            full_name: dto.fullName,
+            email: dto.email,
+            contact_number: dto.contactNumber
+        )
         try await client
             .from("users")
-            .update(dto)
-            .eq("id", value: dto.id.uuidString)
+            .update(patch)
+            .eq("id", value: dto.id.uuidString.lowercased())
             .execute()
     }
     

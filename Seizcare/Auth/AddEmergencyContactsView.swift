@@ -18,8 +18,9 @@ struct AddEmergencyContactsView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Navigation Bar
+        ZStack {
+            VStack(spacing: 0) {
+                // Navigation Bar
             HStack {
                 CustomBackButton {
                     if vm.isAuthenticated {
@@ -169,6 +170,12 @@ struct AddEmergencyContactsView: View {
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 40)
+            }
+            
+            if contactModel.isRefreshing {
+                Color.black.opacity(0.1).ignoresSafeArea()
+                LoadingView()
+            }
         }
         .sheet(isPresented: $showingContactPicker) {
             ContactPicker(isPresented: $showingContactPicker) { cnContact in

@@ -215,7 +215,7 @@ struct SeizureFrequencyChartView: View {
                                 Text(valString)
                                     .font(.system(size: 34, weight: .semibold, design: .rounded))
                                     .foregroundStyle(Color.cyan)
-                                Text("EVENTS")
+                                Text("SEIZURES")
                                     .font(.system(size: 16, weight: .medium, design: .rounded))
                                     .foregroundStyle(Color.cyan)
                             }
@@ -321,7 +321,7 @@ struct SeizureFrequencyChartView: View {
                     }
                 }
             }
-            .navigationTitle("Event Frequency")
+            .navigationTitle("Seizure Frequency")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .toolbar {

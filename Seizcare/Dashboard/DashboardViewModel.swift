@@ -33,7 +33,8 @@ class DashboardViewModel: ObservableObject {
     var records: [SeizureRecord] { recordsVM.records }
     var sleepData: [SleepData] { healthVM.sleepData }
     var currentHeartRate: Double { healthVM.currentHeartRate }
-    var isLoading: Bool { healthVM.isLoading }
+    var isLoading: Bool { recordsVM.isLoading || healthVM.isLoading }
+    var errorMessage: String? { recordsVM.errorMessage ?? healthVM.errorMessage }
     
     var avgSleep7Days: Double {
         guard !sleepData.isEmpty else { return 0 }
