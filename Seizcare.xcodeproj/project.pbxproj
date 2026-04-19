@@ -431,7 +431,6 @@
 				DEVELOPMENT_TEAM = HTW9G6WB72;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Seizcare needs camera access so you can take a profile picture.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Seizcare reads your heart rate and sleep data to help you understand your health patterns. Your data is kept private and is never shared.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Seizcare does not modify or write any health data.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to attach it to emergency texts.";
@@ -469,7 +468,6 @@
 				DEVELOPMENT_TEAM = HTW9G6WB72;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Seizcare needs camera access so you can take a profile picture.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Seizcare reads your heart rate and sleep data to help you understand your health patterns. Your data is kept private and is never shared.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Seizcare does not modify or write any health data.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to attach it to emergency texts.";
