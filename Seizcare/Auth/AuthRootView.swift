@@ -115,6 +115,12 @@ struct AuthRootView: View {
                                 removal:    .move(edge: .trailing).combined(with: .opacity)
                             )
                         )
+                case .healthOnboarding:
+                    HealthOnboardingView(vm: vm)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
                 }
             }
             .animation(.spring(response: 0.45, dampingFraction: 0.82), value: vm.activeScreen)

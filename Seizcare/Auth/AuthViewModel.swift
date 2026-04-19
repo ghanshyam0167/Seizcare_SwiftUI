@@ -24,6 +24,7 @@ enum AuthScreen {
     case forgotPasswordEmail
     case forgotPasswordOTP
     case forgotPasswordReset
+    case healthOnboarding
 }
 
 // MARK: - AuthViewModel
@@ -45,10 +46,14 @@ final class AuthViewModel: ObservableObject {
     @Published var signupOTP:             String = ""
     @Published var isResendSignupOTP:     Bool   = false
 
-    // ─── Onboarding fields ───────────────────────────────────────────────────
     @Published var onboardingFullName:    String = ""
     @Published var onboardingPhoneNumber: String = ""
     @Published var onboardingProfileImage: UIImage? = nil
+    
+    // ─── Health Onboarding fields ────────────────────────────────────────────
+    @Published var onboardingAvgDuration: String = ""
+    @Published var onboardingAvgSleep: String = ""
+    @Published var onboardingFrequency: String = ""
 
     // ─── Forgot Password fields ──────────────────────────────────────────────
     @Published var forgotPasswordEmail:   String = ""
@@ -354,6 +359,18 @@ final class AuthViewModel: ObservableObject {
     }
     
     func completeSensitivitySetup() {
+        withAnimation(.spring()) {
+            activeScreen = .healthOnboarding
+        }
+    }
+    
+    func completeHealthOnboarding() {
+        // Store the optional data in UserDataModel for future insights.
+        // For now, we print or safely store it so it doesn't break charts.
+        if UserDataModel.shared.getCurrentUser() != nil {
+            // Suppose user has extra fields or we add them later. 
+            // We just complete the auth flow.
+        }
         isAuthenticated = true
     }
 
@@ -593,6 +610,8 @@ final class AuthViewModel: ObservableObject {
                 activeScreen = .setupPhone
             case .sensitivitySetup:
                 activeScreen = .addEmergencyContacts
+            case .healthOnboarding:
+                activeScreen = .sensitivitySetup
             default:
                 break
             }

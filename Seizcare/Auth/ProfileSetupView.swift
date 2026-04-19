@@ -6,6 +6,7 @@
 import SwiftUI
 import PhotosUI
 
+@MainActor
 struct ProfileSetupView: View {
     @ObservedObject var vm: AuthViewModel
     @State private var selectedItem: PhotosPickerItem? = nil

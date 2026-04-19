@@ -42,18 +42,26 @@ struct HeroCardView: View {
         VStack(spacing: 0) {
             // Top row
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("This Month")
-                        .font(.caption)
-                        .foregroundStyle(Color.dashSecondary)
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text("\(thisMonth.count)")
-                            .font(.system(size: 44, weight: .bold, design: .rounded))
+                if records.isEmpty && sleepHours == 0 {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Ready to track")
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundStyle(Color.dashLabel)
-                        Text("seizures")
-                            .font(.subheadline)
+                    }
+                } else {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("This Month")
+                            .font(.caption)
                             .foregroundStyle(Color.dashSecondary)
-                            .offset(y: -4)
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text(records.isEmpty ? "--" : "\(thisMonth.count)")
+                                .font(.system(size: 44, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color.dashLabel)
+                            Text("seizures")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.dashSecondary)
+                                .offset(y: -4)
+                        }
                     }
                 }
 
@@ -78,43 +86,57 @@ struct HeroCardView: View {
             Spacer().frame(height: 28)
 
             // Stats row
-            HStack(spacing: 0) {
-                StatPill(
-                    icon: "moon.zzz.fill",
-                    label: "Avg Sleep",
-                    value: String(format: "%.1fh", avgSleep),
-                    color: .dashSleep
-                )
-                Divider()
-                    .frame(height: 32)
-                    .background(Color.dashTertiary)
-                    .padding(.horizontal, 12)
-                StatPill(
-                    icon: "timer",
-                    label: "Avg Duration",
-                    value: avgDuration,
-                    color: .dashSecondary
-                )
-                Divider()
-                    .frame(height: 32)
-                    .background(Color.dashTertiary)
-                    .padding(.horizontal, 12)
-                StatPill(
-                    icon: trendIcon,
-                    label: "vs Last Month",
-                    value: trendValue,
-                    color: trendColor
-                )
-                Divider()
-                    .frame(height: 32)
-                    .background(Color.dashTertiary)
-                    .padding(.horizontal, 12)
-                StatPill(
-                    icon: "heart.fill",
-                    label: "Current HR",
-                    value: heartRate > 0 ? "\(Int(heartRate))" : "—",
-                    color: .dashSeizure
-                )
+            if records.isEmpty && sleepHours == 0 {
+                VStack(spacing: 8) {
+                    Image(systemName: "chart.pie.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Color.dashSecondary.opacity(0.6))
+                    Text("No data available yet.\nStart tracking to see your summary.")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.dashSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+            } else {
+                HStack(spacing: 0) {
+                    StatPill(
+                        icon: "moon.zzz.fill",
+                        label: "Avg Sleep",
+                        value: sleepHours == 0 ? "--" : String(format: "%.1fh", avgSleep),
+                        color: .dashSleep
+                    )
+                    Divider()
+                        .frame(height: 32)
+                        .background(Color.dashTertiary)
+                        .padding(.horizontal, 12)
+                    StatPill(
+                        icon: "timer",
+                        label: "Avg Duration",
+                        value: avgDuration,
+                        color: .dashSecondary
+                    )
+                    Divider()
+                        .frame(height: 32)
+                        .background(Color.dashTertiary)
+                        .padding(.horizontal, 12)
+                    StatPill(
+                        icon: trendIcon,
+                        label: "vs Last Month",
+                        value: records.isEmpty ? "--" : trendValue,
+                        color: trendColor
+                    )
+                    Divider()
+                        .frame(height: 32)
+                        .background(Color.dashTertiary)
+                        .padding(.horizontal, 12)
+                    StatPill(
+                        icon: "heart.fill",
+                        label: "Current HR",
+                        value: heartRate > 0 ? "\(Int(heartRate))" : "—",
+                        color: .dashSeizure
+                    )
+                }
             }
         }
         .padding(20)

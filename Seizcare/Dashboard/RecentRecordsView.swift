@@ -32,7 +32,7 @@ struct RecentRecordsView: View {
             }
 
             if recent.isEmpty {
-                EmptyStateCard(message: "No seizures recorded yet")
+                EmptyStateCard(message: "No seizures logged yet\nTap + to record your first event")
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(recent.enumerated()), id: \.element.id) { index, record in
@@ -182,6 +182,7 @@ struct EmptyStateCard: View {
                 Text(message)
                     .font(.subheadline)
                     .foregroundStyle(Color.dashSecondary)
+                    .multilineTextAlignment(.center)
             }
             .padding(.vertical, 32)
             Spacer()

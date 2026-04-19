@@ -46,7 +46,7 @@ DashboardView(
                         Image(systemName: "chart.xyaxis.line")
                             .font(.system(size: 24))
                     }
-                    .foregroundStyle(selectedTab == .dashboard ? Color.blue : Color.secondary)
+                    .foregroundStyle(selectedTab == .dashboard ? Color.dashLabel : Color.secondary)
 
                     Button {
                         withAnimation {
@@ -56,7 +56,7 @@ DashboardView(
                         Image(systemName: "list.bullet.rectangle")
                             .font(.system(size: 24))
                     }
-                    .foregroundStyle(selectedTab == .records ? Color.blue : Color.secondary)
+                    .foregroundStyle(selectedTab == .records ? Color.dashLabel : Color.secondary)
 
                     Spacer()
 

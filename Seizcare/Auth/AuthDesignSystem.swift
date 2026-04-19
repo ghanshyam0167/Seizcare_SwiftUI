@@ -185,3 +185,21 @@ struct ShakeEffect: GeometryEffect {
         return ProjectionTransform(CGAffineTransform(translationX: translation, y: 0))
     }
 }
+
+// MARK: - Custom Back Button
+
+struct CustomBackButton: View {
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.authPrimaryText)
+                .frame(width: 44, height: 44)
+                .background(Color.authCardBackground)
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 2)
+        }
+    }
+}

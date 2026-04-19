@@ -21,19 +21,12 @@ struct AddEmergencyContactsView: View {
         VStack(spacing: 0) {
             // Navigation Bar
             HStack {
-                Button(action: { 
+                CustomBackButton {
                     if vm.isAuthenticated {
                         dismiss()
                     } else {
                         vm.goBack() 
                     }
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.authPrimaryText)
-                        .padding(12)
-                        .background(Color.authCardBackground)
-                        .clipShape(Circle())
                 }
                 Spacer()
             }
