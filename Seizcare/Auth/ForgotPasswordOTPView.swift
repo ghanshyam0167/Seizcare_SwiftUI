@@ -4,9 +4,13 @@
 //
 
 import SwiftUI
+import Combine
 
 struct ForgotPasswordOTPView: View {
     @ObservedObject var vm: AuthViewModel
+    
+    @State private var timeRemaining = 60
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     var body: some View {
         VStack(spacing: 0) {
@@ -87,11 +91,15 @@ struct ForgotPasswordOTPView: View {
                     .font(.system(size: 14))
                     .foregroundColor(.authSecondaryText)
                 
-                Button(action: { vm.sendPasswordReset() }) {
-                    Text("Resend")
+                Button(action: { 
+                    vm.sendPasswordReset() 
+                    timeRemaining = 60
+                }) {
+                    Text(timeRemaining > 0 ? "Resend in \(timeRemaining)s" : "Resend")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color.authPrimaryButton)
+                        .foregroundColor(timeRemaining > 0 ? .authSecondaryText.opacity(0.5) : Color.authPrimaryButton)
                 }
+                .disabled(timeRemaining > 0)
             }
             
             // Back to Login switch
@@ -103,6 +111,11 @@ struct ForgotPasswordOTPView: View {
             .padding(.vertical, 16)
             
             Spacer()
+        }
+        .onReceive(timer) { _ in
+            if timeRemaining > 0 {
+                timeRemaining -= 1
+            }
         }
     }
 }

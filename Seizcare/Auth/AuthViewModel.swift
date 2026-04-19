@@ -56,6 +56,12 @@ final class AuthViewModel: ObservableObject {
     @Published var resetPassword:         String = ""
     @Published var resetConfirmPassword:  String = ""
 
+    // ─── Change Password fields ──────────────────────────────────────────────
+    @Published var changeCurrentPassword:  String = ""
+    @Published var changeNewPassword:      String = ""
+    @Published var changeConfirmPassword:  String = ""
+    @Published var isChangePasswordPresented: Bool = false
+
     // ─── Validation errors ───────────────────────────────────────────────────
     @Published var loginEmailError:           String? = nil
     @Published var loginPasswordError:        String? = nil
@@ -67,6 +73,10 @@ final class AuthViewModel: ObservableObject {
     @Published var forgotPasswordEmailError:  String? = nil
     @Published var resetPasswordError:        String? = nil
     @Published var resetConfirmPasswordError: String? = nil
+
+    @Published var changeCurrentPasswordError: String? = nil
+    @Published var changeNewPasswordError:     String? = nil
+    @Published var changeConfirmPasswordError: String? = nil
 
     // ─── Async state ─────────────────────────────────────────────────────────
     @Published var isLoading:        Bool   = false
@@ -170,6 +180,36 @@ final class AuthViewModel: ObservableObject {
                     : (val == self.resetPassword ? nil : "Passwords don't match")
             }
             .store(in: &cancellables)
+
+        // Change Password
+        $changeCurrentPassword
+            .dropFirst()
+            .debounce(for: .milliseconds(400), scheduler: RunLoop.main)
+            .sink { [weak self] val in
+                self?.changeCurrentPasswordError = val.isEmpty ? "Current password required" : nil
+            }
+            .store(in: &cancellables)
+
+        $changeNewPassword
+            .dropFirst()
+            .debounce(for: .milliseconds(400), scheduler: RunLoop.main)
+            .sink { [weak self] val in
+                self?.changeNewPasswordError = self?.passwordStrengthError(for: val)
+                if let confirm = self?.changeConfirmPassword, !confirm.isEmpty {
+                    self?.changeConfirmPasswordError = confirm == val ? nil : "Passwords don't match"
+                }
+            }
+            .store(in: &cancellables)
+
+        $changeConfirmPassword
+            .dropFirst()
+            .debounce(for: .milliseconds(400), scheduler: RunLoop.main)
+            .sink { [weak self] val in
+                guard let self else { return }
+                self.changeConfirmPasswordError = val.isEmpty ? nil
+                    : (val == self.changeNewPassword ? nil : "Passwords don't match")
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - Validation Helpers
@@ -241,6 +281,14 @@ final class AuthViewModel: ObservableObject {
         !resetPassword.isEmpty && !resetConfirmPassword.isEmpty
             && passwordStrengthError(for: resetPassword) == nil
             && resetConfirmPassword == resetPassword
+    }
+
+    // MARK: - Change Password Validation
+    
+    var isChangePasswordEnabled: Bool {
+        !changeCurrentPassword.isEmpty && !changeNewPassword.isEmpty && !changeConfirmPassword.isEmpty
+            && passwordStrengthError(for: changeNewPassword) == nil
+            && changeConfirmPassword == changeNewPassword
     }
 
     // MARK: - Password Strength Indicator
@@ -478,6 +526,44 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
+    func changePassword() {
+        guard let email = UserDataModel.shared.getCurrentUser()?.email else { return }
+        guard isChangePasswordEnabled else { return }
+        
+        isLoading = true
+        Task {
+            defer { isLoading = false }
+            do {
+                // Verify current password to prevent unauthorized changes
+                _ = try await SupabaseService.shared.signIn(email: email, password: changeCurrentPassword)
+                
+                // Update password
+                try await service.updateUserPassword(newPassword: changeNewPassword)
+                
+                // Clear fields
+                changeCurrentPassword = ""
+                changeNewPassword = ""
+                changeConfirmPassword = ""
+                
+                // Re-login isn't strictly necessary for session if we update the stored session,
+                // but signing in just generated a fresh local session automatically anyway.
+                triggerSuccessToast(message: "Password changed successfully!")
+                
+                // Allow UI to dismiss
+                withAnimation(.spring()) {
+                    self.isChangePasswordPresented = false
+                }
+            } catch {
+                if error.localizedDescription.contains("Invalid login credentials") {
+                    alertMessage = "Incorrect current password."
+                } else {
+                    alertMessage = error.localizedDescription
+                }
+                showAlert = true
+            }
+        }
+    }
+
     private func triggerSuccessToast(message: String) {
         successMessage = message
         withAnimation(.spring()) {
@@ -551,6 +637,36 @@ final class AuthViewModel: ObservableObject {
             } catch {
                 print("⚠️ [AuthViewModel] Server deletion failed: \(error.localizedDescription)")
             }
+        }
+    }
+
+    func logoutAndGoToForgotPassword() {
+        print("🔄 [AuthViewModel] Logout and redirect to Forgot Password...")
+        
+        let currentEmail = UserDataModel.shared.getCurrentUser()?.email ?? loginEmail
+        
+        withAnimation(.easeInOut(duration: 0.35)) {
+            self.objectWillChange.send()
+            self.isAuthenticated = false
+            self.activeScreen = .forgotPasswordEmail
+            self.forgotPasswordEmail = currentEmail
+            self.forgotPasswordOTP = ""
+            self.resetPassword = ""
+            self.resetConfirmPassword = ""
+            self.resetPasswordError = nil
+            self.resetConfirmPasswordError = nil
+        }
+        
+        Task {
+            try? await service.signOut()
+            EmergencyContactDataModel.shared.clearCache()
+            SensitivityDataModel.shared.resetToDefault()
+            
+            loginEmail = ""
+            loginPassword = ""
+            signupEmail = ""
+            signupPassword = ""
+            signupConfirmPassword = ""
         }
     }
 
