@@ -154,6 +154,18 @@ struct SettingsView: View {
                         
                         VStack(spacing: 0) {
                             SettingsRowCard(
+                                icon: "lock.fill",
+                                title: "Change Password",
+                                iconColor: .brandPrimary,
+                                showDivider: true
+                            ) {
+                                vm.isChangePasswordPresented = true
+                            }
+                            .fullScreenCover(isPresented: $vm.isChangePasswordPresented) {
+                                ChangePasswordView(vm: vm)
+                            }
+                            
+                            SettingsRowCard(
                                 icon: "trash.fill",
                                 title: "Delete Account",
                                 iconColor: .errorRed,

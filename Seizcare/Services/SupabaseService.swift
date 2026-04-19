@@ -119,15 +119,12 @@ final class SupabaseService {
     
     /// Ask Supabase to send an 8-digit OTP to the given email for password reset.
     func sendPasswordResetOTP(email: String) async throws {
-        try await client.auth.signInWithOTP(
-            email: email,
-            shouldCreateUser: false
-        )
+        try await client.auth.resetPasswordForEmail(email)
     }
     
     /// Verifies the OTP code sent to the email address.
     func verifyPasswordResetOTP(email: String, otp: String) async throws {
-        try await client.auth.verifyOTP(email: email, token: otp, type: .email)
+        try await client.auth.verifyOTP(email: email, token: otp, type: .recovery)
     }
     
     /// Updates the user's password once an active session (via verified OTP) is established.
