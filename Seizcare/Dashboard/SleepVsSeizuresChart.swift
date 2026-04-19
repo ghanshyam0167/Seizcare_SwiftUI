@@ -115,11 +115,8 @@ struct SleepVsSeizuresChartView: View {
 
     private var insightText: String {
         let poorDays = data.filter { ($0.sleepHours ?? 99) < 6 && $0.seizureCount > 0 }.count
-        if selectedRange == .yearly {
-            return String(localized: "sleep_insight_yearly \(poorDays)")
-        } else {
-            return String(localized: "sleep_insight_daily \(poorDays)")
-        }
+        let key = selectedRange == .yearly ? "sleep_insight_yearly %d" : "sleep_insight_daily %d"
+        return String(format: key.localized, poorDays)
     }
 
     private var avgSleepLabel: String {
@@ -344,7 +341,7 @@ struct SleepVsSeizuresChartView: View {
                 .foregroundStyle(.yellow)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 4) {
-                Text("insight")
+                Text("insight".localized)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color(UIColor.label))
                 Text(insightText)

@@ -63,61 +63,62 @@ struct EditProfileView: View {
                 VStack(spacing: 32) {
                     
                     VStack(spacing: 16) {
-                        Button(action: { showingActionSheet = true }) {
-                            ZStack(alignment: .bottomTrailing) {
-                                if !photoRemoved {
-                                    if let image = newProfileImage {
-                                        Image(uiImage: image)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 120, height: 120)
-                                            .clipShape(Circle())
-                                            .overlay(Circle().stroke(Color.authPrimaryButton.opacity(0.2), lineWidth: 4))
-                                    } else if let localImage = UserDataModel.shared.getLocalAvatarImage() {
-                                        Image(uiImage: localImage)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 120, height: 120)
-                                            .clipShape(Circle())
-                                            .overlay(Circle().stroke(Color.authPrimaryButton.opacity(0.2), lineWidth: 4))
-                                    } else if let urlString = existingAvatarUrl, let url = URL(string: urlString) {
-                                        AsyncImage(url: url) { phase in
-                                            switch phase {
-                                            case .success(let image):
-                                                image.resizable()
-                                                    .scaledToFill()
-                                                    .frame(width: 120, height: 120)
-                                                    .clipShape(Circle())
-                                                    .overlay(Circle().stroke(Color.authPrimaryButton.opacity(0.2), lineWidth: 4))
-                                            default:
-                                                fallbackAvatar
-                                            }
-                                        }
+                        ZStack(alignment: .bottomTrailing) {
+                            if !photoRemoved {
+                                if let image = newProfileImage {
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .scaledToFill()
                                         .frame(width: 120, height: 120)
-                                    } else {
-                                        fallbackAvatar
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Color.authPrimaryButton.opacity(0.2), lineWidth: 4))
+                                } else if let localImage = UserDataModel.shared.getLocalAvatarImage() {
+                                    Image(uiImage: localImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 120, height: 120)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Color.authPrimaryButton.opacity(0.2), lineWidth: 4))
+                                } else if let urlString = existingAvatarUrl, let url = URL(string: urlString) {
+                                    AsyncImage(url: url) { phase in
+                                        switch phase {
+                                        case .success(let image):
+                                            image.resizable()
+                                                .scaledToFill()
+                                                .frame(width: 120, height: 120)
+                                                .clipShape(Circle())
+                                                .overlay(Circle().stroke(Color.authPrimaryButton.opacity(0.2), lineWidth: 4))
+                                        default:
+                                            fallbackAvatar
+                                        }
                                     }
+                                    .frame(width: 120, height: 120)
                                 } else {
                                     fallbackAvatar
                                 }
-                                
+                            } else {
+                                fallbackAvatar
+                            }
+                            
+                            Button(action: { showingActionSheet = true }) {
                                 Circle()
                                     .fill(Color.authPrimaryButton)
                                     .frame(width: 36, height: 36)
                                     .overlay(
-                                        Image(systemName: "camera.fill")
-                                            .font(.system(size: 16))
+                                        Image(systemName: "pencil")
+                                            .font(.system(size: 16, weight: .bold))
                                             .foregroundColor(.white)
                                     )
-                                    .offset(x: -4, y: -4)
                             }
+                            .buttonStyle(PlainButtonStyle())
+                            .accessibilityLabel(Text("change_profile_photo".localized))
+                            .offset(x: -4, y: -4)
                         }
-                        .buttonStyle(PlainButtonStyle())
                         .confirmationDialog("change_profile_photo", isPresented: $showingActionSheet, titleVisibility: .visible) {
                             Button("take_photo") { requestCameraAndOpen() }
                             Button("choose_from_gallery") { showingGallery = true }
                             
-                            if newProfileImage != nil || existingAvatarUrl != nil {
+                            if hasProfilePhoto {
                                 Button("remove_photo", role: .destructive) {
                                     withAnimation {
                                         newProfileImage = nil
@@ -183,26 +184,6 @@ struct EditProfileView: View {
                                     }
                                 )
                             }
-                        }
-                        
-                        Text("change_photo")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.authPrimaryButton)
-                            
-                        if !photoRemoved && (newProfileImage != nil || existingAvatarUrl != nil || UserDataModel.shared.getLocalAvatarImage() != nil) {
-                            Button(action: {
-                                withAnimation {
-                                    newProfileImage = nil
-                                    existingAvatarUrl = nil
-                                    photoRemoved = true
-                                    selectedItem = nil
-                                }
-                            }) {
-                                Text("remove_photo")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.errorRed)
-                            }
-                            .padding(.top, -8)
                         }
                     }
                     
@@ -339,6 +320,13 @@ struct EditProfileView: View {
     
     private var hasChanges: Bool {
         name != originalName || contactNumber != originalContactNumber || newProfileImage != nil || photoRemoved
+    }
+    
+    private var hasProfilePhoto: Bool {
+        !photoRemoved &&
+        (newProfileImage != nil ||
+         existingAvatarUrl?.isEmpty == false ||
+         UserDataModel.shared.getLocalAvatarImage() != nil)
     }
     
     private var isFormValid: Bool {

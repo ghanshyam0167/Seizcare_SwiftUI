@@ -22,6 +22,7 @@ enum ActiveChart: Identifiable {
 
 struct DashboardView: View {
     @EnvironmentObject var authVM: AuthViewModel
+    @EnvironmentObject var languageManager: LanguageManager
     @Binding var selectedTab: Tab
 
     @StateObject private var viewModel: DashboardViewModel
@@ -46,6 +47,9 @@ struct DashboardView: View {
 
     private var records: [SeizureRecord] { viewModel.records }
     private var sleep: [SleepData] { viewModel.sleepData }
+    private var localizedGuidanceText: String {
+        localized(viewModel.guidanceText, languageCode: languageManager.currentLanguage)
+    }
 
     // MARK: - Body
 
@@ -82,7 +86,7 @@ struct DashboardView: View {
                     )
                     
                     if !viewModel.guidanceText.isEmpty && viewModel.displayHeartRate == nil {
-                        Text(viewModel.guidanceText)
+                        Text(localizedGuidanceText)
                             .font(.system(size: 13, weight: .medium, design: .rounded))
                             .foregroundStyle(Color.dashSeizure)
                             .padding(.vertical, 8)
@@ -235,6 +239,15 @@ if viewModel.isLoading {
             print("[Dashboard] Received Watch SOS notification for UI feedback.")
         }
     }
+    
+    private func localized(_ key: String, languageCode: String) -> String {
+        guard !key.isEmpty,
+              let path = Bundle.main.path(forResource: languageCode, ofType: "lproj"),
+              let bundle = Bundle(path: path) else {
+            return key.localized
+        }
+        return NSLocalizedString(key, bundle: bundle, comment: "")
+    }
 
     // MARK: - Emergency Logic
 
@@ -303,24 +316,24 @@ if viewModel.isLoading {
 
                         // Status text
                         VStack(spacing: 6) {
-                            Text(LocalizedStringKey(emergencyVM.status.rawValue))
+                            Text(emergencyVM.status.rawValue.localized)
                                 .font(.system(size: 18, weight: .bold, design: .rounded))
                                 .foregroundStyle(Color.primary)
                                 .multilineTextAlignment(.center)
                                 .animation(.easeInOut, value: emergencyVM.status)
 
                             if let err = emergencyVM.errorMessage {
-                                Text(err)
+                                Text(err.localized)
                                     .font(.system(size: 13))
                                     .foregroundStyle(Color.secondary)
                                     .multilineTextAlignment(.center)
                             } else if emergencyVM.status == .sending {
-                                Text("notifying_contacts")
+                                Text("notifying_contacts".localized)
                                     .font(.system(size: 13))
                                     .foregroundStyle(Color.secondary)
                                     .multilineTextAlignment(.center)
                             } else if emergencyVM.status == .success {
-                                Text("contacts_notified")
+                                Text("contacts_notified".localized)
                                     .font(.system(size: 13))
                                     .foregroundStyle(Color.secondary)
                                     .multilineTextAlignment(.center)
@@ -339,7 +352,7 @@ if viewModel.isLoading {
                                 HStack(spacing: 8) {
                                     Image(systemName: "speaker.slash.fill")
                                         .font(.system(size: 14, weight: .bold))
-                                    Text("stop_alarm")
+                                    Text("stop_alarm".localized)
                                         .font(.system(size: 15, weight: .bold))
                                 }
                                 .foregroundStyle(.white)

@@ -41,6 +41,11 @@ class HealthViewModel: ObservableObject {
     private var loadingTimeout: AnyCancellable?
     
     private let hkManager = HealthKitManager.shared
+
+    private enum GuidanceKey {
+        static let connectWatch = "connect_apple_watch_start_monitoring"
+        static let waitingForData = "waiting_for_watch_data"
+    }
     
     init() {
         setupHealthKit()
@@ -251,7 +256,7 @@ class HealthViewModel: ObservableObject {
                         self.isStreamActive = false
                         self.displayHeartRate = nil
                         self.currentHeartRate = 0
-                        self.guidanceText = "Connect your Apple Watch to start monitoring."
+                        self.guidanceText = GuidanceKey.connectWatch
                         WatchConnectivityManager.shared.sendHeartRateToWatch(0)
                         
                         // Stop background streams to save battery (Step 11)
@@ -270,7 +275,7 @@ class HealthViewModel: ObservableObject {
                 if self?.isLoading == true {
                     print("[VM] Loading timeout reached")
                     self?.isLoading = false
-                    self?.guidanceText = "Waiting for data. Start a workout on your watch for better results."
+                    self?.guidanceText = GuidanceKey.waitingForData
                 }
             }
     }
@@ -286,7 +291,7 @@ class HealthViewModel: ObservableObject {
             self.currentHeartRate = 0
             self.isStreamActive = false
             self.hrBuffer.removeAll()
-            self.guidanceText = "Connect your Apple Watch to start monitoring."
+            self.guidanceText = GuidanceKey.connectWatch
             WatchConnectivityManager.shared.sendHeartRateToWatch(0)
         }
         

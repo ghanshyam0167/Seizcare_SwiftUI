@@ -31,6 +31,7 @@ class LanguageManager: ObservableObject {
     ]
 
     func setLanguage(_ code: String) {
+        UserDefaults.standard.set(code, forKey: "app_language")
         currentLanguage = code
     }
 }
