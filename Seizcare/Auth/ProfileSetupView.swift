@@ -9,7 +9,16 @@ import PhotosUI
 @MainActor
 struct ProfileSetupView: View {
     @ObservedObject var vm: AuthViewModel
+    
+    // Photo management states
+    @State private var showingActionSheet = false
+    @State private var showingCamera = false
+    @State private var showingGallery = false
     @State private var selectedItem: PhotosPickerItem? = nil
+    
+    // Crop flow
+    @State private var imageToCrop: UIImage? = nil
+    @State private var showingCrop = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -40,7 +49,7 @@ struct ProfileSetupView: View {
             
             // Profile Picture Picker
             VStack(spacing: 16) {
-                PhotosPicker(selection: $selectedItem, matching: .images) {
+                Button(action: { showingActionSheet = true }) {
                     ZStack(alignment: .bottomTrailing) {
                         if let image = vm.onboardingProfileImage {
                             Image(uiImage: image)
@@ -71,13 +80,41 @@ struct ProfileSetupView: View {
                             .offset(x: -4, y: -4)
                     }
                 }
+                .buttonStyle(PlainButtonStyle())
+                .confirmationDialog("Change Profile Photo", isPresented: $showingActionSheet, titleVisibility: .visible) {
+                    Button("Take Photo") { showingCamera = true }
+                    Button("Choose from Gallery") { showingGallery = true }
+                    Button("Cancel", role: .cancel) {}
+                }
+                .sheet(isPresented: $showingCamera) {
+                    CameraPicker(image: $imageToCrop)
+                        .onDisappear {
+                            if let captured = imageToCrop {
+                                imageToCrop = nil
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    imageToCrop = captured
+                                    showingCrop = true
+                                }
+                            }
+                        }
+                }
+                .photosPicker(isPresented: $showingGallery, selection: $selectedItem, matching: .images)
                 .onChange(of: selectedItem) { _, newItem in
                     Task {
                         if let data = try? await newItem?.loadTransferable(type: Data.self),
                            let uiImage = UIImage(data: data) {
                             await MainActor.run {
-                                vm.onboardingProfileImage = uiImage
+                                imageToCrop = uiImage
+                                showingCrop = true
+                                selectedItem = nil
                             }
+                        }
+                    }
+                }
+                .sheet(isPresented: $showingCrop) {
+                    if let image = imageToCrop {
+                        ImageCropView(image: image) { cropped in
+                            vm.onboardingProfileImage = cropped
                         }
                     }
                 }
