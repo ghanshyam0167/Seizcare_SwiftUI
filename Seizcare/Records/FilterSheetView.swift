@@ -143,15 +143,13 @@ struct FilterSheetView: View {
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.dashSecondary)
+            HStack {
                 Text(LocalizedStringKey(title))
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.dashTertiary)
+                    .foregroundStyle(Color.dashLabel)
                     .tracking(1.0)
                     .textCase(.uppercase)
+                Spacer(minLength: 0)
             }
             content()
         }

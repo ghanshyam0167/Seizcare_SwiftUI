@@ -1,6 +1,7 @@
 "select_language" = "Select Language";
 "done" = "Done";
 "next" = "Next";
+"continue" = "Continue";
 "skip" = "Skip";
 "finish_setup" = "Finish Setup";
 "verify_email" = "Verify Email";
@@ -17,6 +18,18 @@
 "sign_up" = "Sign Up";
 "login" = "Login";
 "already_have_account" = "Already have an account?";
+"welcome_to_seizcare" = "Welcome to Seizcare";
+"onboarding_disclaimer_title" = "Before You Begin";
+"onboarding_disclaimer_subtitle" = "This application is designed to monitor data and alert contacts based on physiological changes. It is not a medical device and is not intended to diagnose or treat any medical condition.";
+"disclaimer_help_monitor" = "Monitor physiological changes and seizure patterns.";
+"disclaimer_help_alert" = "Alert trusted contacts when urgent support may be needed.";
+"disclaimer_help_records" = "Keep records for everyday care conversations.";
+"onboarding_detection_title" = "Seizure Detection";
+"onboarding_detection_subtitle" = "Monitor physiological changes and possible seizure patterns.";
+"onboarding_alert_title" = "Urgent Alerts";
+"onboarding_alert_subtitle" = "Notify trusted contacts when support may be needed.";
+"onboarding_records_title" = "Care Records";
+"onboarding_records_subtitle" = "Keep notes for everyday care conversations.";
 "onboarding_title_1" = "Stay Safe, Stay Aware";
 "onboarding_subtitle_1" = "Seizcare helps monitor and assist you or your loved ones during seizures, keeping everyone informed.";
 "onboarding_title_2" = "Smart Monitoring";
@@ -51,6 +64,7 @@
 "logout" = "Log Out";
 
 "summary" = "Summary";
+"dashboard" = "Dashboard";
 "analysis" = "Analysis";
 "seizure_count" = "Seizure Count";
 "sleep_vs_seizures" = "Sleep vs Seizures";
@@ -61,10 +75,10 @@
 "this_month" = "This Month";
 "seizures" = "seizures";
 "no_data_available" = "No data available yet.\nStart tracking to see your summary.";
-"avg_sleep" = "Avg Sleep";
-"avg_duration_stat" = "Avg Duration";
+"avg_sleep" = "Average Sleep";
+"avg_duration_stat" = "Average Duration";
 "vs_last_month" = "vs Last Month";
-"current_hr" = "Current HR";
+"current_hr" = "Current Heart Rate";
 "last_7_days" = "Last 7 Days";
 "yesterday" = "Yesterday";
 "today" = "Today";
@@ -184,7 +198,7 @@
 "ok" = "OK";
 "no_records_yet" = "No Records Yet";
 "no_records_desc" = "Tap  +  to log your first seizure event.\nYour records will appear here.";
-"all_records" = "All Records";
+"all_records" = "All Seizure Records";
 "unknown" = "Unknown";
 "%lld min" = "%lld min";
 "mild" = "Mild";
@@ -251,7 +265,7 @@
 "last_7_days" = "Last 7 Days";
 "last_30_days" = "Last 30 Days";
 "last_12_months" = "Last 12 Months";
-"avg_sleep" = "Avg Sleep";
+"avg_sleep" = "Average Sleep";
 "avg_monthly_sleep" = "Avg Monthly Sleep";
 "total_events" = "Total Events";
 "sleep_trend" = "Sleep (trend)";

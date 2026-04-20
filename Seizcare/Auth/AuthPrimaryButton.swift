@@ -44,14 +44,13 @@ struct AuthPrimaryButton: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .scaleEffect(0.9)
                         Text("please_wait")
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .font(.appHeadline)
                             .foregroundColor(.white)
                     }
                 } else {
                     Text(title)
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .font(.appHeadline)
                         .foregroundColor(isEnabled ? .white : .authSecondaryText)
-                        .tracking(0.3)
                 }
             }
         }
@@ -88,7 +87,7 @@ struct AuthTextButton: View {
                         .foregroundColor(.authSecondaryText)
                 }
             }
-            .font(.system(size: 15, weight: .regular, design: .rounded))
+            .font(.appCallout)
         }
         .buttonStyle(ScaleButtonStyle(scale: 0.97))
     }

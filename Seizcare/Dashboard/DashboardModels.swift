@@ -124,10 +124,12 @@ struct SleepRecord: Identifiable, Codable {
 
 extension Color {
     // Dynamic Colors utilizing iOS TraitCollection
+    static let dashAccent = Color.authPrimaryButton
+    
     static let dashBg = Color(UIColor { traitCollection in
         traitCollection.userInterfaceStyle == .dark
             ? UIColor(red: 0.06, green: 0.06, blue: 0.08, alpha: 1.0)
-            : UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1.0)
+            : UIColor(red: 0.961, green: 0.969, blue: 0.984, alpha: 1.0)
     })
     
     static let dashCard = Color(UIColor { traitCollection in
@@ -162,7 +164,7 @@ extension Color {
     
     // Core brand/state colors remain consistent across themes (or mildly adjusted)
     static let dashSeizure       = Color(red: 1.0,  green: 0.27, blue: 0.27)
-    static let dashSleep         = Color(red: 0.25, green: 0.60, blue: 1.0)
+    static let dashSleep         = Color.dashAccent
     static let dashGreen         = Color(red: 0.20, green: 0.78, blue: 0.35)
     static let dashPurple        = Color(red: 0.58, green: 0.44, blue: 1.0)
 }
