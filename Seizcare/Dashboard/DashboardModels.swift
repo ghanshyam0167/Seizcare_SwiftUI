@@ -62,6 +62,22 @@ enum SeizureTrigger: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum ActiveChart: Identifiable, Hashable {
+    case seizureFrequency
+    case sleepVsSeizures
+    case heartRateTimeline(SeizureRecord)
+    case seizureDetail(SeizureRecord)
+
+    var id: String {
+        switch self {
+        case .seizureFrequency:          return "freq"
+        case .sleepVsSeizures:           return "sleep"
+        case .heartRateTimeline(let r):  return "hr-\(r.id.uuidString)"
+        case .seizureDetail(let r):      return "det-\(r.id.uuidString)"
+        }
+    }
+}
+
 // MARK: - Models
 
 struct SeizureRecord: Identifiable, Codable, Hashable {

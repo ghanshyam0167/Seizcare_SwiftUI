@@ -10,9 +10,15 @@ class DashboardViewModel: ObservableObject {
     @Published var recordsVM: RecordsViewModel
     @Published var healthVM: HealthViewModel
     
+    @Published var latestIncompleteSeizure: SeizureRecord?
+    @Published var dismissedIncompleteSeizureId: UUID?
     @Published var activeChart: ActiveChart?
     @Published var frequencyRange: TimeFrameRange = .weekly
-    @Published var hasIncompleteSeizure: Bool = false
+    
+    var shouldShowIncompleteRecordPrompt: Bool {
+        guard let rec = latestIncompleteSeizure else { return false }
+        return rec.entryType == .automatic && rec.id != dismissedIncompleteSeizureId
+    }
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -21,7 +27,11 @@ class DashboardViewModel: ObservableObject {
         do {
             let incomplete = try await SupabaseService.shared.fetchLatestIncompleteSeizure(userId: userId)
             DispatchQueue.main.async {
-                self.hasIncompleteSeizure = (incomplete != nil)
+                if let rec = incomplete, rec.entryType == .automatic {
+                    self.latestIncompleteSeizure = rec
+                } else {
+                    self.latestIncompleteSeizure = nil
+                }
             }
         } catch {
             print("[VM] Error checking for incomplete seizure: \(error)")
