@@ -42,7 +42,8 @@ enum SeizureType: String, Codable, CaseIterable {
 }
 
 enum EntryType: String, Codable {
-    case automatic, manual
+    case automatic = "automatic"
+    case manual    = "manual"
 }
 
 enum SeizureTrigger: String, Codable, CaseIterable, Identifiable {

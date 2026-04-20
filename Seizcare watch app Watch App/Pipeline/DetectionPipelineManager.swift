@@ -9,6 +9,11 @@ public enum PipelineState {
     case seizureDetected
 }
 
+public enum EntryType: String, Codable {
+    case automatic = "automatic"
+    case manual    = "manual"
+}
+
 struct DemoConfig {
     static var isEnabled = true
     static var autoTriggerDelay: Double? = nil
@@ -241,7 +246,7 @@ public class DetectionPipelineManager: ObservableObject {
         let now = ISO8601DateFormatter().string(from: Date())
         let recordBody: [String: Any] = [
             "user_id": userId,
-            "entry_type": "auto-detected",
+            "entry_type": EntryType.automatic.rawValue,
             "start_time": now,
             "end_time": NSNull(),
             "severity_type": NSNull(),
