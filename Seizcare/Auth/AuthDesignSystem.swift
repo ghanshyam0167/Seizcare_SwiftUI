@@ -69,6 +69,14 @@ extension Color {
                 : UIColor(red: 0.48, green: 0.53, blue: 0.62, alpha: 1)
         })
     }
+
+    static var authPlaceholderText: Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor.systemGray2
+                : UIColor.systemGray
+        })
+    }
     
     // Button States
     static var authButtonDisabled: Color {
@@ -152,6 +160,35 @@ struct AuthTypography {
         Text(text)
             .font(.system(size: 16, weight: .regular, design: .rounded))
             .foregroundColor(.authSecondaryText)
+    }
+}
+
+// MARK: - Shared App Typography
+
+extension Font {
+    static let appLargeTitle = Font.system(size: 30, weight: .bold)
+    static let appTitle = Font.system(size: 24, weight: .bold)
+    static let appTitle3 = Font.system(size: 20, weight: .bold)
+    static let appHeadline = Font.system(size: 17, weight: .semibold)
+    static let appBody = Font.system(size: 16, weight: .regular)
+    static let appCallout = Font.system(size: 15, weight: .regular)
+    static let appSubheadline = Font.system(size: 14, weight: .medium)
+    static let appFootnote = Font.system(size: 13, weight: .medium)
+    static let appCaption = Font.system(size: 12, weight: .medium)
+    static let appCaptionStrong = Font.system(size: 12, weight: .semibold)
+}
+
+// MARK: - Logo
+
+struct AuthLogoMark: View {
+    var size: CGFloat = 84
+
+    var body: some View {
+        Image("Logo")
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
     }
 }
 

@@ -36,12 +36,12 @@ struct RecordCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(LocalizedStringKey(dateText))
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appSubheadline)
                         .foregroundStyle(Color.dashLabel)
                     Text("·")
                         .foregroundStyle(Color.dashTertiary)
                     Text(timeText)
-                        .font(.system(size: 13))
+                        .font(.appFootnote)
                         .foregroundStyle(Color.dashSecondary)
                         
                     Image(systemName: record.entryType == .automatic ? "waveform" : "pencil")
@@ -53,7 +53,7 @@ struct RecordCard: View {
                     SeverityBadge(type: record.type)
                     if let trigger = record.triggers.first {
                         Text(LocalizedStringKey(trigger.localizationKey))
-                            .font(.caption)
+                            .font(.appCaption)
                             .foregroundStyle(Color.dashSecondary)
                     }
                 }
@@ -63,10 +63,10 @@ struct RecordCard: View {
 
             VStack(alignment: .trailing, spacing: 4) {
                 Text(LocalizedStringKey(durationText))
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .font(.appFootnote)
                     .foregroundStyle(Color.dashLabel)
                 Text("duration")
-                    .font(.caption2)
+                    .font(.appCaption)
                     .foregroundStyle(Color.dashTertiary)
             }
 
@@ -87,9 +87,9 @@ struct MonthSectionHeader: View {
 
     var body: some View {
         HStack {
-            Text(title.uppercased())
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Color.dashTertiary)
+            Text(title.localized.uppercased())
+                .font(.appCaptionStrong)
+                .foregroundStyle(Color.dashSecondary)
                 .tracking(1.2)
             Spacer()
         }
@@ -114,10 +114,10 @@ struct RecordsEmptyState: View {
             }
             VStack(spacing: 8) {
                 Text("no_records_yet")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.appTitle3)
                     .foregroundStyle(Color.dashLabel)
                 Text("no_records_desc")
-                    .font(.subheadline)
+                    .font(.appSubheadline)
                     .foregroundStyle(Color.dashSecondary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
@@ -138,7 +138,7 @@ struct TriggerChip: View {
     var body: some View {
         Button(action: onTap) {
             Text(LocalizedStringKey(trigger.localizationKey))
-                .font(.caption.weight(.semibold))
+                .font(.appCaptionStrong)
                 .foregroundStyle(isSelected ? Color.white : Color.dashSecondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
@@ -171,15 +171,15 @@ struct DetailInfoRow: View {
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: icon)
-                .font(.system(size: 15, weight: .medium))
+                .font(.appCallout.weight(.medium))
                 .foregroundStyle(accentColor)
                 .frame(width: 20)
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
-                    .font(.caption)
+                    .font(.appCaption)
                     .foregroundStyle(Color.dashSecondary)
                 Text(value)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.appCallout.weight(.medium))
                     .foregroundStyle(Color.dashLabel)
             }
             Spacer()

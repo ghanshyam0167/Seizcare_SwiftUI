@@ -27,15 +27,7 @@ struct ProfileSetupView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Back button
-            HStack {
-                CustomBackButton { vm.goBack() }
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 10)
-            
-            Spacer().frame(height: 32)
+            Spacer().frame(height: 74)
             
             // Header
             VStack(spacing: 8) {

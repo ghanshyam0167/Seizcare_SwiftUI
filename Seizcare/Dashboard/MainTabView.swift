@@ -55,7 +55,7 @@ struct MainTabView: View {
                         Image(systemName: "chart.xyaxis.line")
                             .font(.system(size: 24))
                     }
-                    .foregroundStyle(selectedTab == .dashboard ? Color.dashLabel : Color.secondary)
+                    .foregroundStyle(selectedTab == .dashboard ? Color.dashAccent : Color.secondary)
 
                     Button {
                         withAnimation {
@@ -66,7 +66,7 @@ struct MainTabView: View {
                         Image(systemName: "list.bullet.rectangle")
                             .font(.system(size: 24))
                     }
-                    .foregroundStyle(selectedTab == .records ? Color.dashLabel : Color.secondary)
+                    .foregroundStyle(selectedTab == .records ? Color.dashAccent : Color.secondary)
 
                     Spacer()
 
@@ -82,7 +82,7 @@ struct MainTabView: View {
             .toolbarBackground(.visible, for: .bottomBar)
             .toolbarBackground(.ultraThinMaterial, for: .bottomBar)
         }
-        .tint(Color.dashSeizure)
+        .tint(Color.dashAccent)
         .task {
             await avatarVM.refresh()
         }

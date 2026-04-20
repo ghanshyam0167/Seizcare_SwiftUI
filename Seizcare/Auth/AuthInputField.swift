@@ -50,7 +50,7 @@ struct AuthInputField: View {
                             .autocorrectionDisabled()
                     }
                 }
-                .font(.system(size: 16, weight: .regular, design: .rounded))
+                .font(.appBody)
                 .foregroundColor(.authPrimaryText)
 
                 if isSecure {
@@ -81,9 +81,9 @@ struct AuthInputField: View {
             if let err = errorMessage, !err.isEmpty {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.circle.fill")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                     Text(err)
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .font(.appCaption)
                 }
                 .foregroundColor(.errorRed)
                 .transition(.move(edge: .top).combined(with: .opacity))

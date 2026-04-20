@@ -408,8 +408,12 @@ final class AuthViewModel: ObservableObject {
     }
     
     func completeSensitivitySetup() {
-        withAnimation(.spring()) {
-            activeScreen = .healthOnboarding
+        Task {
+            await EmergencyContactDataModel.shared.refreshContacts()
+            await SensitivityDataModel.shared.refreshSensitivity()
+            withAnimation(.spring()) {
+                isAuthenticated = true
+            }
         }
     }
     
@@ -731,9 +735,8 @@ final class AuthViewModel: ObservableObject {
             }
         }
         
-        withAnimation(.spring()) {
-            activeScreen = .setupPhone
-        }
+        screenNavDirection = .forward
+        withAnimation(.spring()) { activeScreen = .addEmergencyContacts }
     }
     
     func goBack() {
@@ -754,15 +757,13 @@ final class AuthViewModel: ObservableObject {
                 screenNavDirection = .back
                 activeScreen = .forgotPasswordOTP
             case .setupProfile:
-                // Back from profile setup goes to OTP screen
-                screenNavDirection = .back
-                activeScreen = .signupVerification
+                break
             case .setupPhone:
                 screenNavDirection = .back
                 activeScreen = .setupProfile
             case .addEmergencyContacts:
                 screenNavDirection = .back
-                activeScreen = .setupPhone
+                activeScreen = .setupProfile
             case .sensitivitySetup:
                 screenNavDirection = .back
                 activeScreen = .addEmergencyContacts
