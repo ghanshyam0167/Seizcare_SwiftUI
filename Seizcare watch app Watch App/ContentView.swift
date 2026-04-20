@@ -8,6 +8,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var connectivity = WatchConnectivityManager.shared
     @EnvironmentObject private var pipeline: DetectionPipelineManager
+    @EnvironmentObject private var demoManager: DemoDetectionManager
     
     var body: some View {
         ScrollView {
@@ -15,21 +16,8 @@ struct ContentView: View {
                 // Screen 2: SOS Alert (Now at Top)
                 WatchAlertView()
                 
-                // Demo System Trigger
-                if pipeline.demoMode {
-                    Button(action: {
-                        pipeline.forceSeizureTrigger = true
-                        print("[UI] Demo Seizure Triggered")
-                    }) {
-                        HStack {
-                            Image(systemName: "ladybug.fill")
-                            Text("Trigger Seizure")
-                        }
-                        .font(.caption)
-                        .foregroundColor(.white)
-                    }
-                    .tint(.purple)
-                }
+                // Demo Mode Configuration
+                WatchDemoModeView()
                 
                 // Screen 1: Dashboard (Live HR)
                 DashboardView(connectivity: connectivity)
@@ -50,6 +38,12 @@ struct ContentView: View {
         .background(Color.black.edgesIgnoringSafeArea(.all))
         .fullScreenCover(isPresented: $connectivity.isAlarmActive) {
             WatchAlarmActiveView()
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { demoManager.currentStatus == .alertTriggered },
+            set: { if !$0 { demoManager.resetState() } }
+        )) {
+            DemoAlertView()
         }
     }
 }

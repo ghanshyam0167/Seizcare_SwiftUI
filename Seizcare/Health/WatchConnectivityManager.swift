@@ -263,10 +263,8 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
                 }
             } else if action == "triggerDemoAlert" {
                 print("[WC] Watch triggered DEMO alert")
-                let hr = message["heartRate"] as? Double ?? 0
-                let prob = message["probability"] as? Double ?? 1.0
-                Task {
-                    await SeizureEventManager.shared.seizureDetected(probability: prob, heartRate: hr)
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: NSNotification.Name("TriggerDemoDetectionFromWatch"), object: nil)
                 }
             }
         }

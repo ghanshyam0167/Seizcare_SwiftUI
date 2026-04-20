@@ -26,10 +26,6 @@ public class DetectionPipelineManager: ObservableObject {
     @Published public var lastSeizureProbability: Double = 0.0
     @Published public var debugLog: String = "Pipeline initialized."
     
-    // DEMO OVERRIDE SYSTEM
-    public var demoMode: Bool = true
-    public var forceSeizureTrigger: Bool = false
-    
     private var pipelineTimer: Timer?
     
     public init() {
@@ -88,7 +84,6 @@ public class DetectionPipelineManager: ObservableObject {
             self.executeInference(window: window)
         }
     }
-    
     private func executeInference(window: [MotionDataPoint]) {
         // 3. Feature Extraction for Artifact
         guard let artifactFeatures = FeatureExtractor.extractArtifactFeatures(window: window) else {
@@ -99,21 +94,6 @@ public class DetectionPipelineManager: ObservableObject {
         do {
             // 4. Artifact Model Inference
             let artifactProb = try artifactRunner.predictArtifactProbability(features: artifactFeatures)
-            
-            // DEMO OVERRIDE CHECK
-            let hr = hrService.currentHeartRate
-            if demoMode && forceSeizureTrigger {
-                print("[DEMO] 🚨 Pipeline Bypass Triggered!")
-                DispatchQueue.main.async { [weak self] in
-                    self?.forceSeizureTrigger = false // Reset trigger
-                    self?.state = .seizureDetected
-                    self?.log("[DEMO] 🚨 SEIZURE FORCED")
-                }
-                
-                // Trigger WatchConnectivity to notify iOS about the demo seizure
-                WatchConnectivityManager.shared.sendDemoTrigger(hr: hr)
-                return
-            }
             
             let isArtifact = artifactProb >= DetectionConfig.artifactThreshold
             if isArtifact {
@@ -132,6 +112,7 @@ public class DetectionPipelineManager: ObservableObject {
             }
             
             // 5. Feature Extraction for Seizure Model
+            let hr = hrService.currentHeartRate
             guard let seizureFeatures = FeatureExtractor.extractSeizureFeatures(window: window, hrValue: hr, isArtifact: isArtifact, isNonwear: false) else {
                 print("[Pipeline] ❌ Feature extraction failed for seizure model.")
                 return

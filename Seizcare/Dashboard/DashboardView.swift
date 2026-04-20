@@ -357,6 +357,15 @@ if viewModel.isLoading {
                 await viewModel.recordsVM.fetchRecords()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TriggerDemoDetectionFromWatch"))) { _ in
+            Task {
+                await seizureDetection.triggerDemoDetection(
+                    demoMode: demoMode,
+                    recordsVM: viewModel.recordsVM,
+                    healthVM: viewModel.healthVM
+                )
+            }
+        }
     }
     
     private func localized(_ key: String, languageCode: String) -> String {
