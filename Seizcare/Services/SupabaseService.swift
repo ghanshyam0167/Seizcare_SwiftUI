@@ -389,8 +389,8 @@ final class SupabaseService {
             self.user_id       = record.userId.uuidString.lowercased()
             self.entry_type    = record.entryType.rawValue
             self.start_time    = fmt.string(from: record.startTime)
-            self.end_time      = fmt.string(from: record.endTime)
-            self.severity_type = record.type.rawValue
+            self.end_time      = record.endTime.map { fmt.string(from: $0) } ?? fmt.string(from: Date())
+            self.severity_type = record.type?.rawValue ?? SeizureType.mild.rawValue
             self.triggers      = record.triggers.map { $0.rawValue }
             self.location      = record.location
             self.notes         = record.notes

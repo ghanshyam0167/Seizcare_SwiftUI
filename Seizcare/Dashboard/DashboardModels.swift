@@ -68,14 +68,14 @@ struct SeizureRecord: Identifiable, Codable, Hashable {
     let userId: UUID
     let entryType: EntryType
     let startTime: Date
-    let endTime: Date
-    let type: SeizureType
+    let endTime: Date?           // Nullable — nil means seizure is still ongoing
+    let type: SeizureType?       // Nullable — may be unset for auto-detected records
     let triggers: [SeizureTrigger]
     let location: String?
     let notes: String?
 
     // Derived — not stored
-    var duration: TimeInterval { endTime.timeIntervalSince(startTime) }
+    var duration: TimeInterval { (endTime ?? Date()).timeIntervalSince(startTime) }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -87,6 +87,32 @@ struct SeizureRecord: Identifiable, Codable, Hashable {
         case triggers
         case location
         case notes
+    }
+
+    init(id: UUID, userId: UUID, entryType: EntryType, startTime: Date, endTime: Date?,
+         type: SeizureType?, triggers: [SeizureTrigger], location: String?, notes: String?) {
+        self.id = id; self.userId = userId; self.entryType = entryType
+        self.startTime = startTime; self.endTime = endTime; self.type = type
+        self.triggers = triggers; self.location = location; self.notes = notes
+    }
+
+    init(from decoder: Decoder) throws {
+        do {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id        = try c.decode(UUID.self,      forKey: .id)
+            userId    = try c.decode(UUID.self,      forKey: .userId)
+            entryType = (try? c.decode(EntryType.self, forKey: .entryType)) ?? .automatic
+            startTime = try c.decode(Date.self,      forKey: .startTime)
+            endTime   = try? c.decode(Date.self,     forKey: .endTime)
+            type      = try? c.decode(SeizureType.self, forKey: .type)
+            triggers  = (try? c.decode([SeizureTrigger].self, forKey: .triggers)) ?? []
+            location  = try? c.decode(String.self,   forKey: .location)
+            notes     = try? c.decode(String.self,   forKey: .notes)
+        } catch {
+            print("❌ [SeizureRecord] Decoding FAILED: \(error)")
+            print("❌ [SeizureRecord] Full error: \(error.localizedDescription)")
+            throw error
+        }
     }
 }
 
@@ -241,8 +267,9 @@ struct MockDashboardData {
     }()
 
     static func heartRateSamples(for record: SeizureRecord) -> [HeartRateSample] {
+        let endTime     = record.endTime ?? Date()
         let windowStart = record.startTime.addingTimeInterval(-3600)
-        let windowEnd   = record.endTime.addingTimeInterval(3600)
+        let windowEnd   = endTime.addingTimeInterval(3600)
         let interval: TimeInterval = 120
 
         var samples: [HeartRateSample] = []
@@ -252,12 +279,12 @@ struct MockDashboardData {
             if current < record.startTime {
                 let progress = max(0, current.timeIntervalSince(windowStart)) / 3600
                 bpm = Int(68 + progress * 17) + Int.random(in: -3...3)
-            } else if current <= record.endTime {
+            } else if current <= endTime {
                 let dur = max(record.duration, 1)
                 let p   = current.timeIntervalSince(record.startTime) / dur
                 bpm = Int(85 + sin(p * .pi) * 70) + Int.random(in: -5...5)
             } else {
-                let minutesAfter = current.timeIntervalSince(record.endTime) / 60
+                let minutesAfter = current.timeIntervalSince(endTime) / 60
                 let p            = min(minutesAfter / 60.0, 1.0)
                 bpm = Int(150 - p * 80) + Int.random(in: -4...4)
             }

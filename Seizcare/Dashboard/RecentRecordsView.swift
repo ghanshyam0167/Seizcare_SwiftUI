@@ -138,15 +138,16 @@ private struct RecordRow: View {
 // MARK: - Severity Badge
 
 struct SeverityBadge: View {
-    let type: SeizureType
+    let type: SeizureType?
 
     var body: some View {
-        Text(LocalizedStringKey(type.localizationKey))
+        let resolvedType = type ?? .mild
+        Text(LocalizedStringKey(resolvedType.localizationKey))
             .font(.appCaptionStrong)
-            .foregroundStyle(type.color)
+            .foregroundStyle(resolvedType.color)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(type.color.opacity(0.12))
+            .background(resolvedType.color.opacity(0.12))
             .clipShape(Capsule())
     }
 }

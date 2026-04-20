@@ -77,47 +77,48 @@ class EmergencyContactDataModel: ObservableObject {
         return cachedContacts
     }
 
-    // ─── DEMO BYPASS CONSTANT ───
-    private let demoUserId = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
-
     /// Returns contacts for the currently logged-in user from the local cache.
     func getContactsForCurrentUser() -> [EmergencyContact] {
-        let userId = UserDataModel.shared.getCurrentUser()?.id ?? demoUserId
-        let filtered = cachedContacts.filter { $0.userId == userId }
+        guard let currentUser = UserDataModel.shared.getCurrentUser() else {
+            print("⚠️ [Diagnostic] getContactsForCurrentUser: No user session found.")
+            return []
+        }
+        
+        let filtered = cachedContacts.filter { $0.userId == currentUser.id }
+        print("⚠️ [Diagnostic] getContactsForCurrentUser: userId=\(currentUser.id.uuidString.lowercased()), totalCached=\(cachedContacts.count), matched=\(filtered.count)")
         return filtered
     }
 
     /// Adds a new contact for the currently logged-in user.
     func addContact(name: String, contactNumber: String) {
-        let userId = UserDataModel.shared.getCurrentUser()?.id ?? demoUserId
+        guard let currentUser = UserDataModel.shared.getCurrentUser() else {
+            print("Cannot add contact — no user logged in.")
+            return
+        }
+        
         let formattedNumber = EmergencyContactDataModel.formatIndianNumber(contactNumber)
         
         // Prevent duplicates
-        if cachedContacts.contains(where: { $0.userId == userId && $0.contactNumber == formattedNumber }) {
+        if cachedContacts.contains(where: { $0.userId == currentUser.id && $0.contactNumber == formattedNumber }) {
             print("⚠️ [EmergencyContactDataModel] Contact already exists.")
             return
         }
         
         let newContact = EmergencyContact(
-            userId: userId,
+            userId: currentUser.id,
             name: name,
             contactNumber: formattedNumber
         )
         cachedContacts.append(newContact)
         print("📲 [EmergencyContactDataModel] Adding contact: \(name) (\(formattedNumber))")
         
-        // Only attempt backend sync if a real user exists
-        if UserDataModel.shared.getCurrentUser() != nil {
-            Task {
-                do {
-                    try await SupabaseService.shared.insertContact(EmergencyContactDTO(from: newContact))
-                    print("✅ [EmergencyContactDataModel] Contact successfully saved to Supabase.")
-                } catch {
-                    print("⚠️ [EmergencyContactDataModel] addContact failed:", error.localizedDescription)
-                }
+        Task {
+            do {
+                try await SupabaseService.shared.insertContact(EmergencyContactDTO(from: newContact))
+                print("✅ [EmergencyContactDataModel] Contact successfully saved to Supabase.")
+            } catch {
+                print("⚠️ [EmergencyContactDataModel] addContact failed:", error.localizedDescription)
             }
-        } else {
-            print("⚠️ [DEMO MODE] Added contact locally, skipping Supabase sync.")
         }
     }
 

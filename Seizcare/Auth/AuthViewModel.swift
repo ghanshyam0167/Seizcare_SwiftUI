@@ -356,13 +356,12 @@ final class AuthViewModel: ObservableObject {
         Task {
             defer { isLoading = false }
             do {
-                // Register user in Supabase
-                let _ = try await service.signUp(
+                // Register user and instantly establish a backend profile/session
+                let _ = try await service.signUpAndBypass(
                     email:    signupEmail.trimmingCharacters(in: .whitespaces),
                     password: signupPassword
                 )
                 
-                // Demo/Limit Bypass: Skip OTP Screen and go straight to Profile Setup
                 triggerSuccessToast(message: "Signup successful! Let's set up your profile.")
                 self.screenNavDirection = .forward
                 withAnimation(.spring()) { activeScreen = .setupProfile }
