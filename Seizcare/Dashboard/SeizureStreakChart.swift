@@ -12,8 +12,8 @@ struct SeizureStreakMiniChart: View {
     let records: [SeizureRecord]
     
     private var daysSinceLast: Int {
-        let sorted = records.sorted { $0.endTime > $1.endTime }
-        guard let last = sorted.first?.endTime else { return 0 }
+        let sorted = records.sorted { ($0.endTime ?? $0.startTime) > ($1.endTime ?? $1.startTime) }
+        guard let last = sorted.first.map({ $0.endTime ?? $0.startTime }) else { return 0 }
         let cal = Calendar.current
         let components = cal.dateComponents([.day], from: cal.startOfDay(for: last), to: cal.startOfDay(for: Date()))
         return max(0, components.day ?? 0)
@@ -68,8 +68,8 @@ struct SeizureStreakChartView: View {
     let records: [SeizureRecord]
 
     private var currentStreak: Int {
-        let sorted = records.sorted { $0.endTime > $1.endTime }
-        guard let last = sorted.first?.endTime else { return 0 }
+        let sorted = records.sorted { ($0.endTime ?? $0.startTime) > ($1.endTime ?? $1.startTime) }
+        guard let last = sorted.first.map({ $0.endTime ?? $0.startTime }) else { return 0 }
         let cal = Calendar.current
         return max(0, cal.dateComponents([.day], from: cal.startOfDay(for: last), to: cal.startOfDay(for: Date())).day ?? 0)
     }
@@ -81,7 +81,7 @@ struct SeizureStreakChartView: View {
         let cal = Calendar.current
         
         for i in 1..<sorted.count {
-            let prev = cal.startOfDay(for: sorted[i-1].endTime)
+            let prev = cal.startOfDay(for: sorted[i-1].endTime ?? sorted[i-1].startTime)
             let curr = cal.startOfDay(for: sorted[i].startTime)
             let gap = cal.dateComponents([.day], from: prev, to: curr).day ?? 0
             if gap > maxStreak { maxStreak = gap }

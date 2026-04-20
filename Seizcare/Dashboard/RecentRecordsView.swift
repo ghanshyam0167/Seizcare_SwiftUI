@@ -138,16 +138,26 @@ private struct RecordRow: View {
 // MARK: - Severity Badge
 
 struct SeverityBadge: View {
-    let type: SeizureType
+    let type: SeizureType?
 
     var body: some View {
-        Text(LocalizedStringKey(type.localizationKey))
-            .font(.appCaptionStrong)
-            .foregroundStyle(type.color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(type.color.opacity(0.12))
-            .clipShape(Capsule())
+        if let type = type {
+            Text(LocalizedStringKey(type.localizationKey))
+                .font(.appCaptionStrong)
+                .foregroundStyle(type.color)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(type.color.opacity(0.12))
+                .clipShape(Capsule())
+        } else {
+            Text("Detected")
+                .font(.appCaptionStrong)
+                .foregroundStyle(Color.dashSecondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Color.dashSecondary.opacity(0.12))
+                .clipShape(Capsule())
+        }
     }
 }
 

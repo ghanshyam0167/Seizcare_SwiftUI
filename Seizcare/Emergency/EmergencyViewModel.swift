@@ -122,6 +122,27 @@ class EmergencyViewModel: ObservableObject {
         Task {
             do {
                 let contacts = EmergencyContactDataModel.shared.getContactsForCurrentUser()
+                
+                // --- NEW: Create Manual Seizure Record in Supabase ---
+                if let userId = await SupabaseService.shared.currentUserId() {
+                    let now = Date()
+                    let manualRecord = SeizureRecord(
+                        id: UUID(),
+                        userId: userId,
+                        entryType: .manual,
+                        startTime: now,
+                        endTime: nil,
+                        type: nil,
+                        triggers: [],
+                        location: "\(location.coordinate.latitude), \(location.coordinate.longitude)",
+                        notes: "Manual Alert Triggered from iPhone"
+                    )
+                    try? await SupabaseService.shared.insertSeizureRecord(manualRecord)
+                    print("[Alert] Manual record created in Supabase")
+                    // Notify Dashboard to refresh list
+                    NotificationCenter.default.post(name: NSNotification.Name("ManualSeizureLogged"), object: nil)
+                }
+
                 try await EmergencyService.shared.triggerEmergencyAlert(
                     latitude: location.coordinate.latitude,
                     longitude: location.coordinate.longitude,

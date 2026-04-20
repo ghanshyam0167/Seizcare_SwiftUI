@@ -44,8 +44,9 @@ struct RecordDetailView: View {
     }
 
     private var peakBPM: Int {
-        heartRateSamples
-            .filter { $0.timestamp >= currentRecord.startTime && $0.timestamp <= currentRecord.endTime }
+        let effectiveEnd = currentRecord.endTime ?? currentRecord.startTime.addingTimeInterval(300)
+        return heartRateSamples
+            .filter { $0.timestamp >= currentRecord.startTime && $0.timestamp <= effectiveEnd }
             .map(\.bpm)
             .max() ?? 0
     }
@@ -157,13 +158,14 @@ struct RecordDetailView: View {
 
             // Top row: severity + entry type
             HStack(alignment: .center) {
+                let displayType = currentRecord.type ?? .mild
                 HStack(spacing: 7) {
                     Circle()
-                        .fill(currentRecord.type.color)
+                        .fill(displayType.color)
                         .frame(width: 9, height: 9)
-                    Text(currentRecord.type.displayName)
+                    Text(displayType.displayName)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(currentRecord.type.color)
+                        .foregroundStyle(displayType.color)
                 }
                 Spacer()
                 // Entry type badge — minimal
@@ -206,7 +208,7 @@ struct RecordDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(currentRecord.type.color.opacity(0.12), lineWidth: 1)
+                .stroke((currentRecord.type ?? .mild).color.opacity(0.12), lineWidth: 1)
         )
     }
 

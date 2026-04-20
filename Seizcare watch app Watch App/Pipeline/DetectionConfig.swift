@@ -26,4 +26,10 @@ public struct DetectionConfig {
     
     // Cooldown logic
     public static let postAlertCooldownSeconds: TimeInterval = 30.0
+    
+    // Shake-to-Detect (Demo/Simulated Seizure)
+    public static let shakeThresholdG: Double = 2.4 // Above 2g is quite vigorous
+    public static let shakeWindowSeconds: TimeInterval = 10.0
+    public static let requiredShakePeaks: Int = 25 // ~2.5 peaks per second for 10s
+    public static let shakeCooldownSeconds: TimeInterval = 30.0
 }
