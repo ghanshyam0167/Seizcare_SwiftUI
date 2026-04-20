@@ -77,7 +77,9 @@ struct RecordFilter {
     }
 
     func matches(_ record: SeizureRecord) -> Bool {
-        if !severities.isEmpty, let recordType = record.type, !severities.contains(recordType) { return false }
+        if !severities.isEmpty {
+            guard let type = record.type, severities.contains(type) else { return false }
+        }
         if !triggers.isEmpty, !triggers.contains(where: { record.triggers.contains($0) }) { return false }
         if !durations.isEmpty, !durations.contains(where: { $0.matches(record.duration) }) { return false }
         if let dr = dateRange {

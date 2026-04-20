@@ -13,7 +13,7 @@ struct SeizureStreakMiniChart: View {
     
     private var daysSinceLast: Int {
         let sorted = records.sorted { ($0.endTime ?? $0.startTime) > ($1.endTime ?? $1.startTime) }
-        guard let last = sorted.first?.endTime ?? sorted.first?.startTime else { return 0 }
+        guard let last = sorted.first.map({ $0.endTime ?? $0.startTime }) else { return 0 }
         let cal = Calendar.current
         let components = cal.dateComponents([.day], from: cal.startOfDay(for: last), to: cal.startOfDay(for: Date()))
         return max(0, components.day ?? 0)
@@ -69,7 +69,7 @@ struct SeizureStreakChartView: View {
 
     private var currentStreak: Int {
         let sorted = records.sorted { ($0.endTime ?? $0.startTime) > ($1.endTime ?? $1.startTime) }
-        guard let last = sorted.first?.endTime ?? sorted.first?.startTime else { return 0 }
+        guard let last = sorted.first.map({ $0.endTime ?? $0.startTime }) else { return 0 }
         let cal = Calendar.current
         return max(0, cal.dateComponents([.day], from: cal.startOfDay(for: last), to: cal.startOfDay(for: Date())).day ?? 0)
     }

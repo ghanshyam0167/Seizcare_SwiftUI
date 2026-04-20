@@ -399,6 +399,10 @@ struct AddEditRecordView: View {
             vm.addRecord(record)
         case .edit:
             vm.updateRecord(record)
+            // STOP tagging logs if this was an automatic record being finalized
+            if isAutomatic {
+                WatchConnectivityManager.shared.sendStopTaggingToWatch()
+            }
         }
         dismiss()
     }

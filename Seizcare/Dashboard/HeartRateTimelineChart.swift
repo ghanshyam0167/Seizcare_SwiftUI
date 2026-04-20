@@ -40,7 +40,8 @@ struct HeartRateTimelineChartView: View {
 
     private func fetchSamples() {
         let start = record.startTime.addingTimeInterval(-3600)
-        let end = (record.endTime ?? Date()).addingTimeInterval(3600)
+        let effectiveEnd = record.endTime ?? record.startTime.addingTimeInterval(300)
+        let end = effectiveEnd.addingTimeInterval(3600)
         
         HealthKitManager.shared.fetchHeartRateSamples(from: start, to: end) { fetched in
             DispatchQueue.main.async {
@@ -62,7 +63,13 @@ struct HeartRateTimelineChartView: View {
 
     private var minBPM: Int { samples.map(\.bpm).min() ?? 50 }
     private var maxBPM: Int { samples.map(\.bpm).max() ?? 180 }
-    private var peakBPM: Int { samples.filter { $0.timestamp >= record.startTime && $0.timestamp <= (record.endTime ?? Date()) }.map(\.bpm).max() ?? 0 }
+    private var peakBPM: Int {
+        let effectiveEnd = record.endTime ?? record.startTime.addingTimeInterval(300)
+        return samples
+            .filter { $0.timestamp >= record.startTime && $0.timestamp <= effectiveEnd }
+            .map(\.bpm)
+            .max() ?? 0
+    }
     private var recoveryBPM: Int { samples.last?.bpm ?? 0 }
     private var durationText: String {
         let m = Int(record.duration / 60)
@@ -121,9 +128,11 @@ struct HeartRateTimelineChartView: View {
 
                         Chart {
                             // Seizure highlight region
+                            let startVal = relativeMinutes(record.startTime)
+                            let endVal = relativeMinutes(record.endTime ?? record.startTime.addingTimeInterval(300))
                             RectangleMark(
-                                xStart: .value("Start", relativeMinutes(record.startTime)),
-                                xEnd:   .value("End",   relativeMinutes(record.endTime ?? Date())),
+                                xStart: .value("Start", startVal),
+                                xEnd:   .value("End",   endVal),
                                 yStart: .value("Min", Double(minBPM - 10)),
                                 yEnd:   .value("Max", Double(maxBPM + 10))
                             )

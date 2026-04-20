@@ -158,6 +158,39 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     /// Backward-compatible alias
     func sendSleepDataToWatch(_ sleep: Double) { sendSleepToWatch(sleep) }
 
+    func sendForceTriggerToWatch() {
+        print("[WC] Sending forceTrigger command to Watch")
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(["action": "forceTrigger"], replyHandler: nil) { error in
+                print("[ERROR] Failed to send forceTrigger to Watch: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    func sendStopTaggingToWatch() {
+        print("[WC] Sending stopTagging command to Watch")
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(["action": "stopTagging"], replyHandler: nil) { error in
+                print("[ERROR] Failed to send stopTagging to Watch: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    func sendUserIdToWatch(_ id: String, token: String? = nil) {
+        var msg: [String: Any] = ["userId": id]
+        if let token = token {
+            msg["accessToken"] = token
+        }
+        
+        print("[WC] Syncing Auth to Watch (ID: \(id), Token: \(token != nil ? "YES" : "NO"))")
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(msg, replyHandler: nil) { error in
+                print("[WC] Error sending Auth: \(error.localizedDescription)")
+            }
+        }
+        pushContext(msg)
+    }
+
     // MARK: - WCSessionDelegate
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {

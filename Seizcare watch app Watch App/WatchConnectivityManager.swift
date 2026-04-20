@@ -16,6 +16,8 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     @Published var isStreaming: Bool = true
     @Published var sensitivity: Int = 1 // 0: low, 1: medium, 2: high
     @Published var isAlarmActive: Bool = false
+    @Published var userId: String? = nil
+    @Published var accessToken: String? = nil
     
     // Freshness Tracking
     @Published var heartRateTimestamp: Date?
@@ -180,10 +182,26 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
                 print("[Watch] Received sensitivity: \(levelString) (\(self.sensitivity))")
             }
             
+            if let uid = message["userId"] as? String {
+                self.userId = uid
+                print("[Watch] Received User ID: \(uid)")
+            }
+
+            if let token = message["accessToken"] as? String {
+                self.accessToken = token
+                print("[Watch] Received Access Token (JWT) [Synced]")
+            }
+            
             if let action = message["action"] as? String {
                 if action == "stopAlarm" {
                     print("[Watch] Remote stopAlarm received!")
                     self.isAlarmActive = false
+                } else if action == "forceTrigger" {
+                    print("[Watch] Received forceTrigger from Phone")
+                    DetectionPipelineManager.shared.forceTrigger = true
+                } else if action == "stopTagging" {
+                    print("[Watch] Received stopTagging from Phone")
+                    DetectionPipelineManager.shared.stopTaggingLogs()
                 }
             }
         }
@@ -208,6 +226,14 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
             if let levelString = applicationContext["sensitivity"] as? String {
                 self.sensitivity = self.mapSensitivityStringToInt(levelString)
                 print("[Watch] Context sensitivity: \(levelString)")
+            }
+            if let uid = applicationContext["userId"] as? String {
+                self.userId = uid
+                print("[Watch] Context User ID: \(uid)")
+            }
+            if let token = applicationContext["accessToken"] as? String {
+                self.accessToken = token
+                print("[Watch] Context Access Token (JWT) [Synced]")
             }
             if let action = applicationContext["action"] as? String {
                 if action == "stopAlarm" {
