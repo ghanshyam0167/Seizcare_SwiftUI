@@ -81,7 +81,7 @@ struct DashboardView: View {
                     // Hero Card
                     HeroCardView(
                         records: records,
-                        heartRate: viewModel.displayHeartRate,
+                        heartRateText: viewModel.displayHeartRateText,
                         sleepHours: viewModel.avgSleep7Days
                     )
                     

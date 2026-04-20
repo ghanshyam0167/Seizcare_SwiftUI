@@ -23,6 +23,7 @@ class HealthViewModel: ObservableObject {
     
     /// UI Pipeline: The stable, confirmed heart rate value shown to the user
     @Published var displayHeartRate: Double? = nil
+    @Published private(set) var lastValidHeartRate: Double?
     
     /// Flag indicating if the heart rate stream is currently receiving fresh data
     @Published var isStreamActive: Bool = false
@@ -30,12 +31,8 @@ class HealthViewModel: ObservableObject {
     // MARK: - Freshness Tracking
     /// Timestamp of the most recent HR sample from HealthKit
     private(set) var heartRateTimestamp: Date? = nil
-    
-    /// UI Freshness: 15s is the threshold for general UI "health" status
-    private let heartRateFreshnessThreshold: TimeInterval = 15
-    
-    /// Stream Loss: 15s is the threshold for marking the stream as "Inactive" (showing "-")
-    private let streamLossThreshold: TimeInterval = 15
+    private(set) var lastUpdateTime: Date? = nil
+    private var staleLogBucket: Int = -1
     
     private var stalenessTimer: AnyCancellable?
     private var loadingTimeout: AnyCancellable?
@@ -45,6 +42,17 @@ class HealthViewModel: ObservableObject {
     private enum GuidanceKey {
         static let connectWatch = "connect_apple_watch_start_monitoring"
         static let waitingForData = "waiting_for_watch_data"
+    }
+
+    var displayHeartRateText: String {
+        if let lastValidHeartRate {
+            return "\(Int(lastValidHeartRate)) BPM"
+        }
+        return "Waiting..."
+    }
+
+    var hasHeartRateValue: Bool {
+        lastValidHeartRate != nil
     }
     
     init() {
@@ -93,6 +101,8 @@ class HealthViewModel: ObservableObject {
     }
     
     private func startDataCollection() {
+        guidanceText = ""
+
         hkManager.heartRateUpdateHandler = { [weak self] bpm in
             self?.handleIncomingHeartRate(bpm, timestamp: Date())
         }
@@ -115,13 +125,9 @@ class HealthViewModel: ObservableObject {
         hkManager.fetchLatestHeartRate { [weak self] bpm, sampleDate in
             DispatchQueue.main.async {
                 if let bpm = bpm, let sampleDate = sampleDate {
-                    let age = Date().timeIntervalSince(sampleDate)
-                    if age <= (self?.heartRateFreshnessThreshold ?? 15) {
-                        self?.handleIncomingHeartRate(bpm, timestamp: sampleDate)
-                    } else {
-                        self?.displayHeartRate = nil
-                        self?.currentHeartRate = 0
-                    }
+                    self?.handleIncomingHeartRate(bpm, timestamp: sampleDate)
+                } else {
+                    self?.logHeartRateStalenessIfNeeded(context: "Initial fetch has no sample yet")
                 }
                 self?.isLoading = false
             }
@@ -137,33 +143,38 @@ class HealthViewModel: ObservableObject {
     
     /// Entry point for ALL incoming heart rate data
     private func handleIncomingHeartRate(_ bpm: Double, timestamp: Date) {
-        let newPoint = HRPoint(value: bpm, timestamp: timestamp)
-        
-        // --- DETECTION PIPELINE (RAW) ---
-        // Immediately process for seizure detection (Step 3: No delay, no filtering)
-        processForSeizureDetection(bpm)
-        
-        // --- UI PIPELINE (FILTERED) ---
-        // Step 2: Append to buffer and maintain constraints
-        hrBuffer.append(newPoint)
-        
-        // Prune the buffer: keep last 7 values OR values within 12 seconds
-        let windowLimit = Date().addingTimeInterval(-12)
-        hrBuffer = hrBuffer.filter { $0.timestamp > windowLimit }
-        if hrBuffer.count > 7 {
-            hrBuffer.removeFirst(hrBuffer.count - 7)
+        print("[HR] New value: \(bpm)")
+        heartRateTimestamp = timestamp
+        lastUpdateTime = timestamp
+        staleLogBucket = -1
+
+        if bpm > 0 {
+            let newPoint = HRPoint(value: bpm, timestamp: timestamp)
+
+            // Keep the raw buffer for seizure detection, but do not gate the UI on it.
+            hrBuffer.append(newPoint)
+
+            let windowLimit = Date().addingTimeInterval(-12)
+            hrBuffer = hrBuffer.filter { $0.timestamp > windowLimit }
+            if hrBuffer.count > 7 {
+                hrBuffer.removeFirst(hrBuffer.count - 7)
+            }
+
+            print("[BUFFER] Count: \(hrBuffer.count), Latest: \(Int(bpm)) BPM")
+
+            processForSeizureDetection(bpm)
+            updateUIDisplay(with: bpm)
+            WatchConnectivityManager.shared.sendHeartRateToWatch(bpm)
+        } else {
+            print("[BUFFER] Received non-positive HR sample: \(bpm) — keeping last valid value")
+            refreshDisplayedHeartRate()
         }
-        
-        print("[BUFFER] Count: \(hrBuffer.count), Latest: \(Int(bpm)) BPM")
-        
-        // Step 4 & 5 & 6: Process for UI display
-        updateUIDisplay()
-        
-        // Sync with Watch & Local State
-        self.heartRateTimestamp = timestamp
-        self.isStreamActive = true
-        self.isLoading = false
-        self.guidanceText = ""
+
+        isStreamActive = true
+        isLoading = false
+        if hasHeartRateValue {
+            guidanceText = ""
+        }
     }
     
     /// RAW Pipeline: Seizure spike detection
@@ -190,53 +201,46 @@ class HealthViewModel: ObservableObject {
         }
     }
     
-    /// UI Pipeline: Stable, confirmed display value
-    private func updateUIDisplay() {
-        guard let latestPoint = hrBuffer.last else {
-            self.displayHeartRate = nil
-            self.currentHeartRate = 0
+    /// UI Pipeline: immediately surface the latest valid value.
+    private func updateUIDisplay(with value: Double) {
+        lastValidHeartRate = value
+        refreshDisplayedHeartRate()
+
+        heartRateHistory.append(value)
+        if heartRateHistory.count > 100 {
+            heartRateHistory.removeFirst()
+        }
+    }
+
+    private func refreshDisplayedHeartRate() {
+        displayHeartRate = lastValidHeartRate
+        currentHeartRate = lastValidHeartRate ?? 0
+        print("[HR] Displaying: \(lastValidHeartRate ?? -1)")
+    }
+
+    private func logHeartRateStalenessIfNeeded(context: String? = nil) {
+        guard let lastUpdateTime else {
             return
         }
-        
-        let value = latestPoint.value
-        let validValues = hrBuffer.map { $0.value }
-        let baseline = validValues.dropLast().suffix(3).reduce(0, +) / max(1, Double(min(3, validValues.count - 1)))
-        
-        // Step 7: Stream Reliability check (At least 2 readings in last 8s)
-        let eightSecondsAgo = Date().addingTimeInterval(-8)
-        let recentPointCount = hrBuffer.filter { $0.timestamp > eightSecondsAgo }.count
-        let streamIsReliable = recentPointCount >= 2
-        
-        // Step 6: UI Spike Confirmation
-        // 1. At least 2 readings >= baseline + 15
-        let spikeReadings = hrBuffer.filter { $0.value >= (baseline + 15) }
-        let isConfirmedSpike = (spikeReadings.count >= 2 && latestPoint.value >= baseline + 15)
-        
-        // Step 12: Confidence Score
-        var confidence: Double = 0
-        if recentPointCount >= 2 { confidence += 0.4 }
-        if isConfirmedSpike { confidence += 0.3 }
-        // Self-consistency check (std dev equivalent)
-        if hrBuffer.count >= 3 {
-            let avg = validValues.reduce(0, +) / Double(validValues.count)
-            let variance = validValues.map { pow($0 - avg, 2) }.reduce(0, +) / Double(validValues.count)
-            if sqrt(variance) < 10 { confidence += 0.3 }
+
+        let age = Date().timeIntervalSince(lastUpdateTime)
+        guard age >= 15 else {
+            staleLogBucket = -1
+            return
         }
-        
-        print("[STREAM] Reliable: \(streamIsReliable), Confirmed Spike: \(isConfirmedSpike), Confidence: \(String(format: "%.1f", confidence))")
-        
-        // Step 9: UI Display Selection
-        if streamIsReliable || isConfirmedSpike || confidence >= 0.6 {
-            print("[UI] Displaying confirmed value: \(Int(value))")
-            self.displayHeartRate = value
-            self.currentHeartRate = value
-            self.heartRateHistory.append(value)
-            WatchConnectivityManager.shared.sendHeartRateToWatch(value)
-            
-            if heartRateHistory.count > 100 { heartRateHistory.removeFirst() }
+
+        let bucket = Int(age / 15)
+        guard bucket != staleLogBucket else {
+            return
+        }
+
+        staleLogBucket = bucket
+        if let context {
+            print("[HR] Data stale (\(Int(age))s). \(context)")
         } else {
-            print("[UI] Stream unstable, keeping previous or show dash if first run")
+            print("[HR] Data stale (\(Int(age))s since last update)")
         }
+        print("[HR] Displaying: \(lastValidHeartRate ?? -1)")
     }
     
     private func startStalenessChecker() {
@@ -244,26 +248,7 @@ class HealthViewModel: ObservableObject {
         stalenessTimer = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
-                guard let self = self else { return }
-                
-                // Step 8: Fast Stream Loss Detection (> 5s)
-                if let ts = self.heartRateTimestamp {
-                    let age = Date().timeIntervalSince(ts)
-                    
-                    if age > self.streamLossThreshold && self.isStreamActive {
-                        print("[STREAM] Loss detected (\(Int(age))s) — clearing buffer and marking inactive")
-                        self.hrBuffer.removeAll()
-                        self.isStreamActive = false
-                        self.displayHeartRate = nil
-                        self.currentHeartRate = 0
-                        self.guidanceText = GuidanceKey.connectWatch
-                        WatchConnectivityManager.shared.sendHeartRateToWatch(0)
-                        
-                        // Stop background streams to save battery (Step 11)
-                        self.hkManager.stopHeartRateStreaming()
-                        self.hkManager.stopSpO2Streaming()
-                    }
-                }
+                self?.logHeartRateStalenessIfNeeded()
             }
     }
     
@@ -287,12 +272,9 @@ class HealthViewModel: ObservableObject {
         
         DispatchQueue.main.async {
             self.isLoading = false
-            self.displayHeartRate = nil
-            self.currentHeartRate = 0
             self.isStreamActive = false
-            self.hrBuffer.removeAll()
+            self.refreshDisplayedHeartRate()
             self.guidanceText = GuidanceKey.connectWatch
-            WatchConnectivityManager.shared.sendHeartRateToWatch(0)
         }
         
         hkManager.stopHeartRateStreaming()

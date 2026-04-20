@@ -17,8 +17,10 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     @Published var isStreaming: Bool = false
     @Published var isWaitingForFirstSample: Bool = false
     
-    private var lastStreamTimestamp: Date?
-    private var streamTimer: Timer?
+    private var lastValidHeartRate: Double?
+    private var lastUpdateTime: Date?
+    private var staleLogBucket: Int = -1
+    private var streamTimer: AnyCancellable?
 
     /// Merged context dict — all keys (spo2, sleepHours, heartRate) live here together.
     /// updateApplicationContext REPLACES the whole dict, so we must send all keys every time.
@@ -40,31 +42,33 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
             print("[WC] Session initialized on iOS")
         }
         
-        // Start a slow timer to check stream status (every 5s)
-        streamTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            self?.checkStreamStatus()
-        }
+        streamTimer = Timer.publish(every: 5, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.logHeartRateStalenessIfNeeded()
+            }
     }
 
-    private func checkStreamStatus() {
-        guard let lastTs = lastStreamTimestamp else {
-            if isStreaming { isStreaming = false }
+    private func logHeartRateStalenessIfNeeded() {
+        guard let lastUpdateTime else {
             return
         }
-        
-        let age = Date().timeIntervalSince(lastTs)
-        let isNowStreaming = age < 15.0
-        print("[STREAM] Last update: \(lastTs)")
-        print("[STREAM] Active: \(isNowStreaming)")
-        
-        if isStreaming != isNowStreaming {
-            DispatchQueue.main.async {
-                self.isStreaming = isNowStreaming
-                if !isNowStreaming {
-                    self.isWaitingForFirstSample = false
-                }
-            }
+
+        let age = Date().timeIntervalSince(lastUpdateTime)
+        guard age >= 15 else {
+            staleLogBucket = -1
+            return
         }
+
+        let bucket = Int(age / 15)
+        guard bucket != staleLogBucket else {
+            return
+        }
+
+        staleLogBucket = bucket
+        print("[STREAM] Last update: \(lastUpdateTime)")
+        print("[STREAM] Active: true")
+        print("[HR] Displaying: \(lastValidHeartRate ?? -1)")
     }
 
     // MARK: - Private context helper
@@ -207,15 +211,17 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
 
         if let hr = message["heartRate"] as? Double {
             print("[WC] Direct HR from Watch: \(hr)")
-            
-            // Mark stream as active if HR is coming (and not 0)
+
+            lastUpdateTime = Date()
+            staleLogBucket = -1
             if hr > 0 {
-                lastStreamTimestamp = Date()
-                DispatchQueue.main.async {
-                    self.isStreaming = true
-                    self.isWaitingForFirstSample = false
-                }
+                lastValidHeartRate = hr
             }
+            DispatchQueue.main.async {
+                self.isStreaming = true
+                self.isWaitingForFirstSample = false
+            }
+            print("[HR] Displaying: \(lastValidHeartRate ?? -1)")
             
             NotificationCenter.default.post(
                 name: NSNotification.Name("WatchHeartRateUpdate"),
@@ -234,9 +240,16 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         if let action = message["action"] as? String {
             print("[WC] Received action from Watch: \(action)")
             if action == "stopStream" {
+                DispatchQueue.main.async {
+                    self.isStreaming = false
+                    self.isWaitingForFirstSample = false
+                }
                 NotificationCenter.default.post(name: NSNotification.Name("StopHealthStream"), object: nil)
             } else if action == "startStream" {
-                DispatchQueue.main.async { self.isWaitingForFirstSample = true }
+                DispatchQueue.main.async {
+                    self.isStreaming = true
+                    self.isWaitingForFirstSample = true
+                }
                 NotificationCenter.default.post(name: NSNotification.Name("StartHealthStream"), object: nil)
             } else if action == "triggerAlert" {
                 print("[WC] Watch triggered emergency alert. Executing direct background logic.")
