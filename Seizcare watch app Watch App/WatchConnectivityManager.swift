@@ -196,6 +196,7 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
                 if action == "stopAlarm" {
                     print("[Watch] Remote stopAlarm received!")
                     self.isAlarmActive = false
+                    DetectionPipelineManager.shared.endActiveSeizure()
                 } else if action == "forceTrigger" {
                     print("[Watch] Received forceTrigger from Phone")
                     DetectionPipelineManager.shared.forceTrigger = true
@@ -238,6 +239,7 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
             if let action = applicationContext["action"] as? String {
                 if action == "stopAlarm" {
                     self.isAlarmActive = false
+                    DetectionPipelineManager.shared.endActiveSeizure()
                 }
             }
         }
@@ -301,6 +303,7 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     func sendStopAlarmToPhone() {
         print("[Watch-SOS] Sending stopAlarm to Phone")
         DispatchQueue.main.async { self.isAlarmActive = false }
+        DetectionPipelineManager.shared.endActiveSeizure()
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(["action": "stopAlarm"], replyHandler: nil) { error in
                 print("[ERROR] Failed to send stopAlarm to phone: \(error.localizedDescription)")

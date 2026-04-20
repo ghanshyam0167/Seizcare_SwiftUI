@@ -81,7 +81,7 @@ struct RecordFilter {
             guard let type = record.type, severities.contains(type) else { return false }
         }
         if !triggers.isEmpty, !triggers.contains(where: { record.triggers.contains($0) }) { return false }
-        if !durations.isEmpty, !durations.contains(where: { $0.matches(record.duration) }) { return false }
+        if !durations.isEmpty, !durations.contains(where: { $0.matches(record.duration ?? 0) }) { return false }
         if let dr = dateRange {
             let now = Date()
             switch dr {

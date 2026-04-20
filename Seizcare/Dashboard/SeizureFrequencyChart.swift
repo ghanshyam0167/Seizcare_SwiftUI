@@ -360,7 +360,7 @@ struct SeizureFrequencyChartView: View {
         case .yearly: end = cal.date(byAdding: .month, value: 1, to: start)!
         }
         let matched = records.filter { $0.startTime >= start && $0.startTime < end }
-        return matched.reduce(0) { $0 + $1.duration }
+        return matched.reduce(0) { $0 + ($1.duration ?? 0) }
     }
     
     private func exactDateLabel(for date: Date, range: TimeFrameRange) -> String {
