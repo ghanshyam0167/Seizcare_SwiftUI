@@ -8,7 +8,7 @@ import Charts
 
 struct HeroCardView: View {
     let records: [SeizureRecord]
-    let heartRate: Double?
+    let heartRateText: String
     let sleepHours: Double
 
     private var thisMonth: [SeizureRecord] {
@@ -117,7 +117,7 @@ struct HeroCardView: View {
                     StatPill(
                         icon: "heart.fill",
                         label: "current_hr",
-                        value: (heartRate ?? 0) > 0 ? "\(Int(heartRate ?? 0))" : "—",
+                        value: heartRateText,
                         color: .dashSeizure
                     )
                 }

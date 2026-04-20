@@ -34,6 +34,8 @@ class DashboardViewModel: ObservableObject {
     var sleepData: [SleepData] { healthVM.sleepData }
     var currentHeartRate: Double { healthVM.currentHeartRate }
     var displayHeartRate: Double? { healthVM.displayHeartRate }
+    var displayHeartRateText: String { healthVM.displayHeartRateText }
+    var hasHeartRateValue: Bool { healthVM.hasHeartRateValue }
     var guidanceText: String { healthVM.guidanceText }
     var isLoading: Bool { recordsVM.isLoading || healthVM.isLoading }
     var errorMessage: String? { recordsVM.errorMessage ?? healthVM.errorMessage }

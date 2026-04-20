@@ -22,13 +22,24 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     @Published var spo2Timestamp: Date?
     @Published var isHeartRateFresh: Bool = false
     @Published var isSpO2Fresh: Bool = false
-    
-    private let hrFreshnessThreshold: TimeInterval = 15 // seconds
+
+    @Published private(set) var lastValidHeartRate: Double?
+    private(set) var lastUpdateTime: Date?
+    private var staleLogBucket: Int = -1
+
     private let spo2FreshnessThreshold: TimeInterval = 300 // 5 minutes
     private var stalenessTimer: AnyCancellable?
-    
-    // Throttling: only send if change >= 2 BPM
-    private var lastSentHeartRate: Double = 0
+
+    var displayHeartRateText: String {
+        if let lastValidHeartRate {
+            return "\(Int(lastValidHeartRate))"
+        }
+        return "Waiting..."
+    }
+
+    var hasHeartRateValue: Bool {
+        lastValidHeartRate != nil
+    }
     
     override init() {
         super.init()
@@ -57,19 +68,9 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     
     private func checkFreshness() {
         let now = Date()
-        
-        // Heart Rate Validity
-        if let hrTs = heartRateTimestamp {
-            let age = now.timeIntervalSince(hrTs)
-            let fresh = age < hrFreshnessThreshold && heartRate > 0
-            print("[STREAM] Active: \(fresh)")
-            if isHeartRateFresh != fresh {
-                isHeartRateFresh = fresh
-                print("[Watch] HR Freshness changed: \(fresh) (age: \(Int(age))s)")
-            }
-        } else {
-            isHeartRateFresh = false
-        }
+
+        isHeartRateFresh = hasHeartRateValue
+        logHeartRateStalenessIfNeeded(referenceDate: now)
         
         // SpO2 Validity
         if let spo2Ts = spo2Timestamp {
@@ -83,28 +84,55 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
             isSpO2Fresh = false
         }
     }
+
+    private func logHeartRateStalenessIfNeeded(referenceDate: Date = Date()) {
+        guard let lastUpdateTime else {
+            return
+        }
+
+        let age = referenceDate.timeIntervalSince(lastUpdateTime)
+        guard age >= 15 else {
+            staleLogBucket = -1
+            return
+        }
+
+        let bucket = Int(age / 15)
+        guard bucket != staleLogBucket else {
+            return
+        }
+
+        staleLogBucket = bucket
+        print("[HR] Data stale (\(Int(age))s since last update)")
+        print("[HR] Displaying: \(lastValidHeartRate ?? -1)")
+    }
+
+    private func recordHeartRateUpdate(_ bpm: Double) {
+        lastUpdateTime = Date()
+        heartRateTimestamp = lastUpdateTime
+        staleLogBucket = -1
+
+        if bpm > 0 {
+            heartRate = bpm
+            lastValidHeartRate = bpm
+        } else if let lastValidHeartRate {
+            heartRate = lastValidHeartRate
+        }
+
+        print("[HR] New value: \(bpm)")
+        print("[HR] Displaying: \(lastValidHeartRate ?? -1)")
+        checkFreshness()
+    }
     
     private func sendLocalHRtoPhone(_ bpm: Double) {
         guard isStreaming else {
             return
         }
-        
-        // Throttling Logic: Only send if value changes significantly (>= 2 BPM)
-        // Always allow 0 to pass through to clear the UI on the phone.
-        let diff = abs(bpm - lastSentHeartRate)
-        if diff < 2 && bpm != 0 {
-            print("[WC] Skipped minor HR update: \(Int(bpm)) BPM (diff: \(Int(diff)))")
-            return
-        }
-        
+
         print("[WC] Sent HR change to Phone: \(Int(bpm)) BPM")
         print("[WC] Sending HR: \(bpm)")
-        lastSentHeartRate = bpm
         
         DispatchQueue.main.async {
-            self.heartRate = bpm
-            self.heartRateTimestamp = Date()
-            self.checkFreshness()
+            self.recordHeartRateUpdate(bpm)
         }
         
         if WCSession.default.isReachable {
@@ -130,9 +158,8 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         
         DispatchQueue.main.async {
             if let hr = message["heartRate"] as? Double {
-                self.heartRate = hr
-                self.heartRateTimestamp = Date()
                 print("[Watch] Received HR: \(hr)")
+                self.recordHeartRateUpdate(hr)
             }
             
             if let sleep = message["sleepHours"] as? Double {
@@ -172,8 +199,7 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
                 print("[Watch] SpO2 from context: \(spo2)")
             }
             if let hr = applicationContext["heartRate"] as? Double {
-                self.heartRate = hr
-                self.heartRateTimestamp = Date()
+                self.recordHeartRateUpdate(hr)
             }
             self.checkFreshness()
             if let sleep = applicationContext["sleepHours"] as? Double {
