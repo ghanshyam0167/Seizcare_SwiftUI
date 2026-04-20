@@ -377,6 +377,19 @@ final class SupabaseService {
             .execute()
     }
     
+    /// Update only the end_time of a seizure record.
+    func updateSeizureEndTime(recordId: UUID, endTime: Date) async throws {
+        let fmt = ISO8601DateFormatter()
+        struct EndTimePatch: Encodable { let end_time: String }
+        let patch = EndTimePatch(end_time: fmt.string(from: endTime))
+        
+        try await client
+            .from("seizure_records")
+            .update(patch)
+            .eq("id", value: recordId.uuidString.lowercased())
+            .execute()
+    }
+    
     /// Delete a seizure record by id.
     func deleteSeizureRecord(id: UUID) async throws {
         try await client

@@ -290,11 +290,19 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
     
-    func triggerEmergencyAlert() {
+    func triggerEmergencyAlert(startTime: Date? = nil, seizureId: UUID = UUID()) {
         print("[WATCH-SOS] Triggering background emergency alert transfer...")
         DispatchQueue.main.async { self.isAlarmActive = true }
         
-        let userInfo: [String: Any] = ["type": "seizure_alert"]
+        let fmt = ISO8601DateFormatter()
+        var userInfo: [String: Any] = [
+            "type": "seizure_alert",
+            "seizureId": seizureId.uuidString.lowercased()
+        ]
+        if let st = startTime {
+            userInfo["startTime"] = fmt.string(from: st)
+        }
+        
         print("[WATCH-SOS] Sending background alert: \(userInfo)")
         
         // Background-safe delivery
@@ -304,6 +312,25 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(userInfo, replyHandler: nil) { error in
                 print("[WATCH-SOS] Foreground message failed (Phone likely backgrounded): \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func triggerSeizureEnded(endTime: Date, seizureId: UUID) {
+        print("[WATCH-SOS] Triggering background seizure_ended transfer...")
+        let fmt = ISO8601DateFormatter()
+        let userInfo: [String: Any] = [
+            "type": "seizure_ended",
+            "seizureId": seizureId.uuidString.lowercased(),
+            "endTime": fmt.string(from: endTime)
+        ]
+        
+        // Background-safe delivery
+        WCSession.default.transferUserInfo(userInfo)
+        
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(userInfo, replyHandler: nil) { error in
+                print("[WATCH-SOS] Foreground ended message failed: \(error.localizedDescription)")
             }
         }
     }

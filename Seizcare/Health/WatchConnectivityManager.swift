@@ -21,6 +21,7 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     private var lastValidHeartRate: Double?
     private var lastUpdateTime: Date?
     private var lastAlertTriggerTime: Date?
+    private var currentSeizureId: UUID?
     private var staleLogBucket: Int = -1
     private var streamTimer: AnyCancellable?
 
@@ -296,11 +297,33 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
             }
         }
         
-        // Specific check for seizure_alert type from Watch (background/foreground)
+        // Standardized check for seizure_alert type from Watch (background/foreground)
         if let type = message["type"] as? String, type == "seizure_alert" {
             print("[IPHONE-WC] Standardized Seizure Alert payload received. Executing sequence.")
-            executeEmergencyAlertFromWatch()
+            let startTimeStr = message["startTime"] as? String
+            let startTime = startTimeStr.flatMap { ISO8601DateFormatter().date(from: $0) }
+            
+            let sidStr = message["seizureId"] as? String
+            let sid = sidStr.flatMap { UUID(uuidString: $0) }
+            
+            executeEmergencyAlertFromWatch(startTime: startTime, seizureId: sid)
             NotificationCenter.default.post(name: NSNotification.Name("WatchTriggeredAlert"), object: nil)
+        }
+        
+        // Handle seizure_ended signal to close the duration "Measuring..." state
+        if let type = message["type"] as? String, type == "seizure_ended" {
+            let endTimeStr = message["endTime"] as? String
+            let sidStr = message["seizureId"] as? String
+            let sid = sidStr.flatMap { UUID(uuidString: $0) } ?? currentSeizureId
+            
+            if let endTime = endTimeStr.flatMap({ ISO8601DateFormatter().date(from: $0) }),
+               let recordId = sid {
+                print("[IPHONE-WC] Seizure ended signal received for record \(recordId). Updating.")
+                Task {
+                    await EmergencyService.shared.updateSeizureEndTime(recordId: recordId, endTime: endTime)
+                    NotificationCenter.default.post(name: NSNotification.Name("WatchTriggeredAlert"), object: nil)
+                }
+            }
         }
         
         // Support legacy "triggerAlert" action for backward compatibility during transition
@@ -317,8 +340,14 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         content.title = "🚨 Emergency Alert"
         content.body = "Possible seizure detected"
         
-        // Use standard sound (since critical alerts require a special Apple entitlement)
-        content.sound = UNNotificationSound(named: UNNotificationSoundName("alarm.caf"))
+        // Debug: Check if alarm.caf is actually in the bundle
+        if let soundURL = Bundle.main.url(forResource: "alarm", withExtension: "caf") {
+            print("✅ [IPHONE-WC] Found alarm.caf in bundle at: \(soundURL.path)")
+            content.sound = UNNotificationSound(named: UNNotificationSoundName("alarm.caf"))
+        } else {
+            print("❌ [IPHONE-WC] alarm.caf NOT found in bundle Resources! Using default sound.")
+            content.sound = .default
+        }
         
         let request = UNNotificationRequest(
             identifier: "EmergencyAlert-\(UUID().uuidString)",
@@ -335,15 +364,16 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
-    private func executeEmergencyAlertFromWatch() {
-        // De-duplication: Ignore if we triggered an alert recently (e.g., within last 10 seconds)
-        if let lastTrigger = lastAlertTriggerTime, Date().timeIntervalSince(lastTrigger) < 10 {
+    private func executeEmergencyAlertFromWatch(startTime: Date? = nil, seizureId: UUID? = nil) {
+        // De-duplication: Ignore if we triggered an alert recently (e.g., within last 5 seconds)
+        // Note: With unique session IDs, we can be more lenient, but still protect against rapid taps.
+        if let lastTrigger = lastAlertTriggerTime, Date().timeIntervalSince(lastTrigger) < 5 {
             print("[IPHONE-WC] Alert ignored to prevent duplication (cooldown active)")
             return
         }
         
         lastAlertTriggerTime = Date()
-        print("[WC] Alert received on iPhone. Initiating emergency sequence.")
+        print("[WC] Alert received on iPhone. Initiating emergency sequence. StartTime: \(String(describing: startTime)), SeizureID: \(String(describing: seizureId))")
         
         // 1. Local UI/Audio feedback immediately
         triggerLocalEmergencyNotification()
@@ -365,12 +395,14 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
                     EmergencyAudioManager.shared.playEmergencyAlarm()
                 }
                 
-                try await EmergencyService.shared.triggerEmergencyAlert(
+                self.currentSeizureId = try await EmergencyService.shared.triggerEmergencyAlert(
                     latitude: location?.coordinate.latitude ?? 0.0,
                     longitude: location?.coordinate.longitude ?? 0.0,
+                    startTime: startTime,
+                    seizureId: seizureId,
                     contacts: contacts
                 )
-                print("✅ [WC] Global Emergency Alert successfully triggered from Watch signal")
+                print("✅ [WC] Global Emergency Alert successfully triggered from Watch signal. RecordId: \(String(describing: self.currentSeizureId))")
             } catch {
                 print("❌ [WC] Global Emergency Alert failed: \(error.localizedDescription)")
             }

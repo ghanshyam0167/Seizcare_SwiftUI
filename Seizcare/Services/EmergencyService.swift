@@ -20,7 +20,7 @@ class EmergencyService {
     private init() {}
     
     /// Triggers an emergency alert using the latest location coordinates and currently authenticated user.
-    func triggerEmergencyAlert(latitude: Double, longitude: Double, contacts: [EmergencyContact] = []) async throws {
+    func triggerEmergencyAlert(latitude: Double, longitude: Double, startTime: Date? = nil, seizureId: UUID? = nil, contacts: [EmergencyContact] = []) async throws -> UUID? {
         // 1. Debounce Check
         if let lastTrigger = lastTriggerTime, Date().timeIntervalSince(lastTrigger) < cooldownSeconds {
             print("⏳ [EmergencyService] Alert aborted due to cooldown.")
@@ -82,15 +82,17 @@ class EmergencyService {
         
         print("🚀 [EmergencyService] Initiating Twilio API Request to Edge Function...")
         
+        let targetSeizureId = seizureId ?? UUID()
+        
         // 6. DB Storage: Save Seizure Record and Notification
         Task {
             do {
                 // 6.1 Create Seizure Record
                 let seizureRecord = SeizureRecord(
-                    id: UUID(),
+                    id: targetSeizureId,
                     userId: currentUserId,
                     entryType: .automatic,
-                    startTime: Date(),
+                    startTime: startTime ?? Date(),
                     endTime: nil,
                     type: .moderate, // Default for auto-detected
                     triggers: [],
@@ -122,10 +124,22 @@ class EmergencyService {
         }
         
         // 7. Retry Logic via Task for Twilio (Keep existing logic)
-        return try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             Task {
                 await executeRequestWithRetry(request: request, attempts: 3, continuation: continuation)
             }
+        }
+        
+        return targetSeizureId
+    }
+    
+    func updateSeizureEndTime(recordId: UUID, endTime: Date) async {
+        print("[IPHONE-SOS] Updating end_time for record \(recordId)...")
+        do {
+            try await SupabaseService.shared.updateSeizureEndTime(recordId: recordId, endTime: endTime)
+            print("[IPHONE-SOS] ✅ Successfully updated end_time to \(endTime)")
+        } catch {
+            print("[IPHONE-SOS] ❌ Failed to update end_time: \(error)")
         }
     }
     

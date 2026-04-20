@@ -28,14 +28,7 @@ struct RecordDetailView: View {
     }
 
     private var durationText: String {
-        if currentRecord.endTime == nil { return "Measuring..." }
-        let totalSecs = Int(currentRecord.duration ?? 0)
-        let h = totalSecs / 3600
-        let m = (totalSecs % 3600) / 60
-        let s = totalSecs % 60
-        if h > 0 { return "\(h)h \(m)m \(s)s" }
-        if m > 0 { return "\(m)m \(s)s" }
-        return "\(s)s"
+        currentRecord.formattedDuration
     }
 
     private var dateTimeText: String {
