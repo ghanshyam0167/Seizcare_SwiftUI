@@ -12,6 +12,13 @@ import Combine
 struct SeizcareApp: App {
     @StateObject var languageManager = LanguageManager()
     @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        // Register background processing for offline sensor log uploads.
+        SensorLogBackgroundTasks.register()
+        // Activate WatchConnectivity early so background-delivered Watch batches are received.
+        _ = WatchConnectivityManager.shared
+    }
     var body: some Scene {
         WindowGroup {
             SplashScreenView()
@@ -28,6 +35,7 @@ struct SeizcareApp: App {
                 }
             case .background:
                 print("[APP] App moved to background")
+                SensorLogBackgroundTasks.schedule()
             default:
                 break
             }

@@ -454,6 +454,10 @@
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "We need your location to attach it to emergency texts.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to attach it to emergency texts.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Seizcare needs photo library access to let you select a profile photo.";
+				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "$(PRODUCT_BUNDLE_IDENTIFIER).sensorlog.upload";
+				INFOPLIST_KEY_UIBackgroundModes = "processing";
+				INFOPLIST_KEY_SUPABASE_URL = "https://ydbudbenyxrfwdzumxbu.supabase.co";
+				INFOPLIST_KEY_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -494,6 +498,10 @@
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "We need your location to attach it to emergency texts.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to attach it to emergency texts.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Seizcare needs photo library access to let you select a profile photo.";
+				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "$(PRODUCT_BUNDLE_IDENTIFIER).sensorlog.upload";
+				INFOPLIST_KEY_UIBackgroundModes = "processing";
+				INFOPLIST_KEY_SUPABASE_URL = "https://ydbudbenyxrfwdzumxbu.supabase.co";
+				INFOPLIST_KEY_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

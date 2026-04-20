@@ -13,6 +13,7 @@ public class DetectionPipelineManager: ObservableObject {
     
     private let motionService = MotionSensorService()
     private let hrService = HealthKitService.shared
+    private let sensorLogStreamer = SensorLogStreamer_Watch()
     
     private let buffer = WindowBuffer()
     private let artifactRunner = ArtifactModelRunner()
@@ -31,6 +32,7 @@ public class DetectionPipelineManager: ObservableObject {
     public init() {
         motionService.onNewDataPoint = { [weak self] point in
             self?.buffer.append(point)
+            self?.sensorLogStreamer.handleMotionPoint(point)
         }
     }
     
@@ -41,6 +43,7 @@ public class DetectionPipelineManager: ObservableObject {
             self.log("HealthKit Permissions: \(success)")
             self.hrService.startStreamingHeartRate()
             self.motionService.startStreaming()
+            self.sensorLogStreamer.start()
             self.decisionEngine.reset()
             self.buffer.clear()
             self.state = .running
@@ -57,6 +60,7 @@ public class DetectionPipelineManager: ObservableObject {
     public func stop() {
         motionService.stopStreaming()
         hrService.stopStreaming()
+        sensorLogStreamer.stop()
         pipelineTimer?.invalidate()
         pipelineTimer = nil
         state = .stopped

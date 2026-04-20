@@ -7,6 +7,7 @@ import Foundation
 import WatchConnectivity
 import CoreLocation
 import Combine
+import UIKit
 
 class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     static let shared = WatchConnectivityManager()
@@ -32,7 +33,6 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         
         // Setup Location for emergency triggers from Watch
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.requestAlwaysAuthorization() // Ensure we have permission
         
         if WCSession.isSupported() {
             WCSession.default.delegate = self
@@ -43,6 +43,21 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         // Start a slow timer to check stream status (every 5s)
         streamTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             self?.checkStreamStatus()
+        }
+    }
+
+    private func ensureLocationAuthorization() {
+        let status: CLAuthorizationStatus
+        if #available(iOS 14.0, *) {
+            status = locationManager.authorizationStatus
+        } else {
+            status = CLLocationManager.authorizationStatus()
+        }
+        
+        if status == .notDetermined {
+            // Prompt only when we actually need location (e.g. Watch-triggered SOS),
+            // to avoid surprise permissions during app launch.
+            locationManager.requestAlwaysAuthorization()
         }
     }
 
@@ -251,11 +266,43 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
             }
         }
     }
+
+    // MARK: - Sensor Log Batches (Watch → iPhone)
+
+    func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
+        handleSensorBatchData(messageData)
+    }
+    
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any]) {
+        // `transferUserInfo` supports Data values; we store the JSON under `sensor_batch`.
+        if let data = userInfo["sensor_batch"] as? Data {
+            handleSensorBatchData(data)
+        }
+    }
+    
+    private func handleSensorBatchData(_ data: Data) {
+        do {
+            let batch = try JSONDecoder().decode(WatchSensorBatchPayload.self, from: data)
+            
+            // Ensure we get enough background time to persist the batch even if the app is suspended.
+            let bgTask = UIApplication.shared.beginBackgroundTask(withName: "sensorlog_ingest") {
+                // No-op; we will end explicitly below.
+            }
+            
+            Task {
+                await SensorLogPipelineCoordinator.shared.ingestWatchBatch(batch)
+                UIApplication.shared.endBackgroundTask(bgTask)
+            }
+        } catch {
+            print("⚠️ [WC] Failed to decode sensor batch:", error.localizedDescription)
+        }
+    }
     
     private func executeEmergencyAlertFromWatch() {
         print("[WC] executeEmergencyAlertFromWatch: Initializing alert sequence")
         
         // 1. Get current location
+        ensureLocationAuthorization()
         let location = locationManager.location
         if location == nil {
             print("⚠️ [WC] Location is nil. SOS might be sent with 0,0 or fail.")
