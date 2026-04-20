@@ -12,6 +12,7 @@
 		055DB8F12F95136600BCF8DE /* ArtifactFilter.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 055DB8D82F94F45400BCF8DE /* ArtifactFilter.mlmodel */; };
 		055DB8F22F95136A00BCF8DE /* SeizureDetector.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 055DB8DA2F94FD2300BCF8DE /* SeizureDetector.mlmodel */; };
 		C9B9E59E2F92BC98005767EE /* Seizcare watch app Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = C9B9E5942F92BC97005767EE /* Seizcare watch app Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C9D21A4C2F96B173005E6B64 /* alarm.caf in Resources */ = {isa = PBXBuildFile; fileRef = C9D21A4B2F96B173005E6B64 /* alarm.caf */; };
 		D8A328AE2F8E5CD400BDABD5 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = D8A328AD2F8E5CD400BDABD5 /* Auth */; };
 		D8A328B02F8E5CD400BDABD5 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = D8A328AF2F8E5CD400BDABD5 /* Supabase */; };
 /* End PBXBuildFile section */
@@ -44,6 +45,7 @@
 		055DB8D82F94F45400BCF8DE /* ArtifactFilter.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = ArtifactFilter.mlmodel; sourceTree = "<group>"; };
 		055DB8DA2F94FD2300BCF8DE /* SeizureDetector.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = SeizureDetector.mlmodel; sourceTree = "<group>"; };
 		C9B9E5942F92BC97005767EE /* Seizcare watch app Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Seizcare watch app Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C9D21A4B2F96B173005E6B64 /* alarm.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = alarm.caf; sourceTree = "<group>"; };
 		D8FCA43E2F7ACEED00D052C0 /* Seizcare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Seizcare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -88,6 +90,7 @@
 				D8FCA4402F7ACEED00D052C0 /* Seizcare */,
 				C9B9E5952F92BC97005767EE /* Seizcare watch app Watch App */,
 				D8FCA43F2F7ACEED00D052C0 /* Products */,
+				C9D21A4B2F96B173005E6B64 /* alarm.caf */,
 			);
 			sourceTree = "<group>";
 		};
@@ -209,6 +212,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C9D21A4C2F96B173005E6B64 /* alarm.caf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

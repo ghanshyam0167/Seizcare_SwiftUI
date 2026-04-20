@@ -208,119 +208,21 @@ public class DetectionPipelineManager: ObservableObject {
     func handleSeizureDetected(probability: Double, heartRate: Double, startTime: Date? = nil, endTime: Date? = nil) async {
         print("[Pipeline] Handling seizure detection... (prob: \(probability), hr: \(heartRate))")
         
-        let supabaseURL = "https://ydbudbenyxrfwdzumxbu.supabase.co"
-        let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw"
+        // --- MODIFIED: Consolidate DB Logic to iPhone ---
+        // We no longer create the record directly from the Watch to avoid duplication and sync issues.
+        // Instead, we signal the iPhone, which creates the record and handles Twilio.
         
-        // Use the synchronized userId from WatchConnectivityManager, with a fallback for safety.
-        let userId = WatchConnectivityManager.shared.userId ?? "00000000-0000-0000-0000-000000000000"
-        print("[Pipeline] Using User ID: \(userId)")
+        // FUTURE TAGGING (Local only)
+        let seizureId = UUID()
+        self.activeSeizureRecordId = seizureId.uuidString.lowercased()
+        self.activeSeizureStartTime = startTime ?? Date()
+        print("[Pipeline] Future tagging started locally with ID: \(seizureId)")
         
-        func createRequest(path: String, method: String, body: [String: Any]) -> URLRequest {
-            var request = URLRequest(url: URL(string: "\(supabaseURL)/rest/v1/\(path)")!)
-            request.httpMethod = method
-            request.setValue(anonKey, forHTTPHeaderField: "apikey")
-            
-            // Use JWT Access Token if available, otherwise fallback to anonKey (which may fail RLS)
-            let token = WatchConnectivityManager.shared.accessToken ?? anonKey
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue("return=representation", forHTTPHeaderField: "Prefer")
-            if !body.isEmpty {
-                request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-            }
-            return request
-        }
+        // TRIGGER PHONE SOS (This now handles DB record creation)
+        WatchConnectivityManager.shared.triggerEmergencyAlert(startTime: startTime ?? Date(), seizureId: seizureId)
+        print("[Pipeline] Signal sent to iPhone to create record and trigger SOS.")
         
-        func performRequest(_ request: URLRequest, stepName: String) async -> (Data, URLResponse)? {
-            do {
-                let (data, response) = try await URLSession.shared.data(for: request)
-                if let httpResponse = response as? HTTPURLResponse {
-                    print("[Pipeline] \(stepName) - Status: \(httpResponse.statusCode)")
-                    if !(200...299).contains(httpResponse.statusCode) {
-                        let errorBody = String(data: data, encoding: .utf8) ?? "No body"
-                        print("[Pipeline] ❌ \(stepName) Failed (\(httpResponse.statusCode)): \(errorBody)")
-                    }
-                }
-                return (data, response)
-            } catch {
-                print("[Pipeline] ❌ \(stepName) Exception: \(error.localizedDescription)")
-                return nil
-            }
-        }
-
-        // STEP 1: CREATE SEIZURE RECORD
-        let fmt = ISO8601DateFormatter()
-        let nowStr = fmt.string(from: startTime ?? Date())
-        let endStr: Any = endTime != nil ? fmt.string(from: endTime!) : NSNull()
-        
-        let recordBody: [String: Any] = [
-            "user_id": userId,
-            "entry_type": EntryType.automatic.rawValue,
-            "start_time": nowStr,
-            "end_time": endStr,
-            "severity_type": NSNull(),
-            "triggers": NSNull(),
-            "location": NSNull(),
-            "notes": "Demo detected seizure",
-            "created_at": nowStr
-        ]
-        
-        var recordId = UUID().uuidString.lowercased()
-        if let (data, response) = await performRequest(createRequest(path: "seizure_records", method: "POST", body: recordBody), stepName: "Step 1 (Create Record)"),
-           let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
-           let first = json.first,
-           let id = first["id"] as? String {
-            recordId = id
-            print("[Pipeline] Step 1: Created record \(recordId)")
-        } else {
-            print("[Pipeline] Step 1: Failed to extract record ID from response.")
-        }
-
-        // STEP 2: TAG PAST SENSOR DATA (timestamp >= now - 2h)
-        let twoHoursAgo = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-7200))
-        let tagBody: [String: Any] = [
-            "seizure_event": true,
-            "session_id": recordId
-        ]
-        _ = await performRequest(createRequest(path: "seizure_sensor_logs?timestamp=gte.\(twoHoursAgo)", method: "PATCH", body: tagBody), stepName: "Step 2 (Tag Past Logs)")
-
-        // STEP 3: START FUTURE TAGGING
-        self.activeSeizureRecordId = recordId
-        self.activeSeizureStartTime = Date()
-        print("Step 3: Future tagging started")
-
-        // STEP 4: STORE HEART RATE SNAPSHOT
-        let hrBody: [String: Any] = [
-            "user_id": userId,
-            "record_id": recordId,
-            "timestamp": nowStr,
-            "bpm": heartRate
-        ]
-        _ = await performRequest(createRequest(path: "heart_rate_samples", method: "POST", body: hrBody), stepName: "Step 4 (HR Snapshot)")
-
-        // STEP 5: CREATE APP NOTIFICATION
-        let finalHR = heartRate > 0 ? heartRate : 72.0 // Realistic fallback for demo
-        let notifBody: [String: Any] = [
-            "user_id": userId,
-            "title": "Seizure Detected",
-            "message": "Heart rate: \(Int(finalHR)) BPM",
-            "notification_type": "seizure_alert",
-            "is_read": false,
-            "event_date": nowStr
-        ]
-        _ = await performRequest(createRequest(path: "app_notifications", method: "POST", body: notifBody), stepName: "Step 5 (App Notification)")
-
-        // STEP 6: EMERGENCY CONTACT FLOW
-        print("Step 6: Fetching emergency contacts...")
-        print("Emergency alert sent")
-        
-        // --- NEW: Trigger Automatic Phone SOS Alert ---
-        WatchConnectivityManager.shared.triggerEmergencyAlert()
-        print("Step 6b: Automatic iPhone SOS triggered via WatchConnectivity")
-
-        // STEP 7: LOCAL ALERT
+        // LOCAL ALERT
         DispatchQueue.main.async {
             WKInterfaceDevice.current().play(.failure)
             self.state = .seizureDetected
@@ -328,6 +230,9 @@ public class DetectionPipelineManager: ObservableObject {
             self.log("🚨 SEIZURE DETECTED! (Local Response)")
         }
     }
+    
+    // Remote DB record ID is no longer needed since we manage by time-sync on phone
+    // but updateRecordEndTime is removed in favor of triggerSeizureEnded.
     
     public func stopTaggingLogs() {
         print("[Pipeline] Stopping future tagging.")
@@ -400,10 +305,9 @@ public class DetectionPipelineManager: ObservableObject {
         
         print("[Shake] 🏁 Active seizure ended at \(endTime)")
         
-        if let recordId = self.activeSeizureRecordId {
-            Task {
-                await self.updateRecordEndTime(recordId: recordId, endTime: endTime)
-            }
+        if isDetectingSeizure {
+            let sid = self.activeSeizureRecordId.flatMap { UUID(uuidString: $0) } ?? UUID()
+            WatchConnectivityManager.shared.triggerSeizureEnded(endTime: endTime, seizureId: sid)
         }
         
         // Reset state
@@ -417,39 +321,6 @@ public class DetectionPipelineManager: ObservableObject {
         self.activeSeizureStartTime = nil
     }
 
-    private func updateRecordEndTime(recordId: String, endTime: Date) async {
-        print("[Pipeline] Updating end_time for record \(recordId)...")
-        
-        let supabaseURL = "https://ydbudbenyxrfwdzumxbu.supabase.co"
-        let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw"
-        
-        let fmt = ISO8601DateFormatter()
-        let endStr = fmt.string(from: endTime)
-        let body: [String: Any] = ["end_time": endStr]
-        
-        var request = URLRequest(url: URL(string: "\(supabaseURL)/rest/v1/seizure_records?id=eq.\(recordId)")!)
-        request.httpMethod = "PATCH"
-        request.setValue(anonKey, forHTTPHeaderField: "apikey")
-        
-        let token = WatchConnectivityManager.shared.accessToken ?? anonKey
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
-                print("[Pipeline] ✅ Successfully updated end_time to \(endStr)")
-            } else {
-                let err = String(data: data, encoding: .utf8) ?? "Unknown"
-                print("[Pipeline] ❌ Failed to update end_time: \(err)")
-            }
-        } catch {
-            print("[Pipeline] ❌ Exception updating end_time: \(error.localizedDescription)")
-        }
-    }
-
-    
     private func log(_ message: String) {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"

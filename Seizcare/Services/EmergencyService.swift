@@ -20,7 +20,7 @@ class EmergencyService {
     private init() {}
     
     /// Triggers an emergency alert using the latest location coordinates and currently authenticated user.
-    func triggerEmergencyAlert(latitude: Double, longitude: Double, contacts: [EmergencyContact] = []) async throws {
+    func triggerEmergencyAlert(latitude: Double, longitude: Double, startTime: Date? = nil, seizureId: UUID? = nil, contacts: [EmergencyContact] = []) async throws -> UUID? {
         // 1. Debounce Check
         if let lastTrigger = lastTriggerTime, Date().timeIntervalSince(lastTrigger) < cooldownSeconds {
             print("⏳ [EmergencyService] Alert aborted due to cooldown.")
@@ -80,11 +80,66 @@ class EmergencyService {
         request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = httpBody
         
-        // 6. Retry Logic via Task
-        return try await withCheckedThrowingContinuation { continuation in
+        print("🚀 [EmergencyService] Initiating Twilio API Request to Edge Function...")
+        
+        let targetSeizureId = seizureId ?? UUID()
+        
+        // 6. DB Storage: Save Seizure Record and Notification
+        Task {
+            do {
+                // 6.1 Create Seizure Record
+                let seizureRecord = SeizureRecord(
+                    id: targetSeizureId,
+                    userId: currentUserId,
+                    entryType: .automatic,
+                    startTime: startTime ?? Date(),
+                    endTime: nil,
+                    type: .moderate, // Default for auto-detected
+                    triggers: [],
+                    location: "Lat: \(latitude), Lon: \(longitude)",
+                    notes: "Automatically detected seizure alert."
+                )
+                
+                // 6.2 Create App Notification
+                let appNotification = AppNotification(
+                    id: UUID(),
+                    userId: currentUserId,
+                    title: "seizure_detected",
+                    message: "moderate_seizure_desc",
+                    type: .seizure,
+                    date: Date(),
+                    isRead: false
+                )
+                
+                // Parallel insertions
+                async let saveRecord: () = SupabaseService.shared.insertSeizureRecord(seizureRecord)
+                async let saveNotification: () = SupabaseService.shared.insertNotification(appNotification)
+                
+                _ = try await [saveRecord, saveNotification]
+                
+                print("✅ [EmergencyService] Seizure record and notification stored in database.")
+            } catch {
+                print("❌ [EmergencyService] Failed to store alert data: \(error.localizedDescription)")
+            }
+        }
+        
+        // 7. Retry Logic via Task for Twilio (Keep existing logic)
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             Task {
                 await executeRequestWithRetry(request: request, attempts: 3, continuation: continuation)
             }
+        }
+        
+        return targetSeizureId
+    }
+    
+    func updateSeizureEndTime(recordId: UUID, endTime: Date) async {
+        print("[IPHONE-SOS] Updating end_time for record \(recordId)...")
+        do {
+            try await SupabaseService.shared.updateSeizureEndTime(recordId: recordId, endTime: endTime)
+            print("[IPHONE-SOS] ✅ Successfully updated end_time to \(endTime)")
+        } catch {
+            print("[IPHONE-SOS] ❌ Failed to update end_time: \(error)")
         }
     }
     
@@ -97,7 +152,7 @@ class EmergencyService {
                 }
                 
                 if (200...299).contains(httpResponse.statusCode) {
-                    print("✅ [EmergencyService] Emergency Alert Sent Successfully on attempt \(attempt).")
+                    print("✅ [IPHONE-SOS] Emergency Alert Sent Successfully via Twilio API on attempt \(attempt).")
                     continuation.resume()
                     return
                 } else {

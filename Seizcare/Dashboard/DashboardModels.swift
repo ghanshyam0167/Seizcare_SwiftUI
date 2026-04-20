@@ -96,6 +96,22 @@ struct SeizureRecord: Identifiable, Codable, Hashable {
         guard let endTime = endTime else { return nil }
         return endTime.timeIntervalSince(startTime)
     }
+
+    var formattedDuration: String {
+        guard let duration = duration else { return "Measuring..." }
+        let totalSecs = Int(duration)
+        let h = totalSecs / 3600
+        let m = (totalSecs % 3600) / 60
+        let s = totalSecs % 60
+        
+        if h > 0 {
+            return "\(h)h \(m)m \(s)s"
+        } else if m > 0 {
+            return s > 0 ? "\(m)m \(s)s" : "\(m) min"
+        } else {
+            return "\(s)s"
+        }
+    }
     
     enum CodingKeys: String, CodingKey {
         case id

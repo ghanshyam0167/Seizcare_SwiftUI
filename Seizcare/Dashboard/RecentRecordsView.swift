@@ -67,9 +67,7 @@ private struct RecordRow: View {
     let record: SeizureRecord
 
     private var durationText: String {
-        if record.endTime == nil { return "Measuring..." }
-        let m = Int((record.duration ?? 0) / 60)
-        return m > 0 ? "\(m) min" : "less_than_1_min"
+        record.formattedDuration
     }
 
     private var dateText: String {

@@ -377,6 +377,19 @@ final class SupabaseService {
             .execute()
     }
     
+    /// Update only the end_time of a seizure record.
+    func updateSeizureEndTime(recordId: UUID, endTime: Date) async throws {
+        let fmt = ISO8601DateFormatter()
+        struct EndTimePatch: Encodable { let end_time: String }
+        let patch = EndTimePatch(end_time: fmt.string(from: endTime))
+        
+        try await client
+            .from("seizure_records")
+            .update(patch)
+            .eq("id", value: recordId.uuidString.lowercased())
+            .execute()
+    }
+    
     /// Delete a seizure record by id.
     func deleteSeizureRecord(id: UUID) async throws {
         try await client
@@ -485,6 +498,14 @@ final class SupabaseService {
             .from("app_notifications")
             .update(ReadPatch(is_read: true))
             .eq("id", value: id.uuidString.lowercased())
+            .execute()
+    }
+    
+    /// Insert a new app notification.
+    func insertNotification(_ notification: AppNotification) async throws {
+        try await client
+            .from("app_notifications")
+            .insert(notification)
             .execute()
     }
 }
