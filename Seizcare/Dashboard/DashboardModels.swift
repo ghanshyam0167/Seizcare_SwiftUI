@@ -68,14 +68,17 @@ struct SeizureRecord: Identifiable, Codable, Hashable {
     let userId: UUID
     let entryType: EntryType
     let startTime: Date
-    let endTime: Date
-    let type: SeizureType
+    let endTime: Date?
+    let type: SeizureType?
     let triggers: [SeizureTrigger]
     let location: String?
     let notes: String?
 
     // Derived — not stored
-    var duration: TimeInterval { endTime.timeIntervalSince(startTime) }
+    var duration: TimeInterval { 
+        guard let endTime = endTime else { return 0 }
+        return endTime.timeIntervalSince(startTime) 
+    }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -239,8 +242,9 @@ struct MockDashboardData {
     }()
 
     static func heartRateSamples(for record: SeizureRecord) -> [HeartRateSample] {
+        let effectiveEndTime = record.endTime ?? record.startTime.addingTimeInterval(300) // Fallback for mock visualization
         let windowStart = record.startTime.addingTimeInterval(-3600)
-        let windowEnd   = record.endTime.addingTimeInterval(3600)
+        let windowEnd   = effectiveEndTime.addingTimeInterval(3600)
         let interval: TimeInterval = 120
 
         var samples: [HeartRateSample] = []
@@ -250,12 +254,12 @@ struct MockDashboardData {
             if current < record.startTime {
                 let progress = max(0, current.timeIntervalSince(windowStart)) / 3600
                 bpm = Int(68 + progress * 17) + Int.random(in: -3...3)
-            } else if current <= record.endTime {
-                let dur = max(record.duration, 1)
+            } else if current <= effectiveEndTime {
+                let dur = record.duration > 0 ? record.duration : 300
                 let p   = current.timeIntervalSince(record.startTime) / dur
                 bpm = Int(85 + sin(p * .pi) * 70) + Int.random(in: -5...5)
             } else {
-                let minutesAfter = current.timeIntervalSince(record.endTime) / 60
+                let minutesAfter = current.timeIntervalSince(effectiveEndTime) / 60
                 let p            = min(minutesAfter / 60.0, 1.0)
                 bpm = Int(150 - p * 80) + Int.random(in: -4...4)
             }

@@ -90,7 +90,7 @@ struct AddEditRecordView: View {
             _startTime         = State(initialValue: record.startTime)
             let mins = Int(record.duration / 60)
             _durationMinutes   = State(initialValue: mins == 0 ? 1 : mins)
-            _seizureType       = State(initialValue: record.type)
+            _seizureType       = State(initialValue: record.type ?? .mild)
             _selectedTriggers  = State(initialValue: Set(record.triggers))
             _notes             = State(initialValue: record.notes ?? "")
             _location          = State(initialValue: record.location ?? "")
@@ -399,6 +399,10 @@ struct AddEditRecordView: View {
             vm.addRecord(record)
         case .edit:
             vm.updateRecord(record)
+            // STOP tagging logs if this was an automatic record being finalized
+            if isAutomatic {
+                WatchConnectivityManager.shared.sendStopTaggingToWatch()
+            }
         }
         dismiss()
     }

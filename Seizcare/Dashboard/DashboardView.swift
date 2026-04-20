@@ -1,4 +1,6 @@
 import SwiftUI
+import Supabase
+import Auth
 import Charts
 import CoreLocation
 
@@ -84,6 +86,43 @@ struct DashboardView: View {
                         heartRateText: viewModel.displayHeartRateText,
                         sleepHours: viewModel.avgSleep7Days
                     )
+                    
+                    if viewModel.hasIncompleteSeizure {
+                        Button {
+                            withAnimation {
+                                selectedTab = .records
+                            }
+                        } label: {
+                            Text("Seizure detected — complete details")
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.dashSeizure)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .padding(.horizontal, 2)
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                    
+                    // Demo Trigger Button
+                    Button {
+                        WatchConnectivityManager.shared.sendForceTriggerToWatch()
+                    } label: {
+                        HStack {
+                            Image(systemName: "bolt.fill")
+                            Text("Trigger Seizure (Demo)")
+                        }
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Color.dashSeizure)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(Color.dashSeizure.opacity(0.1))
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.bottom, 4)
                     
                     if !viewModel.guidanceText.isEmpty && viewModel.displayHeartRate == nil {
                         Text(localizedGuidanceText)
@@ -237,6 +276,16 @@ if viewModel.isLoading {
 )
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WatchTriggeredAlert"))) { _ in
             print("[Dashboard] Received Watch SOS notification for UI feedback.")
+        }
+        .task {
+            await viewModel.checkForIncompleteSeizure()
+            
+            // Sync User ID and Token to Watch automatically
+            if let session = try? await SupabaseService.shared.client.auth.session {
+                let userId = session.user.id
+                let token = session.accessToken
+                WatchConnectivityManager.shared.sendUserIdToWatch(userId.uuidString.lowercased(), token: token)
+            }
         }
     }
     

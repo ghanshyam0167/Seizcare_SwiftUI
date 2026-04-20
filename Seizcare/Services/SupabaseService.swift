@@ -339,6 +339,24 @@ final class SupabaseService {
         
         return try decoder.decode([SeizureRecord].self, from: response.data)
     }
+
+    /// Fetch the latest incomplete seizure record for a user.
+    func fetchLatestIncompleteSeizure(userId: UUID) async throws -> SeizureRecord? {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        
+        let response = try await client
+            .from("seizure_records")
+            .select()
+            .eq("user_id", value: userId.uuidString.lowercased())
+            .is("end_time", value: nil)
+            .order("start_time", ascending: false)
+            .limit(1)
+            .execute()
+        
+        let records = try decoder.decode([SeizureRecord].self, from: response.data)
+        return records.first
+    }
     
     /// Insert a new seizure record.
     func insertSeizureRecord(_ record: SeizureRecord) async throws {
@@ -377,8 +395,8 @@ final class SupabaseService {
         let user_id: String
         let entry_type: String
         let start_time: String
-        let end_time: String
-        let severity_type: String
+        let end_time: String?
+        let severity_type: String?
         let triggers: [String]
         let location: String?
         let notes: String?
@@ -389,8 +407,8 @@ final class SupabaseService {
             self.user_id       = record.userId.uuidString.lowercased()
             self.entry_type    = record.entryType.rawValue
             self.start_time    = fmt.string(from: record.startTime)
-            self.end_time      = fmt.string(from: record.endTime)
-            self.severity_type = record.type.rawValue
+            self.end_time      = record.endTime.map { fmt.string(from: $0) }
+            self.severity_type = record.type?.rawValue
             self.triggers      = record.triggers.map { $0.rawValue }
             self.location      = record.location
             self.notes         = record.notes

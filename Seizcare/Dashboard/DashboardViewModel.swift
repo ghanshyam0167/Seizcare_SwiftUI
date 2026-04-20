@@ -12,8 +12,21 @@ class DashboardViewModel: ObservableObject {
     
     @Published var activeChart: ActiveChart?
     @Published var frequencyRange: TimeFrameRange = .weekly
+    @Published var hasIncompleteSeizure: Bool = false
     
     private var cancellables = Set<AnyCancellable>()
+    
+    func checkForIncompleteSeizure() async {
+        guard let userId = await SupabaseService.shared.currentUserId() else { return }
+        do {
+            let incomplete = try await SupabaseService.shared.fetchLatestIncompleteSeizure(userId: userId)
+            DispatchQueue.main.async {
+                self.hasIncompleteSeizure = (incomplete != nil)
+            }
+        } catch {
+            print("[VM] Error checking for incomplete seizure: \(error)")
+        }
+    }
     
     init(recordsVM: RecordsViewModel, healthVM: HealthViewModel = HealthViewModel()) {
         print("[VM] DashboardViewModel: Initialized with Records and Health dependencies")
@@ -27,6 +40,28 @@ class DashboardViewModel: ObservableObject {
         
         healthVM.objectWillChange
             .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+            
+        // Sync with Watch alerts
+        NotificationCenter.default.publisher(for: NSNotification.Name("WatchTriggeredAlert"))
+            .sink { [weak self] _ in
+                print("[VM] Watch alert detected — refreshing records")
+                Task {
+                    await self?.recordsVM.fetchRecords()
+                    await self?.checkForIncompleteSeizure()
+                }
+            }
+            .store(in: &cancellables)
+            
+        // Sync with manual logs
+        NotificationCenter.default.publisher(for: NSNotification.Name("ManualSeizureLogged"))
+            .sink { [weak self] _ in
+                print("[VM] Manual alert detected — refreshing records")
+                Task {
+                    await self?.recordsVM.fetchRecords()
+                    await self?.checkForIncompleteSeizure()
+                }
+            }
             .store(in: &cancellables)
     }
     
