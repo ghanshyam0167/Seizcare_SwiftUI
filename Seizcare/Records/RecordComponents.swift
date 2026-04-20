@@ -12,7 +12,8 @@ struct RecordCard: View {
     let record: SeizureRecord
 
     private var durationText: String {
-        let m = Int(record.duration / 60)
+        if record.endTime == nil { return "Measuring..." }
+        let m = Int((record.duration ?? 0) / 60)
         return m > 0 ? "\(m) min" : "less_than_1_min"
     }
 

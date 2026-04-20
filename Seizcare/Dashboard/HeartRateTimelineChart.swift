@@ -39,9 +39,16 @@ struct HeartRateTimelineChartView: View {
     @State private var isLoading = true
 
     private func fetchSamples() {
-        let start = record.startTime.addingTimeInterval(-3600)
-        let effectiveEnd = record.endTime ?? record.startTime.addingTimeInterval(300)
-        let end = effectiveEnd.addingTimeInterval(3600)
+        let start = record.startTime.addingTimeInterval(-30)
+        var end: Date
+        if let endTime = record.endTime {
+            end = endTime.addingTimeInterval(60)
+        } else {
+            end = Date()
+        }
+        if end > Date() {
+            end = Date()
+        }
         
         HealthKitManager.shared.fetchHeartRateSamples(from: start, to: end) { fetched in
             DispatchQueue.main.async {
@@ -72,15 +79,16 @@ struct HeartRateTimelineChartView: View {
     }
     private var recoveryBPM: Int { samples.last?.bpm ?? 0 }
     private var durationText: String {
-        let m = Int(record.duration / 60)
+        if record.endTime == nil { return "Measuring..." }
+        let m = Int((record.duration ?? 0) / 60)
         return m > 0 ? "\(m) min" : "<1 min"
     }
 
     private var chartGradient: LinearGradient {
-        let durationMins = record.duration / 60.0
-        let totalMins = 60.0 + durationMins + 60.0
-        let startRatio = 60.0 / totalMins
-        let endRatio = (60.0 + durationMins) / totalMins
+        let durationMins = (record.duration ?? 0) / 60.0
+        let totalMins = 0.5 + durationMins + 1.0
+        let startRatio = 0.5 / totalMins
+        let endRatio = (0.5 + durationMins) / totalMins
         
         return LinearGradient(
             stops: [
@@ -161,7 +169,7 @@ struct HeartRateTimelineChartView: View {
                                 }
 
                             // Seizure end marker
-                            RuleMark(x: .value("End", record.duration / 60.0))
+                            RuleMark(x: .value("End", (record.duration ?? 0) / 60.0))
                                 .foregroundStyle(Color.dashGreen.opacity(0.5))
                                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [4]))
                                 .annotation(position: .bottom, alignment: .trailing) {
@@ -170,17 +178,20 @@ struct HeartRateTimelineChartView: View {
                                         .foregroundStyle(Color.dashGreen)
                                 }
                         }
-                        .chartXScale(domain: -65...70)
+                        .chartXScale(domain: -0.5 ... ((record.duration ?? 0) / 60.0 + 1.0))
                         .chartXAxis {
-                            AxisMarks(values: [-60, -30, 0, 15, 30, 60]) { value in
+                            let durationMins = (record.duration ?? 0) / 60.0
+                            AxisMarks(values: [-0.5, 0, durationMins, durationMins + 1.0]) { value in
                                 AxisGridLine().foregroundStyle(Color.dashTertiary.opacity(0.25))
                                 AxisValueLabel {
                                     if let v = value.as(Double.self) {
-                                        Text(v == 0 ? "0" : "\(Int(v))m")
-                                            .font(.caption2)
-                                            .foregroundStyle(Color.dashTertiary)
+                                        if v == 0 { Text("Onset") }
+                                        else if v == durationMins { Text("End") }
+                                        else { Text(String(format: "%.1fm", v)) }
                                     }
                                 }
+                                .font(.caption2)
+                                .foregroundStyle(Color.dashTertiary)
                             }
                         }
                         .chartYAxis {

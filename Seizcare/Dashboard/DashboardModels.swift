@@ -92,7 +92,10 @@ struct SeizureRecord: Identifiable, Codable, Hashable {
     let notes: String?
 
     // Derived — not stored
-    var duration: TimeInterval { (endTime ?? Date()).timeIntervalSince(startTime) }
+    var duration: TimeInterval? {
+        guard let endTime = endTime else { return nil }
+        return endTime.timeIntervalSince(startTime)
+    }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -285,24 +288,24 @@ struct MockDashboardData {
 
     static func heartRateSamples(for record: SeizureRecord) -> [HeartRateSample] {
         let effectiveEndTime = record.endTime ?? record.startTime.addingTimeInterval(300) // Fallback for mock visualization
-        let windowStart = record.startTime.addingTimeInterval(-3600)
-        let windowEnd   = effectiveEndTime.addingTimeInterval(3600)
-        let interval: TimeInterval = 120
+        let windowStart = record.startTime.addingTimeInterval(-30)
+        let windowEnd   = effectiveEndTime.addingTimeInterval(60)
+        let interval: TimeInterval = 2
 
         var samples: [HeartRateSample] = []
         var current = windowStart
         while current <= windowEnd {
             let bpm: Int
             if current < record.startTime {
-                let progress = max(0, current.timeIntervalSince(windowStart)) / 3600
+                let progress = max(0, current.timeIntervalSince(windowStart)) / 30.0
                 bpm = Int(68 + progress * 17) + Int.random(in: -3...3)
             } else if current <= effectiveEndTime {
-                let dur = record.duration > 0 ? record.duration : 300
+                let dur = (record.duration ?? 300) > 0 ? (record.duration ?? 300) : 300
                 let p   = current.timeIntervalSince(record.startTime) / dur
                 bpm = Int(85 + sin(p * .pi) * 70) + Int.random(in: -5...5)
             } else {
-                let minutesAfter = current.timeIntervalSince(effectiveEndTime) / 60
-                let p            = min(minutesAfter / 60.0, 1.0)
+                let secondsAfter = current.timeIntervalSince(effectiveEndTime)
+                let p            = min(secondsAfter / 60.0, 1.0)
                 bpm = Int(150 - p * 80) + Int.random(in: -4...4)
             }
             samples.append(HeartRateSample(id: UUID(), userId: userId, timestamp: current, bpm: max(50, min(180, bpm)), recordId: record.id))
@@ -369,8 +372,9 @@ extension Array where Element == SeizureRecord {
     }
 
     var averageDurationSeconds: TimeInterval {
-        guard !isEmpty else { return 0 }
-        return reduce(0) { $0 + $1.duration } / Double(count)
+        let validRecords = filter { $0.duration != nil }
+        guard !validRecords.isEmpty else { return 0 }
+        return validRecords.reduce(0) { $0 + ($1.duration ?? 0) } / Double(validRecords.count)
     }
 
     func triggerFrequency() -> [(trigger: SeizureTrigger, percentage: Double)] {

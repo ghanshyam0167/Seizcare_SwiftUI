@@ -121,9 +121,9 @@ struct ReportView: View {
     }
 
     private var longestDurationText: String {
-        guard let longest = records.max(by: { $0.duration < $1.duration }) else { return "—" }
-        let m = Int(longest.duration / 60)
-        let s = Int(longest.duration.truncatingRemainder(dividingBy: 60))
+        guard let longest = records.max(by: { ($0.duration ?? 0) < ($1.duration ?? 0) }) else { return "—" }
+        let m = Int((longest.duration ?? 0) / 60)
+        let s = Int((longest.duration ?? 0).truncatingRemainder(dividingBy: 60))
         return m > 0 ? String(format: "min_m".localized, m) + " " + String(format: "sec_s".localized, s) : String(format: "sec_s".localized, s)
     }
 
