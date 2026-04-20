@@ -405,7 +405,15 @@ final class SupabaseService {
             let fmt = ISO8601DateFormatter()
             self.id            = record.id.uuidString.lowercased()
             self.user_id       = record.userId.uuidString.lowercased()
-            self.entry_type    = record.entryType.rawValue
+            
+            // Standardize entry_type to "automatic" or "manual"
+            let rawEntry = record.entryType.rawValue
+            if rawEntry == "auto" || rawEntry == "auto-detected" {
+                self.entry_type = "automatic"
+            } else {
+                self.entry_type = rawEntry
+            }
+            
             self.start_time    = fmt.string(from: record.startTime)
             self.end_time      = record.endTime.map { fmt.string(from: $0) }
             self.severity_type = record.type?.rawValue
