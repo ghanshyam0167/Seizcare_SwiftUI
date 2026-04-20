@@ -41,6 +41,13 @@ public class DetectionPipelineManager: ObservableObject {
     private var shakePeakTimestamps: [Date] = []
     private var lastShakeTriggerTime: Date? = nil
     
+    // State for Duration Tracking
+    private var detectionStartTime: Date? = nil
+    private var detectionEndTime: Date? = nil
+    private var isDetectingSeizure: Bool = false
+    private var shakeSettleTimer: Timer? = nil
+    private var lastHighMotionTime: Date? = nil
+    
     // Publishers for UI integration
     @Published public var state: PipelineState = .stopped
     @Published public var currentBufferCount: Int = 0
@@ -198,7 +205,7 @@ public class DetectionPipelineManager: ObservableObject {
     }
 
     // 🧠 SEIZURE DETECTION HANDLER
-    func handleSeizureDetected(probability: Double, heartRate: Double) async {
+    func handleSeizureDetected(probability: Double, heartRate: Double, startTime: Date? = nil, endTime: Date? = nil) async {
         print("[Pipeline] Handling seizure detection... (prob: \(probability), hr: \(heartRate))")
         
         let supabaseURL = "https://ydbudbenyxrfwdzumxbu.supabase.co"
@@ -243,17 +250,20 @@ public class DetectionPipelineManager: ObservableObject {
         }
 
         // STEP 1: CREATE SEIZURE RECORD
-        let now = ISO8601DateFormatter().string(from: Date())
+        let fmt = ISO8601DateFormatter()
+        let nowStr = fmt.string(from: startTime ?? Date())
+        let endStr: Any = endTime != nil ? fmt.string(from: endTime!) : NSNull()
+        
         let recordBody: [String: Any] = [
             "user_id": userId,
             "entry_type": EntryType.automatic.rawValue,
-            "start_time": now,
-            "end_time": NSNull(),
+            "start_time": nowStr,
+            "end_time": endStr,
             "severity_type": NSNull(),
             "triggers": NSNull(),
             "location": NSNull(),
             "notes": "Demo detected seizure",
-            "created_at": now
+            "created_at": nowStr
         ]
         
         var recordId = UUID().uuidString.lowercased()
@@ -285,7 +295,7 @@ public class DetectionPipelineManager: ObservableObject {
         let hrBody: [String: Any] = [
             "user_id": userId,
             "record_id": recordId,
-            "timestamp": now,
+            "timestamp": nowStr,
             "bpm": heartRate
         ]
         _ = await performRequest(createRequest(path: "heart_rate_samples", method: "POST", body: hrBody), stepName: "Step 4 (HR Snapshot)")
@@ -298,7 +308,7 @@ public class DetectionPipelineManager: ObservableObject {
             "message": "Heart rate: \(Int(finalHR)) BPM",
             "notification_type": "seizure_alert",
             "is_read": false,
-            "event_date": now
+            "event_date": nowStr
         ]
         _ = await performRequest(createRequest(path: "app_notifications", method: "POST", body: notifBody), stepName: "Step 5 (App Notification)")
 
@@ -330,7 +340,6 @@ public class DetectionPipelineManager: ObservableObject {
         let magnitude = sqrt(pow(point.accX, 2) + pow(point.accY, 2) + pow(point.accZ, 2))
         
         // --- DEBUG LOGGING ---
-        // Every ~50 samples (1 second at 50Hz), log current magnitude
         struct Static { static var logCounter = 0 }
         Static.logCounter += 1
         if Static.logCounter >= 50 {
@@ -338,34 +347,105 @@ public class DetectionPipelineManager: ObservableObject {
             Static.logCounter = 0
         }
         
-        // Detect a "Peak"
+        let now = Date()
+        
         if magnitude >= DetectionConfig.shakeThresholdG {
-            print("[Watch-Motion] ⚡️ PEAK DETECTED: \(String(format: "%.2f", magnitude))G")
-            let now = Date()
+            lastHighMotionTime = now
             
-            // Check cooldown
-            if let lastTrigger = lastShakeTriggerTime, now.timeIntervalSince(lastTrigger) < DetectionConfig.shakeCooldownSeconds {
-                return
-            }
-            
-            shakePeakTimestamps.append(now)
-            
-            // 3. Keep only timestamps within the window
-            shakePeakTimestamps = shakePeakTimestamps.filter { now.timeIntervalSince($0) < DetectionConfig.shakeWindowSeconds }
-            
-            // 4. If enough peaks, trigger seizure
-            if shakePeakTimestamps.count >= DetectionConfig.requiredShakePeaks {
-                print("[Watch-Motion] 🔥 THRESHOLD MET! (\(shakePeakTimestamps.count) peaks in \(DetectionConfig.shakeWindowSeconds)s)")
-                lastShakeTriggerTime = now
-                shakePeakTimestamps.removeAll()
+            if !isDetectingSeizure {
+                if detectionStartTime == nil {
+                    detectionStartTime = now
+                }
                 
-                print("[Shake] 🚨 VIGOROUS SHAKE DETECTED (\(magnitude) G)!")
+                // Check cooldown
+                if let lastTrigger = lastShakeTriggerTime, now.timeIntervalSince(lastTrigger) < DetectionConfig.shakeCooldownSeconds {
+                    return
+                }
                 
-                // Trigger full pipeline
-                Task {
-                    await self.handleSeizureDetected(probability: 1.0, heartRate: self.hrService.currentHeartRate)
+                shakePeakTimestamps.append(now)
+                shakePeakTimestamps = shakePeakTimestamps.filter { now.timeIntervalSince($0) < DetectionConfig.shakeWindowSeconds }
+                
+                if shakePeakTimestamps.count >= DetectionConfig.requiredShakePeaks {
+                    print("[Watch-Motion] 🔥 THRESHOLD MET! (\(shakePeakTimestamps.count) peaks in \(DetectionConfig.shakeWindowSeconds)s)")
+                    lastShakeTriggerTime = now
+                    shakePeakTimestamps.removeAll()
+                    
+                    isDetectingSeizure = true
+                    print("[Shake] 🚨 VIGOROUS SHAKE DETECTED! Starting ongoing seizure event.")
+                    
+                    // Trigger full pipeline IMMEDIATELY with NO end time
+                    Task {
+                        await self.handleSeizureDetected(probability: 1.0, heartRate: self.hrService.currentHeartRate, startTime: self.detectionStartTime, endTime: nil)
+                    }
                 }
             }
+        }
+        
+        // If actively detecting a seizure, check if motion has settled for 5 seconds
+        if isDetectingSeizure {
+            if let lastHigh = lastHighMotionTime, now.timeIntervalSince(lastHigh) >= 5.0 {
+                print("[Watch-Motion] Motion settled for 5 seconds. Ending active seizure.")
+                endActiveSeizure(endTime: lastHigh)
+            }
+        } else {
+            // Not detecting a seizure, clear detection start if motion has settled
+            if let start = detectionStartTime, now.timeIntervalSince(start) >= 5.0, (lastHighMotionTime == nil || now.timeIntervalSince(lastHighMotionTime!) >= 5.0) {
+                detectionStartTime = nil
+            }
+        }
+    }
+
+    public func endActiveSeizure(endTime: Date = Date()) {
+        guard isDetectingSeizure else { return }
+        
+        print("[Shake] 🏁 Active seizure ended at \(endTime)")
+        
+        if let recordId = self.activeSeizureRecordId {
+            Task {
+                await self.updateRecordEndTime(recordId: recordId, endTime: endTime)
+            }
+        }
+        
+        // Reset state
+        isDetectingSeizure = false
+        detectionStartTime = nil
+        detectionEndTime = nil
+        lastHighMotionTime = nil
+        shakePeakTimestamps.removeAll()
+        
+        self.activeSeizureRecordId = nil
+        self.activeSeizureStartTime = nil
+    }
+
+    private func updateRecordEndTime(recordId: String, endTime: Date) async {
+        print("[Pipeline] Updating end_time for record \(recordId)...")
+        
+        let supabaseURL = "https://ydbudbenyxrfwdzumxbu.supabase.co"
+        let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw"
+        
+        let fmt = ISO8601DateFormatter()
+        let endStr = fmt.string(from: endTime)
+        let body: [String: Any] = ["end_time": endStr]
+        
+        var request = URLRequest(url: URL(string: "\(supabaseURL)/rest/v1/seizure_records?id=eq.\(recordId)")!)
+        request.httpMethod = "PATCH"
+        request.setValue(anonKey, forHTTPHeaderField: "apikey")
+        
+        let token = WatchConnectivityManager.shared.accessToken ?? anonKey
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
+                print("[Pipeline] ✅ Successfully updated end_time to \(endStr)")
+            } else {
+                let err = String(data: data, encoding: .utf8) ?? "Unknown"
+                print("[Pipeline] ❌ Failed to update end_time: \(err)")
+            }
+        } catch {
+            print("[Pipeline] ❌ Exception updating end_time: \(error.localizedDescription)")
         }
     }
 

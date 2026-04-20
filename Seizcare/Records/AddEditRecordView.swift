@@ -88,7 +88,7 @@ struct AddEditRecordView: View {
             _location          = State(initialValue: "")
         case .edit(let record):
             _startTime         = State(initialValue: record.startTime)
-            let mins = Int(record.duration / 60)
+            let mins = Int((record.duration ?? 0) / 60)
             _durationMinutes   = State(initialValue: mins == 0 ? 1 : mins)
             _seizureType       = State(initialValue: record.type ?? .mild)
             _selectedTriggers  = State(initialValue: Set(record.triggers))
@@ -413,7 +413,7 @@ struct AddEditRecordView: View {
     }
 
     private func normalizedDurationMinutes(for record: SeizureRecord) -> Int {
-        let mins = Int(record.duration / 60)
+        let mins = Int((record.duration ?? 0) / 60)
         return mins == 0 ? 1 : mins
     }
 

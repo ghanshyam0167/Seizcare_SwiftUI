@@ -28,7 +28,8 @@ struct RecordDetailView: View {
     }
 
     private var durationText: String {
-        let totalSecs = Int(currentRecord.duration)
+        if currentRecord.endTime == nil { return "Measuring..." }
+        let totalSecs = Int(currentRecord.duration ?? 0)
         let h = totalSecs / 3600
         let m = (totalSecs % 3600) / 60
         let s = totalSecs % 60
@@ -272,30 +273,6 @@ struct RecordDetailView: View {
             }
             .background(Color.dashCardElevated)
             .clipShape(RoundedRectangle(cornerRadius: 12))
-
-            // Phase legend
-            HStack(spacing: 20) {
-                PhaseLegendPill(label: "Before", color: .dashSleep)
-                PhaseLegendPill(label: "Seizure", color: .dashSeizure)
-                PhaseLegendPill(label: "After", color: .dashGreen)
-                Spacer()
-            }
-
-            // Chart
-            heartRateChart
-                .frame(height: 200)
-                .padding(.horizontal, -4)
-
-            // Info note
-            HStack(spacing: 6) {
-                Image(systemName: "info.circle")
-                    .font(.caption)
-                    .foregroundStyle(Color.dashTertiary)
-                Text("Heart rate 60 min before, during, and after the seizure. X-axis = minutes from onset.")
-                    .font(.caption2)
-                    .foregroundStyle(Color.dashTertiary)
-                    .lineSpacing(3)
-            }
         }
         .padding(16)
         .background(Color.dashCard)
@@ -306,104 +283,6 @@ struct RecordDetailView: View {
         )
     }
 
-    private func relativeMinutes(_ timestamp: Date) -> Double {
-        timestamp.timeIntervalSince(currentRecord.startTime) / 60.0
-    }
-
-    private var chartMinBPM: Int { heartRateSamples.map(\.bpm).min().map { $0 - 10 } ?? 50 }
-    private var chartMaxBPM: Int { heartRateSamples.map(\.bpm).max().map { $0 + 10 } ?? 180 }
-
-    private var chartGradient: LinearGradient {
-        let durationMins = currentRecord.duration / 60.0
-        let totalMins = 60.0 + durationMins + 60.0
-        let startRatio = 60.0 / totalMins
-        let endRatio = (60.0 + durationMins) / totalMins
-        
-        return LinearGradient(
-            stops: [
-                .init(color: Color.dashSleep.opacity(0.85), location: 0),
-                .init(color: Color.dashSleep.opacity(0.85), location: startRatio - 0.01),
-                .init(color: Color.dashSeizure, location: startRatio),
-                .init(color: Color.dashSeizure, location: endRatio),
-                .init(color: Color.dashGreen.opacity(0.85), location: endRatio + 0.01),
-                .init(color: Color.dashGreen.opacity(0.85), location: 1)
-            ],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
-    }
-
-    @ViewBuilder
-    private var heartRateChart: some View {
-        Chart {
-            // Seizure highlight band
-            RectangleMark(
-                xStart: .value("Start", 0.0),
-                xEnd:   .value("End",   currentRecord.duration / 60.0),
-                yStart: .value("Min", Double(chartMinBPM)),
-                yEnd:   .value("Max", Double(chartMaxBPM))
-            )
-            .foregroundStyle(Color.dashSeizure.opacity(0.07))
-
-            // HR line
-            ForEach(heartRateSamples) { sample in
-                let mins = relativeMinutes(sample.timestamp)
-
-                LineMark(
-                    x: .value("Minutes", mins),
-                    y: .value("BPM", sample.bpm)
-                )
-                .interpolationMethod(.catmullRom)
-                .lineStyle(StrokeStyle(lineWidth: 2.5))
-            }
-            .foregroundStyle(chartGradient)
-
-            // Onset marker
-            RuleMark(x: .value("Onset", 0.0))
-                .foregroundStyle(Color.dashSeizure.opacity(0.5))
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4]))
-                .annotation(position: .top, alignment: .leading, spacing: 4) {
-                    Text("Onset")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Color.dashSeizure)
-                }
-
-            // End marker
-            RuleMark(x: .value("End", currentRecord.duration / 60.0))
-                .foregroundStyle(Color.dashGreen.opacity(0.5))
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4]))
-                .annotation(position: .bottom, alignment: .trailing, spacing: 4) {
-                    Text("End")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Color.dashGreen)
-                }
-        }
-        .chartXScale(domain: -65...70)
-        .chartXAxis {
-            AxisMarks(values: [-60, -30, 0, 15, 30, 60]) { value in
-                AxisGridLine().foregroundStyle(Color.dashTertiary.opacity(0.2))
-                AxisValueLabel {
-                    if let v = value.as(Double.self) {
-                        Text(v == 0 ? "0" : "\(Int(v))m")
-                            .font(.caption2)
-                            .foregroundStyle(Color.dashTertiary)
-                    }
-                }
-            }
-        }
-        .chartYAxis {
-            AxisMarks(values: [60, 80, 100, 120, 140, 160]) { value in
-                AxisGridLine().foregroundStyle(Color.dashTertiary.opacity(0.2))
-                AxisValueLabel {
-                    if let v = value.as(Int.self) {
-                        Text("\(v)")
-                            .font(.caption2)
-                            .foregroundStyle(Color.dashTertiary)
-                    }
-                }
-            }
-        }
-    }
 }
 
 // MARK: - Summary Stat Tile
