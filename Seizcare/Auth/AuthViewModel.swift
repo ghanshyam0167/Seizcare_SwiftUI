@@ -1,4 +1,5 @@
 
+
 //
 //  AuthViewModel.swift
 //  Seizcare
@@ -355,14 +356,17 @@ final class AuthViewModel: ObservableObject {
         Task {
             defer { isLoading = false }
             do {
-                let isResend = try await service.signUp(
+                // Register user in Supabase
+                let _ = try await service.signUp(
                     email:    signupEmail.trimmingCharacters(in: .whitespaces),
                     password: signupPassword
                 )
-                isResendSignupOTP = isResend
-                triggerSuccessToast(message: "Verification code sent to \(signupEmail.trimmingCharacters(in: .whitespaces))")
+                
+                // Demo/Limit Bypass: Skip OTP Screen and go straight to Profile Setup
+                triggerSuccessToast(message: "Signup successful! Let's set up your profile.")
                 self.screenNavDirection = .forward
-                withAnimation(.spring()) { activeScreen = .signupVerification }
+                withAnimation(.spring()) { activeScreen = .setupProfile }
+                
             } catch let e as AuthServiceError {
                 if case .emailAlreadyInUse = e {
                     alertMessage = "This email is already registered. Please log in."
