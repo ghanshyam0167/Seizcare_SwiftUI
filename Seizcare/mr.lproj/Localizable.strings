@@ -1,6 +1,7 @@
 "select_language" = "भाषा निवडा";
 "done" = "झाले";
 "next" = "पुढील";
+"continue" = "सुरू ठेवा";
 "skip" = "वगळा";
 "finish_setup" = "सेटअप पूर्ण करा";
 "verify_email" = "ईमेल सत्यापित करा";
@@ -17,6 +18,18 @@
 "sign_up" = "साइन अप";
 "login" = "लॉगइन";
 "already_have_account" = "तुमचे आधीच खाते आहे का?";
+"welcome_to_seizcare" = "Seizcare मध्ये स्वागत आहे";
+"onboarding_disclaimer_title" = "सुरू करण्यापूर्वी";
+"onboarding_disclaimer_subtitle" = "हे अॅप शारीरिक बदलांवर आधारित डेटा मॉनिटर करण्यासाठी आणि संपर्कांना अलर्ट करण्यासाठी तयार केले आहे. हे वैद्यकीय उपकरण नाही आणि कोणत्याही वैद्यकीय स्थितीचे निदान किंवा उपचार करण्यासाठी नाही.";
+"disclaimer_help_monitor" = "शारीरिक बदल आणि झटक्यांचे पॅटर्न मॉनिटर करा.";
+"disclaimer_help_alert" = "तातडीची मदत लागल्यास विश्वासू संपर्कांना अलर्ट करा.";
+"disclaimer_help_records" = "दैनंदिन काळजीसाठी उपयोगी नोंदी ठेवा.";
+"onboarding_detection_title" = "झटका ओळख";
+"onboarding_detection_subtitle" = "शारीरिक बदल आणि संभाव्य झटक्यांचे पॅटर्न मॉनिटर करा.";
+"onboarding_alert_title" = "तातडीचे अलर्ट";
+"onboarding_alert_subtitle" = "मदत लागण्याची शक्यता असेल तेव्हा विश्वासू संपर्कांना कळवा.";
+"onboarding_records_title" = "काळजी नोंदी";
+"onboarding_records_subtitle" = "दैनंदिन काळजीच्या चर्चेसाठी नोट्स ठेवा.";
 "onboarding_title_1" = "सुरक्षित रहा, जागरूक रहा";
 "onboarding_subtitle_1" = "झटके दरम्यान Seizcare तुम्हाला किंवा तुमच्या प्रियजनांचे निरीक्षण आणि मदत करण्यास मदत करते.";
 "onboarding_title_2" = "स्मार्ट देखरेख";
@@ -39,6 +52,7 @@
 "logout" = "लॉग आउट";
 
 "summary" = "सारांश";
+"dashboard" = "डॅशबोर्ड";
 "analysis" = "विश्लेषण";
 "seizure_count" = "झटक्यांची संख्या";
 "sleep_vs_seizures" = "झोप विरुद्ध झटके";
@@ -97,7 +111,7 @@
 "ok" = "ठीक आहे";
 "no_records_yet" = "अजून कोणतेही रेकॉर्ड नाहीत";
 "no_records_desc" = "तुमचा पहिला दौरा नोंदवण्यासाठी + टॅप करा.\nतुमचे रेकॉर्ड येथे दिसतील।";
-"all_records" = "सर्व रेकॉर्ड";
+"all_records" = "सर्व झटका रेकॉर्ड";
 "unknown" = "अज्ञात";
 "%lld min" = "%lld मिनिट";
 "mild" = "सौम्य";

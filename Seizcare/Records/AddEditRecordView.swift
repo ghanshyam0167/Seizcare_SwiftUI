@@ -59,7 +59,7 @@ struct AddEditRecordView: View {
         guard case .edit(let record) = mode else { return true }
         return startTime != record.startTime ||
             durationMinutes != normalizedDurationMinutes(for: record) ||
-            seizureType != record.type ||
+            seizureType != (record.type ?? .mild) ||
             selectedTriggers != Set(record.triggers) ||
             normalizedOptionalText(notes) != normalizedOptionalText(record.notes ?? "") ||
             normalizedOptionalText(location) != normalizedOptionalText(record.location ?? "")

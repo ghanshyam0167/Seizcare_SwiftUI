@@ -68,17 +68,14 @@ struct SeizureRecord: Identifiable, Codable, Hashable {
     let userId: UUID
     let entryType: EntryType
     let startTime: Date
-    let endTime: Date?
-    let type: SeizureType?
+    let endTime: Date?           // Nullable — nil means seizure is still ongoing
+    let type: SeizureType?       // Nullable — may be unset for auto-detected records
     let triggers: [SeizureTrigger]
     let location: String?
     let notes: String?
 
     // Derived — not stored
-    var duration: TimeInterval { 
-        guard let endTime = endTime else { return 0 }
-        return endTime.timeIntervalSince(startTime) 
-    }
+    var duration: TimeInterval { (endTime ?? Date()).timeIntervalSince(startTime) }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -90,6 +87,32 @@ struct SeizureRecord: Identifiable, Codable, Hashable {
         case triggers
         case location
         case notes
+    }
+
+    init(id: UUID, userId: UUID, entryType: EntryType, startTime: Date, endTime: Date?,
+         type: SeizureType?, triggers: [SeizureTrigger], location: String?, notes: String?) {
+        self.id = id; self.userId = userId; self.entryType = entryType
+        self.startTime = startTime; self.endTime = endTime; self.type = type
+        self.triggers = triggers; self.location = location; self.notes = notes
+    }
+
+    init(from decoder: Decoder) throws {
+        do {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id        = try c.decode(UUID.self,      forKey: .id)
+            userId    = try c.decode(UUID.self,      forKey: .userId)
+            entryType = (try? c.decode(EntryType.self, forKey: .entryType)) ?? .automatic
+            startTime = try c.decode(Date.self,      forKey: .startTime)
+            endTime   = try? c.decode(Date.self,     forKey: .endTime)
+            type      = try? c.decode(SeizureType.self, forKey: .type)
+            triggers  = (try? c.decode([SeizureTrigger].self, forKey: .triggers)) ?? []
+            location  = try? c.decode(String.self,   forKey: .location)
+            notes     = try? c.decode(String.self,   forKey: .notes)
+        } catch {
+            print("❌ [SeizureRecord] Decoding FAILED: \(error)")
+            print("❌ [SeizureRecord] Full error: \(error.localizedDescription)")
+            throw error
+        }
     }
 }
 
@@ -127,10 +150,12 @@ struct SleepRecord: Identifiable, Codable {
 
 extension Color {
     // Dynamic Colors utilizing iOS TraitCollection
+    static let dashAccent = Color.authPrimaryButton
+    
     static let dashBg = Color(UIColor { traitCollection in
         traitCollection.userInterfaceStyle == .dark
             ? UIColor(red: 0.06, green: 0.06, blue: 0.08, alpha: 1.0)
-            : UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1.0)
+            : UIColor(red: 0.961, green: 0.969, blue: 0.984, alpha: 1.0)
     })
     
     static let dashCard = Color(UIColor { traitCollection in
@@ -165,7 +190,7 @@ extension Color {
     
     // Core brand/state colors remain consistent across themes (or mildly adjusted)
     static let dashSeizure       = Color(red: 1.0,  green: 0.27, blue: 0.27)
-    static let dashSleep         = Color(red: 0.25, green: 0.60, blue: 1.0)
+    static let dashSleep         = Color.dashAccent
     static let dashGreen         = Color(red: 0.20, green: 0.78, blue: 0.35)
     static let dashPurple        = Color(red: 0.58, green: 0.44, blue: 1.0)
 }

@@ -13,6 +13,12 @@ struct LoginView: View {
     @ObservedObject var vm: AuthViewModel
     @EnvironmentObject var languageManager: LanguageManager
     @State private var isPasswordRevealed = false
+    @FocusState private var focusedField: Field?
+
+    private enum Field {
+        case email
+        case password
+    }
 
     var body: some View {
         ZStack {
@@ -21,13 +27,17 @@ struct LoginView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Spacer()
 
+                AuthLogoMark(size: 112)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 24)
+
                 // Header
                 Text("welcome_back".localized)
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .font(.appLargeTitle)
                     .foregroundColor(.authPrimaryText)
 
                 Text("login_to_continue".localized)
-                    .font(.system(size: 16, weight: .regular))
+                    .font(.appBody)
                     .foregroundColor(.authSecondaryText)
                     .padding(.top, 8)
 
@@ -39,32 +49,45 @@ struct LoginView: View {
                     // Email Field
                     VStack(alignment: .leading, spacing: 8) {
                         Text("email".localized)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.appFootnote)
                             .foregroundColor(.authSecondaryText)
 
-                        TextField("you@example.com", text: $vm.loginEmail)
-                            .font(.system(size: 15))
-                            .padding(.horizontal, 16)
-                            .frame(height: 52)
-                            .background(Color.authFieldBackground)
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(
-                                        vm.loginEmailError != nil ? Color.errorRed : Color.authInputBorder,
-                                        lineWidth: vm.loginEmailError != nil ? 1.5 : 1
-                                    )
-                            )
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
-                            .autocorrectionDisabled()
-                            .animation(.easeInOut(duration: 0.2), value: vm.loginEmailError)
+                        ZStack(alignment: .leading) {
+                            if vm.loginEmail.isEmpty {
+                                Text("you@example.com")
+                                    .font(.appCallout)
+                                    .foregroundColor(.authPlaceholderText)
+                                    .padding(.horizontal, 16)
+                                    .allowsHitTesting(false)
+                            }
+
+                            TextField("", text: $vm.loginEmail)
+                                .font(.appCallout)
+                                .foregroundColor(.authPrimaryText)
+                                .padding(.horizontal, 16)
+                                .frame(height: 52)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                                .autocorrectionDisabled()
+                                .focused($focusedField, equals: .email)
+                                .animation(.easeInOut(duration: 0.2), value: vm.loginEmailError)
+                        }
+                        .frame(height: 52)
+                        .background(Color.authFieldBackground)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(
+                                    vm.loginEmailError != nil ? Color.errorRed : Color.authInputBorder,
+                                    lineWidth: vm.loginEmailError != nil ? 1.5 : 1
+                                )
+                        )
                     }
 
                     // Password Field
                     VStack(alignment: .leading, spacing: 8) {
                         Text("password".localized)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.appFootnote)
                             .foregroundColor(.authSecondaryText)
 
                         HStack {
@@ -75,10 +98,11 @@ struct LoginView: View {
                                     SecureField("........", text: $vm.loginPassword)
                                 }
                             }
-                            .font(.system(size: 15))
+                            .font(.appCallout)
                             .textContentType(.password)
                             .autocapitalization(.none)
                             .autocorrectionDisabled()
+                            .focused($focusedField, equals: .password)
 
                             Button(action: { isPasswordRevealed.toggle() }) {
                                 Image(systemName: isPasswordRevealed ? "eye.slash" : "eye")
@@ -104,7 +128,7 @@ struct LoginView: View {
                         Spacer()
                         Button(action: { vm.switchToForgotPassword() }) {
                             Text("forgot_password_question".localized)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.appSubheadline)
                                 .foregroundColor(Color.authPrimaryButton)
                         }
                     }
@@ -122,7 +146,7 @@ struct LoginView: View {
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
                                 Text("login".localized)
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.appHeadline)
                                     .foregroundColor(.white)
                             }
                         }
@@ -141,12 +165,12 @@ struct LoginView: View {
                 // Switch to Sign Up
                 HStack(spacing: 4) {
                     Text("dont_have_account".localized)
-                        .font(.system(size: 14))
+                        .font(.appSubheadline)
                         .foregroundColor(.authSecondaryText)
 
                     Button(action: { vm.switchToSignup() }) {
                         Text("sign_up".localized)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.appSubheadline)
                             .foregroundColor(Color.authPrimaryButton)
                     }
                 }
@@ -157,12 +181,28 @@ struct LoginView: View {
             }
             .padding(.horizontal, 24)
         }
-        .scrollDismissesKeyboard(.interactively)
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 12)
+                .onChanged { value in
+                    if value.translation.height > 8 {
+                        dismissKeyboard()
+                    }
+                }
+        )
+        .onTapGesture {
+            dismissKeyboard()
+        }
         .alert("login_failed".localized, isPresented: $vm.showAlert) {
             Button("ok", role: .cancel) {}
         } message: {
             Text(vm.alertMessage)
         }
+    }
+    
+    private func dismissKeyboard() {
+        focusedField = nil
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
 

@@ -2,6 +2,7 @@
 "select_language_desc" = "कृपया जारी रखने के लिए अपनी पसंदीदा भाषा चुनें।";
 "done" = "पूर्ण";
 "next" = "अगला";
+"continue" = "जारी रखें";
 "skip" = "छोड़ें";
 "finish_setup" = "सेटअप पूरा करें";
 "verify_email" = "ईमेल सत्यापित करें";
@@ -35,6 +36,18 @@
 "sign_up" = "साइन अप करें";
 "login" = "लॉगिन";
 "already_have_account" = "क्या आपके पास पहले से खाता है?";
+"welcome_to_seizcare" = "Seizcare में आपका स्वागत है";
+"onboarding_disclaimer_title" = "शुरू करने से पहले";
+"onboarding_disclaimer_subtitle" = "यह ऐप शारीरिक बदलावों के आधार पर डेटा मॉनिटर करने और संपर्कों को अलर्ट करने के लिए बनाया गया है। यह मेडिकल डिवाइस नहीं है और किसी चिकित्सा स्थिति का निदान या इलाज करने के लिए नहीं है।";
+"disclaimer_help_monitor" = "शारीरिक बदलाव और दौरे के पैटर्न मॉनिटर करें।";
+"disclaimer_help_alert" = "जरूरत पड़ने पर भरोसेमंद संपर्कों को अलर्ट करें।";
+"disclaimer_help_records" = "रोजमर्रा की देखभाल में मदद करने वाले रिकॉर्ड रखें।";
+"onboarding_detection_title" = "दौरे की पहचान";
+"onboarding_detection_subtitle" = "शारीरिक बदलाव और संभावित दौरे के पैटर्न मॉनिटर करें।";
+"onboarding_alert_title" = "तत्काल अलर्ट";
+"onboarding_alert_subtitle" = "सहायता की जरूरत हो सकती है तो भरोसेमंद संपर्कों को सूचित करें।";
+"onboarding_records_title" = "देखभाल रिकॉर्ड";
+"onboarding_records_subtitle" = "रोजमर्रा की देखभाल बातचीत के लिए नोट्स रखें।";
 "welcome_back" = "आपका स्वागत है";
 "login_to_continue" = "जारी रखने के लिए लॉगिन करें";
 "forgot_password_question" = "पासवर्ड भूल गए?";
@@ -97,6 +110,7 @@
 "logout" = "लॉग आउट";
 
 "summary" = "सारांश";
+"dashboard" = "डैशबोर्ड";
 "analysis" = "विश्लेषण";
 "seizure_count" = "दौरा संख्या";
 "sleep_vs_seizures" = "नींद बनाम दौरे";
@@ -162,7 +176,7 @@
 "ok" = "ठीक है";
 "no_records_yet" = "अभी तक कोई रिकॉर्ड नहीं";
 "no_records_desc" = "अपना पहला दौरा दर्ज करने के लिए + टैप करें।\nआपके रिकॉर्ड यहाँ दिखाई देंगे।";
-"all_records" = "सभी रिकॉर्ड";
+"all_records" = "सभी दौरा रिकॉर्ड";
 "unknown" = "अज्ञात";
 "%lld min" = "%lld मिनट";
 "mild" = "हल्का";

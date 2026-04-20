@@ -65,11 +65,11 @@ struct DashboardView: View {
                     // Header
                     HStack(alignment: .center) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("summary")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                            Text("dashboard")
+                                .font(.appLargeTitle)
                                 .foregroundStyle(Color.dashLabel)
                             Text(Date().formatted(.dateTime.weekday(.wide).month().day()))
-                                .font(.subheadline)
+                                .font(.appSubheadline)
                                 .foregroundStyle(Color.dashSecondary)
                         }
                         Spacer()
@@ -126,7 +126,7 @@ struct DashboardView: View {
                     
                     if !viewModel.guidanceText.isEmpty && viewModel.displayHeartRate == nil {
                         Text(localizedGuidanceText)
-                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .font(.appFootnote)
                             .foregroundStyle(Color.dashSeizure)
                             .padding(.vertical, 8)
                             .padding(.horizontal, 16)
@@ -158,7 +158,7 @@ struct DashboardView: View {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
                                         Text("seizure_count")
-                                            .font(.system(size: 14, weight: .semibold))
+                                            .font(.appSubheadline)
                                             .foregroundStyle(Color.dashLabel)
                                         Spacer()
                                         Image(systemName: "chevron.right")
@@ -176,7 +176,7 @@ struct DashboardView: View {
                                 .background(Color.dashCard)
                                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                                 .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .stroke(Color.dashSeizure.opacity(0.15), lineWidth: 1))
+                                    .stroke(Color.dashAccent.opacity(0.14), lineWidth: 1))
                             }
                             .buttonStyle(ScaleButtonStyle())
 
@@ -185,7 +185,7 @@ struct DashboardView: View {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
                                         Text("sleep_vs_seizures")
-                                            .font(.system(size: 14, weight: .semibold))
+                                            .font(.appSubheadline)
                                             .foregroundStyle(Color.dashLabel)
                                         Spacer()
                                         Image(systemName: "chevron.right")
@@ -203,7 +203,7 @@ struct DashboardView: View {
                                 .background(Color.dashCard)
                                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                                 .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .stroke(Color.dashSleep.opacity(0.15), lineWidth: 1))
+                                    .stroke(Color.dashAccent.opacity(0.14), lineWidth: 1))
                             }
                             .buttonStyle(ScaleButtonStyle())
                         }

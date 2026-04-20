@@ -1,4 +1,5 @@
 
+
 //
 //  AuthViewModel.swift
 //  Seizcare
@@ -355,14 +356,16 @@ final class AuthViewModel: ObservableObject {
         Task {
             defer { isLoading = false }
             do {
-                let isResend = try await service.signUp(
+                // Register user and instantly establish a backend profile/session
+                let _ = try await service.signUpAndBypass(
                     email:    signupEmail.trimmingCharacters(in: .whitespaces),
                     password: signupPassword
                 )
-                isResendSignupOTP = isResend
-                triggerSuccessToast(message: "Verification code sent to \(signupEmail.trimmingCharacters(in: .whitespaces))")
+                
+                triggerSuccessToast(message: "Signup successful! Let's set up your profile.")
                 self.screenNavDirection = .forward
-                withAnimation(.spring()) { activeScreen = .signupVerification }
+                withAnimation(.spring()) { activeScreen = .setupProfile }
+                
             } catch let e as AuthServiceError {
                 if case .emailAlreadyInUse = e {
                     alertMessage = "This email is already registered. Please log in."
@@ -408,8 +411,12 @@ final class AuthViewModel: ObservableObject {
     }
     
     func completeSensitivitySetup() {
-        withAnimation(.spring()) {
-            activeScreen = .healthOnboarding
+        Task {
+            await EmergencyContactDataModel.shared.refreshContacts()
+            await SensitivityDataModel.shared.refreshSensitivity()
+            withAnimation(.spring()) {
+                isAuthenticated = true
+            }
         }
     }
     
@@ -731,9 +738,8 @@ final class AuthViewModel: ObservableObject {
             }
         }
         
-        withAnimation(.spring()) {
-            activeScreen = .setupPhone
-        }
+        screenNavDirection = .forward
+        withAnimation(.spring()) { activeScreen = .addEmergencyContacts }
     }
     
     func goBack() {
@@ -754,15 +760,13 @@ final class AuthViewModel: ObservableObject {
                 screenNavDirection = .back
                 activeScreen = .forgotPasswordOTP
             case .setupProfile:
-                // Back from profile setup goes to OTP screen
-                screenNavDirection = .back
-                activeScreen = .signupVerification
+                break
             case .setupPhone:
                 screenNavDirection = .back
                 activeScreen = .setupProfile
             case .addEmergencyContacts:
                 screenNavDirection = .back
-                activeScreen = .setupPhone
+                activeScreen = .setupProfile
             case .sensitivitySetup:
                 screenNavDirection = .back
                 activeScreen = .addEmergencyContacts

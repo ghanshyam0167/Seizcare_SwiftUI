@@ -1,6 +1,7 @@
 "select_language" = "ভাষা নির্বাচন করুন";
 "done" = "সম্পন্ন";
 "next" = "পরবর্তী";
+"continue" = "চালিয়ে যান";
 "skip" = "এড়িয়ে যান";
 "finish_setup" = "সেটআপ শেষ করুন";
 "verify_email" = "ইমেল যাচাই করুন";
@@ -17,6 +18,18 @@
 "sign_up" = "সাইন আপ";
 "login" = "লগইন";
 "already_have_account" = "আপনার কি ইতিমধ্যে একটি অ্যাকাউন্ট আছে?";
+"welcome_to_seizcare" = "Seizcare-এ স্বাগতম";
+"onboarding_disclaimer_title" = "শুরু করার আগে";
+"onboarding_disclaimer_subtitle" = "এই অ্যাপটি শারীরবৃত্তীয় পরিবর্তনের ভিত্তিতে ডেটা মনিটর করতে এবং যোগাযোগদের সতর্ক করতে তৈরি। এটি কোনো মেডিকেল ডিভাইস নয় এবং কোনো চিকিৎসা অবস্থা নির্ণয় বা চিকিৎসার জন্য নয়।";
+"disclaimer_help_monitor" = "শারীরবৃত্তীয় পরিবর্তন ও খিঁচুনির প্যাটার্ন মনিটর করুন।";
+"disclaimer_help_alert" = "জরুরি সহায়তা লাগতে পারে এমন সময় বিশ্বস্ত যোগাযোগদের সতর্ক করুন।";
+"disclaimer_help_records" = "দৈনন্দিন যত্নের আলোচনায় সহায়ক রেকর্ড রাখুন।";
+"onboarding_detection_title" = "খিঁচুনি শনাক্তকরণ";
+"onboarding_detection_subtitle" = "শারীরবৃত্তীয় পরিবর্তন ও সম্ভাব্য খিঁচুনির প্যাটার্ন মনিটর করুন।";
+"onboarding_alert_title" = "জরুরি সতর্কতা";
+"onboarding_alert_subtitle" = "সহায়তা লাগতে পারে এমন সময় বিশ্বস্ত যোগাযোগদের জানান।";
+"onboarding_records_title" = "যত্নের রেকর্ড";
+"onboarding_records_subtitle" = "দৈনন্দিন যত্নের আলোচনার জন্য নোট রাখুন।";
 "onboarding_title_1" = "নিরাপদ থাকুন, সচেতন থাকুন";
 "onboarding_subtitle_1" = "Seizcare খিঁচুনির সময় আপনাকে বা আপনার প্রিয়জনকে পর্যবেক্ষণ এবং সহায়তা করতে সহায়তা করে।";
 "onboarding_title_2" = "স্মার্ট মনিটরিং";
@@ -39,6 +52,7 @@
 "logout" = "লগ আউট";
 
 "summary" = "সারাংশ";
+"dashboard" = "ড্যাশবোর্ড";
 "analysis" = "বিশ্লেষণ";
 "seizure_count" = "খিঁচুনির সংখ্যা";
 "sleep_vs_seizures" = "ঘুম বনাম খিঁচুনি";
@@ -97,7 +111,7 @@
 "ok" = "ঠিক আছে";
 "no_records_yet" = "এখনও কোনো রেকর্ড নেই";
 "no_records_desc" = "আপনার প্রথম সিজার ইভেন্ট লগ করতে + ট্যাপ করুন।\nআপনার রেকর্ড এখানে প্রদর্শিত হবে।";
-"all_records" = "সব রেকর্ড";
+"all_records" = "সব খিঁচুনি রেকর্ড";
 "unknown" = "অজানা";
 "%lld min" = "%lld মিনিট";
 "mild" = "মৃদু";

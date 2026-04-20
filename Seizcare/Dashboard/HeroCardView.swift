@@ -44,20 +44,20 @@ struct HeroCardView: View {
                 if records.isEmpty && sleepHours == 0 {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("ready_to_track")
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .font(.appTitle)
                             .foregroundStyle(Color.dashLabel)
                     }
                 } else {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("this_month")
-                            .font(.caption)
+                            .font(.appCaption)
                             .foregroundStyle(Color.dashSecondary)
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
                             Text(records.isEmpty ? "--" : "\(thisMonth.count)")
-                                .font(.system(size: 44, weight: .bold, design: .rounded))
+                                .font(.system(size: 42, weight: .bold))
                                 .foregroundStyle(Color.dashLabel)
                             Text("seizures")
-                                .font(.subheadline)
+                                .font(.appSubheadline)
                                 .foregroundStyle(Color.dashSecondary)
                                 .offset(y: -4)
                         }
@@ -76,7 +76,7 @@ struct HeroCardView: View {
                         .font(.system(size: 24))
                         .foregroundStyle(Color.dashSecondary.opacity(0.6))
                     Text("no_data_available")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.appFootnote)
                         .foregroundStyle(Color.dashSecondary)
                         .multilineTextAlignment(.center)
                 }
@@ -139,14 +139,17 @@ private struct StatPill: View {
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .medium))
+                .font(.appFootnote)
                 .foregroundStyle(color)
             Text(LocalizedStringKey(value))
-                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .font(.appCallout.weight(.bold))
                 .foregroundStyle(Color.dashLabel)
             Text(LocalizedStringKey(label))
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundStyle(Color.dashSecondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
     }

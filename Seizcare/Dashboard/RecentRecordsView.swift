@@ -27,8 +27,8 @@ struct RecentRecordsView: View {
                         Image(systemName: "chevron.right")
                     }
                 }
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.dashSeizure)
+                .font(.appFootnote)
+                .foregroundStyle(Color.dashAccent)
             }
 
             if recent.isEmpty {
@@ -91,12 +91,12 @@ private struct RecordRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(LocalizedStringKey(dateText))
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appSubheadline)
                         .foregroundStyle(Color.dashLabel)
                     Text("·")
                         .foregroundStyle(Color.dashTertiary)
                     Text(timeText)
-                        .font(.system(size: 13))
+                        .font(.appFootnote)
                         .foregroundStyle(Color.dashSecondary)
                         
                     Image(systemName: record.entryType == .automatic ? "waveform" : "pencil")
@@ -108,7 +108,7 @@ private struct RecordRow: View {
                     SeverityBadge(type: record.type)
                     if let trigger = record.triggers.first {
                         Text(LocalizedStringKey(trigger.localizationKey))
-                            .font(.caption)
+                            .font(.appCaption)
                             .foregroundStyle(Color.dashSecondary)
                     }
                 }
@@ -118,10 +118,10 @@ private struct RecordRow: View {
 
             VStack(alignment: .trailing, spacing: 4) {
                 Text(LocalizedStringKey(durationText))
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .font(.appFootnote)
                     .foregroundStyle(Color.dashLabel)
                 Text("duration")
-                    .font(.caption2)
+                    .font(.appCaption)
                     .foregroundStyle(Color.dashTertiary)
             }
 
@@ -143,7 +143,7 @@ struct SeverityBadge: View {
     var body: some View {
         if let type = type {
             Text(LocalizedStringKey(type.localizationKey))
-                .font(.caption2.weight(.semibold))
+                .font(.appCaptionStrong)
                 .foregroundStyle(type.color)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
@@ -151,7 +151,7 @@ struct SeverityBadge: View {
                 .clipShape(Capsule())
         } else {
             Text("Detected")
-                .font(.caption2.weight(.semibold))
+                .font(.appCaptionStrong)
                 .foregroundStyle(Color.dashSecondary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
@@ -168,12 +168,9 @@ struct SectionHeader: View {
     let icon: String
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Color.dashSecondary)
+        HStack {
             Text(LocalizedStringKey(title))
-                .font(.system(size: 17, weight: .bold))
+                .font(.appHeadline)
                 .foregroundStyle(Color.dashLabel)
         }
     }
@@ -190,7 +187,7 @@ struct EmptyStateCard: View {
                     .font(.system(size: 28))
                     .foregroundStyle(Color.dashTertiary)
                 Text(LocalizedStringKey(message))
-                    .font(.subheadline)
+                    .font(.appSubheadline)
                     .foregroundStyle(Color.dashSecondary)
                     .multilineTextAlignment(.center)
             }
