@@ -4,22 +4,6 @@ import Auth
 import Charts
 import CoreLocation
 
-// MARK: - Active Chart
-
-enum ActiveChart: Identifiable, Hashable {
-    case seizureFrequency
-    case sleepVsSeizures
-    case heartRateTimeline(SeizureRecord)
-
-    var id: String {
-        switch self {
-        case .seizureFrequency:          return "freq"
-        case .sleepVsSeizures:           return "sleep"
-        case .heartRateTimeline(let r):  return "hr-\(r.id.uuidString)"
-        }
-    }
-}
-
 // MARK: - Dashboard View
 
 struct DashboardView: View {
@@ -87,10 +71,11 @@ struct DashboardView: View {
                         sleepHours: viewModel.avgSleep7Days
                     )
                     
-                    if viewModel.hasIncompleteSeizure {
+                    if viewModel.shouldShowIncompleteRecordPrompt, let rec = viewModel.latestIncompleteSeizure {
                         Button {
                             withAnimation {
-                                selectedTab = .records
+                                viewModel.dismissedIncompleteSeizureId = rec.id
+                                viewModel.activeChart = .seizureDetail(rec)
                             }
                         } label: {
                             Text("Seizure detected — complete details")
@@ -105,24 +90,6 @@ struct DashboardView: View {
                         .buttonStyle(ScaleButtonStyle())
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
-                    
-                    // Demo Trigger Button
-                    Button {
-                        WatchConnectivityManager.shared.sendForceTriggerToWatch()
-                    } label: {
-                        HStack {
-                            Image(systemName: "bolt.fill")
-                            Text("Trigger Seizure (Demo)")
-                        }
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Color.dashSeizure)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 16)
-                        .background(Color.dashSeizure.opacity(0.1))
-                        .clipShape(Capsule())
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    .padding(.bottom, 4)
                     
                     if !viewModel.guidanceText.isEmpty && viewModel.displayHeartRate == nil {
                         Text(localizedGuidanceText)
@@ -246,6 +213,9 @@ if viewModel.isLoading {
                 SleepVsSeizuresChartView(records: records, sleep: sleep)
             case .heartRateTimeline(let rec):
                 HeartRateTimelineChartView(record: rec)
+            case .seizureDetail(let rec):
+                RecordDetailView(record: rec)
+                    .environmentObject(viewModel.recordsVM)
             }
         }
         .alert("location_access_required", isPresented: $showLocationSettingsAlert) {
