@@ -80,7 +80,48 @@ class EmergencyService {
         request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = httpBody
         
-        // 6. Retry Logic via Task
+        print("🚀 [EmergencyService] Initiating Twilio API Request to Edge Function...")
+        
+        // 6. DB Storage: Save Seizure Record and Notification
+        Task {
+            do {
+                // 6.1 Create Seizure Record
+                let seizureRecord = SeizureRecord(
+                    id: UUID(),
+                    userId: currentUserId,
+                    entryType: .automatic,
+                    startTime: Date(),
+                    endTime: nil,
+                    type: .moderate, // Default for auto-detected
+                    triggers: [],
+                    location: "Lat: \(latitude), Lon: \(longitude)",
+                    notes: "Automatically detected seizure alert."
+                )
+                
+                // 6.2 Create App Notification
+                let appNotification = AppNotification(
+                    id: UUID(),
+                    userId: currentUserId,
+                    title: "seizure_detected",
+                    message: "moderate_seizure_desc",
+                    type: .seizure,
+                    date: Date(),
+                    isRead: false
+                )
+                
+                // Parallel insertions
+                async let saveRecord: () = SupabaseService.shared.insertSeizureRecord(seizureRecord)
+                async let saveNotification: () = SupabaseService.shared.insertNotification(appNotification)
+                
+                _ = try await [saveRecord, saveNotification]
+                
+                print("✅ [EmergencyService] Seizure record and notification stored in database.")
+            } catch {
+                print("❌ [EmergencyService] Failed to store alert data: \(error.localizedDescription)")
+            }
+        }
+        
+        // 7. Retry Logic via Task for Twilio (Keep existing logic)
         return try await withCheckedThrowingContinuation { continuation in
             Task {
                 await executeRequestWithRetry(request: request, attempts: 3, continuation: continuation)
@@ -97,7 +138,7 @@ class EmergencyService {
                 }
                 
                 if (200...299).contains(httpResponse.statusCode) {
-                    print("✅ [EmergencyService] Emergency Alert Sent Successfully on attempt \(attempt).")
+                    print("✅ [IPHONE-SOS] Emergency Alert Sent Successfully via Twilio API on attempt \(attempt).")
                     continuation.resume()
                     return
                 } else {

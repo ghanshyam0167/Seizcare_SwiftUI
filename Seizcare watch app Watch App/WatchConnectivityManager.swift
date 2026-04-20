@@ -289,11 +289,19 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     }
     
     func triggerEmergencyAlert() {
-        print("[Watch-SOS] Sending alert trigger to iPhone")
+        print("[WATCH-SOS] Triggering background emergency alert transfer...")
         DispatchQueue.main.async { self.isAlarmActive = true }
+        
+        let userInfo: [String: Any] = ["type": "seizure_alert"]
+        print("[WATCH-SOS] Sending background alert: \(userInfo)")
+        
+        // Background-safe delivery
+        WCSession.default.transferUserInfo(userInfo)
+        
+        // Also send interactive message if reachable as a secondary path
         if WCSession.default.isReachable {
-            WCSession.default.sendMessage(["action": "triggerAlert"], replyHandler: nil) { error in
-                print("[Watch-SOS] Error sending alert trigger: \(error.localizedDescription)")
+            WCSession.default.sendMessage(userInfo, replyHandler: nil) { error in
+                print("[WATCH-SOS] Foreground message failed (Phone likely backgrounded): \(error.localizedDescription)")
             }
         }
     }

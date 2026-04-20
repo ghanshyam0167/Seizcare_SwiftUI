@@ -12,6 +12,14 @@ import Combine
 struct SeizcareApp: App {
     @StateObject var languageManager = LanguageManager()
     @Environment(\.scenePhase) private var scenePhase
+    
+    // Notification delegate to handle foreground sound
+    private let notificationDelegate = NotificationDelegate()
+    
+    init() {
+        UNUserNotificationCenter.current().delegate = notificationDelegate
+    }
+    
     var body: some Scene {
         WindowGroup {
             SplashScreenView()
@@ -32,5 +40,15 @@ struct SeizcareApp: App {
                 break
             }
         }
+    }
+}
+
+// MARK: - Notification Delegate
+class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        // Force the notification to show sound and alert even in the foreground
+        completionHandler([.banner, .sound, .badge, .list])
     }
 }

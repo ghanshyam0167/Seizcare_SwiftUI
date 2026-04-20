@@ -487,6 +487,14 @@ final class SupabaseService {
             .eq("id", value: id.uuidString.lowercased())
             .execute()
     }
+    
+    /// Insert a new app notification.
+    func insertNotification(_ notification: AppNotification) async throws {
+        try await client
+            .from("app_notifications")
+            .insert(notification)
+            .execute()
+    }
 }
 
     
