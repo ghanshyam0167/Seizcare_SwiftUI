@@ -265,3 +265,13 @@
 "save" = "సేవ్ చేయండి";
 "min_unit" = "నిమిషాలు";
 "otp_incorrect" = "మీరు నమోదు చేసిన OTP తప్పు.";
+
+// Demo Mode
+"developer" = "డెవలపర్";
+"demo_mode" = "డెమో మోడ్";
+"auto_trigger" = "ఆటో-ట్రిగర్";
+"off" = "ఆఫ్";
+"trigger_demo_detection" = "డెమో డిటెక్షన్ ట్రిగర్ చేయండి";
+
+// Demo Detection Banner
+"complete_details" = "వివరాలు పూర్తి చేయండి.";

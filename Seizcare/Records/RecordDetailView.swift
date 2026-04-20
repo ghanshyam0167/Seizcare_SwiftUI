@@ -26,6 +26,8 @@ struct RecordDetailView: View {
     private var heartRateSamples: [HeartRateSample] {
         MockDashboardData.heartRateSamples(for: currentRecord)
     }
+    
+    private var effectiveEndTime: Date { currentRecord.endTime ?? Date() }
 
     private var durationText: String {
         let totalSecs = Int(currentRecord.duration)
@@ -45,7 +47,7 @@ struct RecordDetailView: View {
 
     private var peakBPM: Int {
         heartRateSamples
-            .filter { $0.timestamp >= currentRecord.startTime && $0.timestamp <= currentRecord.endTime }
+            .filter { $0.timestamp >= currentRecord.startTime && $0.timestamp <= effectiveEndTime }
             .map(\.bpm)
             .max() ?? 0
     }
@@ -159,11 +161,11 @@ struct RecordDetailView: View {
             HStack(alignment: .center) {
                 HStack(spacing: 7) {
                     Circle()
-                        .fill(currentRecord.type.color)
+                        .fill((currentRecord.type?.color ?? Color.dashTertiary))
                         .frame(width: 9, height: 9)
-                    Text(currentRecord.type.displayName)
+                    Text(LocalizedStringKey(currentRecord.type?.localizationKey ?? "unknown"))
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(currentRecord.type.color)
+                        .foregroundStyle((currentRecord.type?.color ?? Color.dashSecondary))
                 }
                 Spacer()
                 // Entry type badge — minimal
@@ -206,7 +208,7 @@ struct RecordDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(currentRecord.type.color.opacity(0.12), lineWidth: 1)
+                .stroke((currentRecord.type?.color ?? Color.dashTertiary).opacity(0.12), lineWidth: 1)
         )
     }
 

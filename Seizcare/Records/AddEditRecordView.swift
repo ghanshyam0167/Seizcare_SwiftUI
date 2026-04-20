@@ -27,6 +27,7 @@ enum AddEditMode {
 struct AddEditRecordView: View {
     @EnvironmentObject var vm: RecordsViewModel
     @EnvironmentObject var languageManager: LanguageManager
+    @EnvironmentObject var seizureDetection: SeizureDetectionManager
     @Environment(\.dismiss) private var dismiss
 
     let mode: AddEditMode
@@ -57,9 +58,12 @@ struct AddEditRecordView: View {
 
     private var hasChanges: Bool {
         guard case .edit(let record) = mode else { return true }
+        // For ongoing auto-detected records, saving will set an end_time (completion),
+        // so treat the form as changed once required fields are present.
+        if record.endTime == nil { return true }
         return startTime != record.startTime ||
             durationMinutes != normalizedDurationMinutes(for: record) ||
-            seizureType != record.type ||
+            Optional(seizureType) != record.type ||
             selectedTriggers != Set(record.triggers) ||
             normalizedOptionalText(notes) != normalizedOptionalText(record.notes ?? "") ||
             normalizedOptionalText(location) != normalizedOptionalText(record.location ?? "")
@@ -90,7 +94,7 @@ struct AddEditRecordView: View {
             _startTime         = State(initialValue: record.startTime)
             let mins = Int(record.duration / 60)
             _durationMinutes   = State(initialValue: mins == 0 ? 1 : mins)
-            _seizureType       = State(initialValue: record.type)
+            _seizureType       = State(initialValue: record.type ?? .mild)
             _selectedTriggers  = State(initialValue: Set(record.triggers))
             _notes             = State(initialValue: record.notes ?? "")
             _location          = State(initialValue: record.location ?? "")
@@ -378,7 +382,16 @@ struct AddEditRecordView: View {
         // Get the real authenticated user ID; fall back to mock only in previews
         let userId = await SupabaseService.shared.currentUserId() ?? MockDashboardData.userId
         
-        let finalEndTime = startTime.addingTimeInterval(TimeInterval(durationMinutes * 60))
+        let now = Date()
+        let computedEndTime = startTime.addingTimeInterval(TimeInterval(durationMinutes * 60))
+        let finalEndTime: Date?
+        switch mode {
+        case .add:
+            finalEndTime = computedEndTime
+        case .edit(let existing):
+            // If this is an ongoing record (end_time == NULL), completing sets end_time to "now".
+            finalEndTime = existing.endTime == nil ? now : computedEndTime
+        }
         let trimmedLocation = location.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -400,6 +413,9 @@ struct AddEditRecordView: View {
         case .edit:
             vm.updateRecord(record)
         }
+        
+        // If this completes an active demo-mode seizure, stop tagging future logs.
+        seizureDetection.handleRecordSaved(record)
         dismiss()
     }
 
@@ -469,4 +485,6 @@ private struct DatePickerRow: View {
 #Preview {
     AddEditRecordView(mode: .add)
         .environmentObject(RecordsViewModel())
+        .environmentObject(LanguageManager())
+        .environmentObject(SeizureDetectionManager())
 }

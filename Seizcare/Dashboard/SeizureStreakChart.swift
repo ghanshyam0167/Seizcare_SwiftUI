@@ -12,10 +12,12 @@ struct SeizureStreakMiniChart: View {
     let records: [SeizureRecord]
     
     private var daysSinceLast: Int {
-        let sorted = records.sorted { $0.endTime > $1.endTime }
-        guard let last = sorted.first?.endTime else { return 0 }
+        let now = Date()
+        let sorted = records.sorted { ($0.endTime ?? now) > ($1.endTime ?? now) }
+        guard let last = sorted.first else { return 0 }
+        let lastEnd = last.endTime ?? now
         let cal = Calendar.current
-        let components = cal.dateComponents([.day], from: cal.startOfDay(for: last), to: cal.startOfDay(for: Date()))
+        let components = cal.dateComponents([.day], from: cal.startOfDay(for: lastEnd), to: cal.startOfDay(for: now))
         return max(0, components.day ?? 0)
     }
 
@@ -68,10 +70,12 @@ struct SeizureStreakChartView: View {
     let records: [SeizureRecord]
 
     private var currentStreak: Int {
-        let sorted = records.sorted { $0.endTime > $1.endTime }
-        guard let last = sorted.first?.endTime else { return 0 }
+        let now = Date()
+        let sorted = records.sorted { ($0.endTime ?? now) > ($1.endTime ?? now) }
+        guard let last = sorted.first else { return 0 }
+        let lastEnd = last.endTime ?? now
         let cal = Calendar.current
-        return max(0, cal.dateComponents([.day], from: cal.startOfDay(for: last), to: cal.startOfDay(for: Date())).day ?? 0)
+        return max(0, cal.dateComponents([.day], from: cal.startOfDay(for: lastEnd), to: cal.startOfDay(for: now)).day ?? 0)
     }
 
     private var longestStreak: Int {
@@ -81,7 +85,7 @@ struct SeizureStreakChartView: View {
         let cal = Calendar.current
         
         for i in 1..<sorted.count {
-            let prev = cal.startOfDay(for: sorted[i-1].endTime)
+            let prev = cal.startOfDay(for: sorted[i-1].endTime ?? sorted[i-1].startTime)
             let curr = cal.startOfDay(for: sorted[i].startTime)
             let gap = cal.dateComponents([.day], from: prev, to: curr).day ?? 0
             if gap > maxStreak { maxStreak = gap }

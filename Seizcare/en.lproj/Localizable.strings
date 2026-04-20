@@ -346,3 +346,13 @@
 "save" = "Save";
 "min_unit" = "min";
 "otp_incorrect" = "The OTP you entered is incorrect.";
+
+// Demo Mode
+"developer" = "DEVELOPER";
+"demo_mode" = "Demo Mode";
+"auto_trigger" = "Auto-trigger";
+"off" = "Off";
+"trigger_demo_detection" = "Trigger Demo Detection";
+
+// Demo Detection Banner
+"complete_details" = "Complete details.";

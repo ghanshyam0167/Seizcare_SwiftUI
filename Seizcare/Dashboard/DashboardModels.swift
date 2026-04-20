@@ -42,7 +42,28 @@ enum SeizureType: String, Codable, CaseIterable {
 }
 
 enum EntryType: String, Codable {
-    case automatic, manual
+    /// Stored as `auto-detected` in the database to match backend naming.
+    case automatic = "auto-detected"
+    case manual = "manual"
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = (try? container.decode(String.self))?.lowercased() ?? ""
+        switch raw {
+        case "auto-detected", "automatic", "auto_detected", "auto":
+            self = .automatic
+        case "manual":
+            self = .manual
+        default:
+            // Be permissive for forward-compat; treat unknown values as manual.
+            self = .manual
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 enum SeizureTrigger: String, Codable, CaseIterable, Identifiable {
@@ -68,14 +89,16 @@ struct SeizureRecord: Identifiable, Codable, Hashable {
     let userId: UUID
     let entryType: EntryType
     let startTime: Date
-    let endTime: Date
-    let type: SeizureType
+    let endTime: Date?
+    let type: SeizureType?
     let triggers: [SeizureTrigger]
     let location: String?
     let notes: String?
 
     // Derived — not stored
-    var duration: TimeInterval { endTime.timeIntervalSince(startTime) }
+    /// For ongoing (endTime == nil) records, we treat duration as time since start.
+    var duration: TimeInterval { (endTime ?? Date()).timeIntervalSince(startTime) }
+    var isOngoing: Bool { endTime == nil }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -87,6 +110,45 @@ struct SeizureRecord: Identifiable, Codable, Hashable {
         case triggers
         case location
         case notes
+    }
+    
+    init(
+        id: UUID,
+        userId: UUID,
+        entryType: EntryType,
+        startTime: Date,
+        endTime: Date?,
+        type: SeizureType?,
+        triggers: [SeizureTrigger],
+        location: String?,
+        notes: String?
+    ) {
+        self.id = id
+        self.userId = userId
+        self.entryType = entryType
+        self.startTime = startTime
+        self.endTime = endTime
+        self.type = type
+        self.triggers = triggers
+        self.location = location
+        self.notes = notes
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(UUID.self, forKey: .id)
+        userId = try container.decode(UUID.self, forKey: .userId)
+        entryType = try container.decode(EntryType.self, forKey: .entryType)
+        startTime = try container.decode(Date.self, forKey: .startTime)
+        endTime = try container.decodeIfPresent(Date.self, forKey: .endTime)
+        type = try container.decodeIfPresent(SeizureType.self, forKey: .type)
+        
+        // Supabase can return `triggers` as null for auto-detected stubs; treat as empty.
+        triggers = (try? container.decode([SeizureTrigger].self, forKey: .triggers)) ?? []
+        
+        location = try container.decodeIfPresent(String.self, forKey: .location)
+        notes = try container.decodeIfPresent(String.self, forKey: .notes)
     }
 }
 
@@ -239,8 +301,9 @@ struct MockDashboardData {
     }()
 
     static func heartRateSamples(for record: SeizureRecord) -> [HeartRateSample] {
+        let endTime = record.endTime ?? Date()
         let windowStart = record.startTime.addingTimeInterval(-3600)
-        let windowEnd   = record.endTime.addingTimeInterval(3600)
+        let windowEnd   = endTime.addingTimeInterval(3600)
         let interval: TimeInterval = 120
 
         var samples: [HeartRateSample] = []
@@ -250,12 +313,12 @@ struct MockDashboardData {
             if current < record.startTime {
                 let progress = max(0, current.timeIntervalSince(windowStart)) / 3600
                 bpm = Int(68 + progress * 17) + Int.random(in: -3...3)
-            } else if current <= record.endTime {
+            } else if current <= endTime {
                 let dur = max(record.duration, 1)
                 let p   = current.timeIntervalSince(record.startTime) / dur
                 bpm = Int(85 + sin(p * .pi) * 70) + Int.random(in: -5...5)
             } else {
-                let minutesAfter = current.timeIntervalSince(record.endTime) / 60
+                let minutesAfter = current.timeIntervalSince(endTime) / 60
                 let p            = min(minutesAfter / 60.0, 1.0)
                 bpm = Int(150 - p * 80) + Int.random(in: -4...4)
             }

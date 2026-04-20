@@ -22,13 +22,38 @@ struct AppNotification: Identifiable, Codable {
     
     enum NotificationType: String, Codable {
         case seizure
+        case seizureAlert = "seizure_alert"
         case heartRate
         case abnormalActivity
         case system
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            let raw = (try? container.decode(String.self))?.lowercased() ?? ""
+            switch raw {
+            case "seizure_alert":
+                self = .seizureAlert
+            case "seizure":
+                self = .seizure
+            case "heart_rate", "heartrate", "heart_rate_spike", "heartrate_spike", "heartratealert", "heartrate_alert", "heartRate".lowercased():
+                self = .heartRate
+            case "abnormal_activity", "abnormalactivity":
+                self = .abnormalActivity
+            case "system":
+                self = .system
+            default:
+                self = .system
+            }
+        }
+        
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            try container.encode(rawValue)
+        }
         
         var icon: String {
             switch self {
-            case .seizure: return "waveform.path.ecg"
+            case .seizure, .seizureAlert: return "waveform.path.ecg"
             case .heartRate: return "heart.fill"
             case .abnormalActivity: return "exclamationmark.triangle.fill"
             case .system: return "bell.fill"
@@ -37,7 +62,7 @@ struct AppNotification: Identifiable, Codable {
         
         var color: Color {
             switch self {
-            case .seizure: return .errorRed
+            case .seizure, .seizureAlert: return .errorRed
             case .heartRate: return .orange
             case .abnormalActivity: return .yellow
             case .system: return .blue
@@ -59,6 +84,7 @@ struct AppNotification: Identifiable, Codable {
         // Map dynamic backend messages to standard localized generic descriptions
         if message.lowercased().contains("seizure activity report") { return "weekly_report_ready_desc".localized }
         if message.lowercased().contains("moderate seizure was detected") { return "seizure_detected_desc".localized }
+        if message.lowercased().contains("emergency contacts are being notified") { return "notifying_contacts".localized }
         if message.lowercased().contains("heart rate spiked") { return "heart_rate_spike_desc".localized }
         if message.lowercased().contains("unusual motion patterns") { return "abnormal_movement_desc".localized }
         return message.localized

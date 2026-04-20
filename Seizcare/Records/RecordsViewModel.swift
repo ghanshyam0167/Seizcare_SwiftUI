@@ -77,7 +77,9 @@ struct RecordFilter {
     }
 
     func matches(_ record: SeizureRecord) -> Bool {
-        if !severities.isEmpty, !severities.contains(record.type) { return false }
+        if !severities.isEmpty {
+            guard let type = record.type, severities.contains(type) else { return false }
+        }
         if !triggers.isEmpty, !triggers.contains(where: { record.triggers.contains($0) }) { return false }
         if !durations.isEmpty, !durations.contains(where: { $0.matches(record.duration) }) { return false }
         if let dr = dateRange {
@@ -174,6 +176,19 @@ final class RecordsViewModel: ObservableObject {
             if records.isEmpty { records = [] }
         }
     }
+    
+    // MARK: - Remote Upsert (no-write)
+    
+    /// Inserts or replaces a record in local state without writing it back to Supabase.
+    /// Used when a record is created/updated by another pipeline (e.g. demo detection).
+    func upsertFromRemote(_ record: SeizureRecord) {
+        if let idx = records.firstIndex(where: { $0.id == record.id }) {
+            records[idx] = record
+        } else {
+            records.insert(record, at: 0)
+        }
+        records.sort { $0.startTime > $1.startTime }
+    }
 
     // MARK: - Computed: search + filter applied
 
@@ -186,12 +201,12 @@ final class RecordsViewModel: ObservableObject {
             let fmt = DateFormatter()
             fmt.dateFormat = "MMMM d, yyyy MMM d"
             base = base.filter { r in
-                let notesMatch   = r.notes?.lowercased().contains(q) ?? false
-                let triggerMatch = r.triggers.contains { $0.rawValue.lowercased().contains(q) }
-                let typeMatch    = r.type.displayName.lowercased().contains(q)
-                let dateMatch    = fmt.string(from: r.startTime).lowercased().contains(q)
-                return notesMatch || triggerMatch || typeMatch || dateMatch
-            }
+            let notesMatch   = r.notes?.lowercased().contains(q) ?? false
+            let triggerMatch = r.triggers.contains { $0.rawValue.lowercased().contains(q) }
+            let typeMatch    = r.type?.displayName.lowercased().contains(q) ?? false
+            let dateMatch    = fmt.string(from: r.startTime).lowercased().contains(q)
+            return notesMatch || triggerMatch || typeMatch || dateMatch
+        }
         }
 
         // Filters

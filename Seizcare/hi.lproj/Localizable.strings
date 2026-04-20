@@ -331,3 +331,13 @@
 "save" = "सहेजें";
 "min_unit" = "मिनट";
 "otp_incorrect" = "आपने जो OTP दर्ज किया है वह गलत है।";
+
+// Demo Mode
+"developer" = "डेवलपर";
+"demo_mode" = "डेमो मोड";
+"auto_trigger" = "ऑटो-ट्रिगर";
+"off" = "बंद";
+"trigger_demo_detection" = "डेमो डिटेक्शन ट्रिगर करें";
+
+// Demo Detection Banner
+"complete_details" = "विवरण पूरा करें।";

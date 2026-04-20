@@ -266,3 +266,13 @@
 "save" = "সংরক্ষণ করুন";
 "min_unit" = "মিনিট";
 "otp_incorrect" = "আপনি যে OTP লিখেছেন তা ভুল।";
+
+// Demo Mode
+"developer" = "ডেভেলপার";
+"demo_mode" = "ডেমো মোড";
+"auto_trigger" = "অটো-ট্রিগার";
+"off" = "বন্ধ";
+"trigger_demo_detection" = "ডেমো ডিটেকশন ট্রিগার করুন";
+
+// Demo Detection Banner
+"complete_details" = "বিস্তারিত সম্পূর্ণ করুন।";

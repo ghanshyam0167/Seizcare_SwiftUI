@@ -14,13 +14,18 @@ import Auth
 final class SupabaseService {
     
     static let shared = SupabaseService()
+
+    /// Centralized Supabase project configuration.
+    /// Keep these in one place so REST-based services can reuse the same values.
+    static let supabaseURL = URL(string: "https://ydbudbenyxrfwdzumxbu.supabase.co")!
+    static let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw"
     
     let client: SupabaseClient
     
     private init() {
         client = SupabaseClient(
-            supabaseURL: URL(string: "https://ydbudbenyxrfwdzumxbu.supabase.co")!,
-            supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw"
+            supabaseURL: SupabaseService.supabaseURL,
+            supabaseKey: SupabaseService.anonKey
         )
     }
     
@@ -70,7 +75,7 @@ final class SupabaseService {
         
         // 4. Headers: Pass anonKey as Authorization to satisfy Kong's API gateway,
         // and pass the actual user's ES256 token in a custom header to bypass Kong's rejection.
-        let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkYnVkYmVueXhyZndkenVteGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDQzMzcsImV4cCI6MjA5MTkyMDMzN30.ydIKpaJGRWNeusSN-Aa4LGy8Hh_evmILnv9Z0ZRs4mw"
+        let anonKey = SupabaseService.anonKey
         
         request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -139,6 +144,13 @@ final class SupabaseService {
     /// Returns the currently authenticated user's UUID, or nil if not logged in.
     func currentUserId() async -> UUID? {
         return try? await client.auth.user().id
+    }
+
+    /// Returns the current access token for Supabase REST calls.
+    /// Throws if the user is not authenticated.
+    func currentAccessToken() async throws -> String {
+        let session = try await client.auth.session
+        return session.accessToken
     }
     
     // MARK: - Sign Up (OTP)
@@ -377,9 +389,9 @@ final class SupabaseService {
         let user_id: String
         let entry_type: String
         let start_time: String
-        let end_time: String
-        let severity_type: String
-        let triggers: [String]
+        let end_time: String?
+        let severity_type: String?
+        let triggers: [String]?
         let location: String?
         let notes: String?
         
@@ -389,9 +401,9 @@ final class SupabaseService {
             self.user_id       = record.userId.uuidString.lowercased()
             self.entry_type    = record.entryType.rawValue
             self.start_time    = fmt.string(from: record.startTime)
-            self.end_time      = fmt.string(from: record.endTime)
-            self.severity_type = record.type.rawValue
-            self.triggers      = record.triggers.map { $0.rawValue }
+            self.end_time      = record.endTime.map { fmt.string(from: $0) }
+            self.severity_type = record.type?.rawValue
+            self.triggers      = record.triggers.isEmpty ? nil : record.triggers.map { $0.rawValue }
             self.location      = record.location
             self.notes         = record.notes
         }

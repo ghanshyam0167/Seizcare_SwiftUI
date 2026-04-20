@@ -265,3 +265,13 @@
 "save" = "जतन करा";
 "min_unit" = "मिनिट";
 "otp_incorrect" = "तुम्ही टाकलेला OTP चुकीचा आहे.";
+
+// Demo Mode
+"developer" = "डेव्हलपर";
+"demo_mode" = "डेमो मोड";
+"auto_trigger" = "ऑटो-ट्रिगर";
+"off" = "बंद";
+"trigger_demo_detection" = "डेमो डिटेक्शन ट्रिगर करा";
+
+// Demo Detection Banner
+"complete_details" = "तपशील पूर्ण करा.";

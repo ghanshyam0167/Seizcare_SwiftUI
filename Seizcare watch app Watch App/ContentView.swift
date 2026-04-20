@@ -7,12 +7,29 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var connectivity = WatchConnectivityManager.shared
+    @EnvironmentObject private var pipeline: DetectionPipelineManager
     
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 // Screen 2: SOS Alert (Now at Top)
                 WatchAlertView()
+                
+                // Demo System Trigger
+                if pipeline.demoMode {
+                    Button(action: {
+                        pipeline.forceSeizureTrigger = true
+                        print("[UI] Demo Seizure Triggered")
+                    }) {
+                        HStack {
+                            Image(systemName: "ladybug.fill")
+                            Text("Trigger Seizure")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.white)
+                    }
+                    .tint(.purple)
+                }
                 
                 // Screen 1: Dashboard (Live HR)
                 DashboardView(connectivity: connectivity)

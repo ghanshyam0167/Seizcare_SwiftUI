@@ -256,6 +256,22 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
     
+    // MARK: - Demo System
+    
+    func sendDemoTrigger(hr: Double) {
+        print("[Watch-DEMO] Sending demo trigger to iPhone")
+        DispatchQueue.main.async { self.isAlarmActive = true }
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage([
+                "action": "triggerDemoAlert",
+                "heartRate": hr,
+                "probability": 1.0
+            ], replyHandler: nil) { error in
+                print("[Watch-DEMO] Error sending demo trigger: \(error.localizedDescription)")
+            }
+        }
+    }
+    
     private func mapSensitivityIntToString(_ value: Int) -> String {
         switch value {
         case 0: return "low"

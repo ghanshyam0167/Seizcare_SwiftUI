@@ -16,6 +16,8 @@ struct MainTabView: View {
     @StateObject private var recordsVM = RecordsViewModel()
     @StateObject private var healthVM = HealthViewModel()
     @StateObject private var avatarVM = AvatarViewModel.shared
+    @StateObject private var demoMode = DemoModeManager()
+    @StateObject private var seizureDetection = SeizureDetectionManager()
     
     @State private var selectedTab: Tab = .dashboard
     @State private var tabDirection: ScreenNavDirection = .forward
@@ -85,11 +87,17 @@ struct MainTabView: View {
         .tint(Color.dashSeizure)
         .task {
             await avatarVM.refresh()
+            await seizureDetection.bootstrapIfNeeded(recordsVM: recordsVM)
+            seizureDetection.scheduleAutoTriggerIfNeeded(demoMode: demoMode, recordsVM: recordsVM, healthVM: healthVM)
         }
         .sheet(isPresented: $recordsVM.showAddRecord) {
             AddEditRecordView(mode: .add)
                 .environmentObject(recordsVM)
+                .environmentObject(seizureDetection)
         }
+        .environmentObject(demoMode)
+        .environmentObject(seizureDetection)
+        .environmentObject(AppNotificationManager.shared)
     }
 }
 

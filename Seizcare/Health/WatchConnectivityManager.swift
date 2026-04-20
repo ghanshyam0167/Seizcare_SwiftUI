@@ -248,6 +248,13 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
                     EmergencyAudioManager.shared.stopAlarm()
                     NotificationCenter.default.post(name: NSNotification.Name("StopEmergencySiren"), object: nil)
                 }
+            } else if action == "triggerDemoAlert" {
+                print("[WC] Watch triggered DEMO alert")
+                let hr = message["heartRate"] as? Double ?? 0
+                let prob = message["probability"] as? Double ?? 1.0
+                Task {
+                    await SeizureEventManager.shared.seizureDetected(probability: prob, heartRate: hr)
+                }
             }
         }
     }

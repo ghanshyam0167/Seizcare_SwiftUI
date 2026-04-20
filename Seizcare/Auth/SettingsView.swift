@@ -4,6 +4,7 @@ struct SettingsView: View {
     @ObservedObject var vm: AuthViewModel
     @EnvironmentObject var languageManager: LanguageManager
     @EnvironmentObject var avatarVM: AvatarViewModel
+    @EnvironmentObject var demoMode: DemoModeManager
     @State private var user: User? = UserDataModel.shared.getCurrentUser()
     @State private var showingEmergencyContacts = false
     @State private var showingSensitivity = false
@@ -115,6 +116,71 @@ struct SettingsView: View {
                                 showDivider: false
                             ) {
                                 showingWatchConnection = true
+                            }
+                        }
+                        .background(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(Color.authCardBackground)
+                        )
+                    }
+                    
+                    // Developer (Demo Mode)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("developer")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.authSecondaryText)
+                            .padding(.leading, 12)
+                        
+                        VStack(spacing: 0) {
+                            HStack(spacing: 16) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.brandPrimary.opacity(0.15))
+                                        .frame(width: 40, height: 40)
+                                    Image(systemName: "ladybug.fill")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(.brandPrimary)
+                                }
+                                
+                                Text("demo_mode")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.authPrimaryText)
+                                
+                                Spacer()
+                                
+                                Toggle("", isOn: $demoMode.isEnabled)
+                                    .labelsHidden()
+                            }
+                            .padding(16)
+                            
+                            if demoMode.isEnabled {
+                                Divider().padding(.leading, 72)
+                                
+                                HStack(spacing: 16) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.brandPrimary.opacity(0.15))
+                                            .frame(width: 40, height: 40)
+                                        Image(systemName: "clock.arrow.2.circlepath")
+                                            .font(.system(size: 18, weight: .semibold))
+                                            .foregroundColor(.brandPrimary)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("auto_trigger")
+                                            .font(.system(size: 17, weight: .semibold))
+                                            .foregroundColor(.authPrimaryText)
+                                        Text(demoMode.autoTriggerSeconds == 0 ? "off".localized : "\(demoMode.autoTriggerSeconds)s")
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundColor(.authSecondaryText)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Stepper("", value: $demoMode.autoTriggerSeconds, in: 0...120, step: 5)
+                                        .labelsHidden()
+                                }
+                                .padding(16)
                             }
                         }
                         .background(

@@ -12,6 +12,7 @@ struct Seizcare_watch_app_Watch_AppApp: App {
                     print("[Pipeline] Auto-starting seizure detection pipeline on launch...")
                     pipeline.start()
                 }
+                .environmentObject(pipeline)
         }
         .onChange(of: scenePhase) { newPhase in
             switch newPhase {

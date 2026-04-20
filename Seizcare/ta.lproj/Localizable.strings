@@ -265,3 +265,13 @@
 "save" = "சேமிக்கவும்";
 "min_unit" = "நிமிடம்";
 "otp_incorrect" = "நீங்கள் உள்ளிட்ட OTP தவறானது.";
+
+// Demo Mode
+"developer" = "டெவலப்பர்";
+"demo_mode" = "டெமோ மோடு";
+"auto_trigger" = "ஆட்டோ-டிரிகர்";
+"off" = "ஆஃப்";
+"trigger_demo_detection" = "டெமோ கண்டறிதலைத் தொடக்கு";
+
+// Demo Detection Banner
+"complete_details" = "விவரங்களை முடிக்கவும்.";

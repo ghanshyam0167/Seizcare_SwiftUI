@@ -23,6 +23,9 @@ enum ActiveChart: Identifiable, Hashable {
 struct DashboardView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @EnvironmentObject var languageManager: LanguageManager
+    @EnvironmentObject var demoMode: DemoModeManager
+    @EnvironmentObject var seizureDetection: SeizureDetectionManager
+    @EnvironmentObject var notificationManager: AppNotificationManager
     @Binding var selectedTab: Tab
 
     @StateObject private var viewModel: DashboardViewModel
@@ -32,6 +35,7 @@ struct DashboardView: View {
     @State private var sliderTriggered = false
     @State private var sliderCompleted = false
     @State private var showLocationSettingsAlert = false
+    @State private var navigateToRecord: SeizureRecord? = nil
 
     init(selectedTab: Binding<Tab>, recordsVM: RecordsViewModel, healthVM: HealthViewModel) {
         self._selectedTab = selectedTab
@@ -49,6 +53,9 @@ struct DashboardView: View {
     private var sleep: [SleepData] { viewModel.sleepData }
     private var localizedGuidanceText: String {
         localized(viewModel.guidanceText, languageCode: languageManager.currentLanguage)
+    }
+    private var ongoingRecord: SeizureRecord? {
+        records.first(where: { $0.isOngoing })
     }
 
     // MARK: - Body
@@ -84,6 +91,80 @@ struct DashboardView: View {
                         heartRate: viewModel.displayHeartRate,
                         sleepHours: viewModel.avgSleep7Days
                     )
+
+                    // Ongoing seizure banner (end_time is NULL)
+                    if let ongoingRecord {
+                        Button {
+                            navigateToRecord = ongoingRecord
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(Color.dashSeizure)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("seizure_detected")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(Color.dashLabel)
+                                    Text("complete_details")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundStyle(Color.dashSecondary)
+                                }
+                                Spacer()
+                                if let hr = seizureDetection.lastDetectedHeartRate {
+                                    Text("\(hr) BPM")
+                                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(Color.dashSeizure)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(Color.dashSeizure.opacity(0.10))
+                                        .clipShape(Capsule())
+                                }
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(Color.dashTertiary)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .background(Color.dashCard)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(Color.dashSeizure.opacity(0.15), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                    
+                    // Demo trigger (only when demo mode enabled)
+                    if demoMode.isEnabled {
+                        Button {
+                            Task {
+                                await seizureDetection.triggerDemoDetection(
+                                    demoMode: demoMode,
+                                    recordsVM: viewModel.recordsVM,
+                                    healthVM: viewModel.healthVM
+                                )
+                            }
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "ladybug.fill")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text("trigger_demo_detection")
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                Spacer()
+                                if seizureDetection.isDetecting {
+                                    ProgressView()
+                                        .scaleEffect(0.9)
+                                }
+                            }
+                            .foregroundStyle(Color.dashSecondary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.dashCard)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
                     
                     if !viewModel.guidanceText.isEmpty && viewModel.displayHeartRate == nil {
                         Text(localizedGuidanceText)
@@ -209,6 +290,10 @@ if viewModel.isLoading {
                 HeartRateTimelineChartView(record: rec)
             }
         }
+        .navigationDestination(item: $navigateToRecord) { record in
+            RecordDetailView(record: record)
+                .environmentObject(viewModel.recordsVM)
+        }
         .alert("location_access_required", isPresented: $showLocationSettingsAlert) {
             Button("cancel", role: .cancel) {}
             Button("settings") {
@@ -216,6 +301,32 @@ if viewModel.isLoading {
             }
         } message: {
             Text("enable_location_desc")
+        }
+        .alert(item: $notificationManager.activeAlert) { alert in
+            Alert(
+                title: Text(alert.titleKey.localized),
+                message: Text(alert.heartRate != nil
+                              ? "\(alert.messageKey.localized)\n\("heart_rate".localized): \(alert.heartRate!) BPM"
+                              : alert.messageKey.localized),
+                primaryButton: .default(Text("details".localized)) {
+                    if let r = viewModel.recordsVM.records.first(where: { $0.id == alert.recordId }) {
+                        navigateToRecord = r
+                    }
+                    notificationManager.activeAlert = nil
+                },
+                secondaryButton: .cancel(Text("ok".localized)) {
+                    notificationManager.activeAlert = nil
+                }
+            )
+        }
+        .onAppear {
+            seizureDetection.scheduleAutoTriggerIfNeeded(demoMode: demoMode, recordsVM: viewModel.recordsVM, healthVM: viewModel.healthVM)
+        }
+        .onChange(of: demoMode.isEnabled) { _, _ in
+            seizureDetection.scheduleAutoTriggerIfNeeded(demoMode: demoMode, recordsVM: viewModel.recordsVM, healthVM: viewModel.healthVM)
+        }
+        .onChange(of: demoMode.autoTriggerSeconds) { _, _ in
+            seizureDetection.scheduleAutoTriggerIfNeeded(demoMode: demoMode, recordsVM: viewModel.recordsVM, healthVM: viewModel.healthVM)
         }
 .alert("Error", isPresented: Binding(
     get: { viewModel.errorMessage != nil },
@@ -237,6 +348,14 @@ if viewModel.isLoading {
 )
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WatchTriggeredAlert"))) { _ in
             print("[Dashboard] Received Watch SOS notification for UI feedback.")
+        }
+        .sheet(item: $navigateToRecord) { record in
+            ActiveSeizureCompletionView(record: record)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RefreshRecords"))) { _ in
+            Task {
+                await viewModel.recordsVM.fetchRecords()
+            }
         }
     }
     
